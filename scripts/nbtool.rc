@@ -86,6 +86,7 @@ EXCL_FN_INIT_NOTEBOOK() {
         if [ -f .dir ]; then
             # Detect moved dir with out of date ~/.dir
             [ "$PWD" != "$(cat .dir)" ] && DIE ".dir out of date";
+            NB_DIR=$PWD
         else
             echo $PWD > .dir
         fi
@@ -129,6 +130,8 @@ EXCL_FN_INIT_NOTEBOOK() {
     echo "==== $LAB_MODE Lab weight[$LAB_WEIGHT] / tag[$LAB_TAG] / name[$LAB_NAME] ====" | EXCL_FN_HIGHLIGHT_EOL weight
     SET_FRONTMATTER "$LAB_NAME" "$LAB_WEIGHT"
 
+    echo "NB_DIR=$NB_DIR"
+    echo "NB=$NB"
     EXCL_FN_FILTER_NOTEBOOK $NB
 }
 
@@ -196,7 +199,8 @@ REPLACE_HOME_STDIN() {
 #
 EXCL_FN_FILTER_NOTEBOOK() {
     NOTEBOOK="$1"
-    [ -z "$NOTEBOOK" ] && NOTEBOOK=$(ls -1tr *.ipynb | grep -v filtered | tail -1)
+    #[ -z "$NOTEBOOK" ] && NOTEBOOK=$(ls -1tr *.ipynb | grep -v filtered | tail -1)
+    [ -z "$NOTEBOOK" ] && NOTEBOOK=README.ipynb
     
     echo; echo "==== Filtering current notebook ===="
 
@@ -230,23 +234,26 @@ EXCL_FN_FILTER_NOTEBOOK() {
     grep "K_"  $OP_NOTEBOOK | EXCL_FN_HIGHLIGHT_MATCH K_
 
     S_NB=$( echo $NOTEBOOK | REPLACE_HOME_STDIN )
-    NUM=$( jq '.' $NOTEBOOK  | grep -c __ )
+    __EXCLUDE="__start_kubectl"
+    NUM=$( jq '.' $NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
     [ "$NUM" = "0" ] && {
         echo; echo "Good: No VAR defs/usages in i/p file"
     } || {
-        echo; echo "Error: $NUM VAR defs/usages in i/p file: $S_NB"
-        DIE "Can't continue"
+        echo; echo "$NUM VAR defs/usages in i/p file: $S_NB"
+        # jq '.' $NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __
+        # DIE "Can't continue"
     }
 
     S_OP_NB=$( echo $OP_NOTEBOOK | REPLACE_HOME_STDIN )
-    NUM=$( jq '.' $OP_NOTEBOOK  | grep -c __ )
+    __EXCLUDE="__start_kubectl"
+    NUM=$( jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
     [ "$NUM" = "0" ] && {
         echo; echo "Good: No VAR defs/usages in o/p file"
     } || {
         echo; echo "Error: $NUM VAR defs/usages in o/p file: $S_OP_NB"
         #echo; echo "VARS in output file: $S_OP_NB"
-        jq '.' $OP_NOTEBOOK  | grep __
-        DIE "Can't continue"
+        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep __ | EXCL_FN_HIGHLIGHT
+        #DIE "Can't continue"
     }
 
     ( cd $NB_DIR;
@@ -284,6 +291,7 @@ EXCL_FN_FILTER_NOTEBOOK() {
         # FILTER_OK_CHECK:
         #echo; ls -altr $NB_DIR/README.md | EXCL_FN_COLOUR green
         echo; ls -altr ${NAME}.*  | EXCL_FN_COLOUR green
+        #ls -altr *.md
     )
 
     return 0
@@ -348,6 +356,8 @@ K_CREATE() {
     # TODO: If kubectl create dep, create deploy  => recuperate IP, PORT info
     # TODO: If kubectl run                        => recuperate IP, PORT info
     # Check in YAML ?!
+    #if [ "$1" = "pod" ]; then
+    #fi
 
     # TODO:
     # Create deploy - wait for Pods ready? ==> NO use WAIT_PODS function
@@ -393,23 +403,24 @@ SET_NAMESPACE() {
     NS="default"
 }
 
-KUBECTL_GET_SVCS() {
+K_GET_SVC() {
     SET_NAMESPACE
     [ "$1" = "-n" ] && { NS=$2; shift; shift; }
 
     kubectl -n $NS get svc $*
-    SET_VAR_SVC_IPS
-    SET_VAR_SVC_PORT
+    SET_VAR_SVC_IP $1
+    SET_VAR_SVC_PORT $1
+    SET_VAR_SVC_EXTIP $1
 }
 
-KUBECTL_GET_PODS() {
+K_GET_PODS() {
     SET_NAMESPACE
     [ "$1" = "-n" ] && { NS=$2; shift; shift; }
     POD_NAME=$1;
 
     #kubectl get pod $*
     kubectl -n $NS get pod | grep " $POD_NAME"
-    SET_VAR_POD_IPS $POD_NAME $NS
+    SET_VAR_POD_IPS  $POD_NAME   $NS
     SET_VAR_POD_NAME $POD_NAME 1 $NS
 }
 
@@ -422,7 +433,11 @@ SET_VAR_POD_IPS() {
     
     #POD_IP=$(kubectl -n $NS get pods "$POD_NAME" -o custom-columns=NAME:.status.podIP --no-headers)
     __POD_IPS=$(kubectl -n "$NS" get pods -o wide | awk "/^$POD_NAME/ { print \$6; }")
-    __POD_IP=${__POD_IPS%% *}
+    # WHY FAILING??
+    #   __POD_IP=${__POD_IPS%% *}
+    #   __POD_IP=$( echo "${__POD_IPS}" | awk '{ print $1; }')
+    #   __POD_IP=$( echo "${__POD_IPS}" | sed 's/\([0-9,.]*\).*/X\1/' )
+    __POD_IP=$(kubectl -n "$NS" get pods -o wide | awk "/^$POD_NAME/ { print \$6; exit(0); }")
     echo VAR __POD_IP=$__POD_IP
     echo VAR __POD_IPS=$__POD_IPS
     return 0
@@ -434,6 +449,15 @@ SET_VAR_SVC_IP() {
     
     __SVC_IP=$(kubectl -n $NS get service "$__SVC_NAME" -o custom-columns=IP:.spec.clusterIP --no-headers)
     echo VAR __SVC_IP=$__SVC_IP
+    return 0
+}
+
+SET_VAR_SVC_EXTIP() {
+    __SVC_NAME="$1"
+    SET_NAMESPACE "$2"
+    
+    __SVC_EXTIP=$(kubectl -n $NS get service "$__SVC_NAME" -o custom-columns=IP:.spec.externalIPs[0] --no-headers)
+    echo VAR __SVC_EXTIP=$__SVC_EXTIP
     return 0
 }
 
@@ -660,10 +684,11 @@ EXCL_FN_CLEANUP() {
     echo; echo "== CLEANUP namespace($NS) ==========================="
     #kubectl get ns
     #kubectl delete ns frontend
-    echo -n "Services:    "
-    kubectl -n $NS delete service --all
     echo -n "Deployments: "
     kubectl -n $NS delete deploy --all
+    echo -n "Services:    "
+    kubectl -n $NS delete service --all
+    sleep 2
     echo -n "Pods:        "
     kubectl -n $NS delete pods --all
 

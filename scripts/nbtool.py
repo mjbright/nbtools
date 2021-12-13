@@ -12,7 +12,11 @@ DEBUG=False
 #MAX_LINE_LEN=110
 #MAX_LINE_LEN=100
 #MAX_LINE_LEN=80
-MAX_LINE_LEN=85
+
+DEFAULT_MAX_LINE_LEN=85
+MAX_LINE_LEN=int(os.getenv('MAX_LINE_LEN', DEFAULT_MAX_LINE_LEN))
+
+VARS_SEEN={}
 
 REPLACE_COMMANDS={
     'TF_INIT':    'terraform init',
@@ -81,8 +85,42 @@ def nb_dump1sourceLine(ipfile):
               continue
           print(f"  cell[{cellno}]source[0]={source[0]}")
 
+def show_vars_seen(context, source_line, cellno ):
+    global VARS_SEEN
+
+    DEBUG=False
+    if context == 'nb':
+        DEBUG=True
+    '''
+    if context == 'nb':
+        print("---- VARS_SEEN: start ----")
+    else:
+        print(f"---- VARS_SEEN[{context} cell[{cellno}]: start ---- {source_line}")
+    '''
+    if DEBUG:
+        if context == 'nb':
+            ctxt="nb"
+        else:
+            ctxt=f"[{context} cell[{cellno}] line '{source_line}'"
+
+        for var in VARS_SEEN:
+            value = VARS_SEEN[var]
+            if value != "":
+                value=f' (last value: "{value}")'
+            print(f'{ctxt} __{var}\t{value}')
+
+'''
+    if context == 'nb':
+        print("---- VARS_SEEN: end ----")
+    else:
+        print(f"---- VARS_SEEN[{context} cell[{cellno}]: end ----")
+'''
+
 def nb_info(ipfile):
     json_data = read_json(ipfile)
+
+    show_vars_seen('nb','','')
+
     return f"{ipfile}:\n\t#cells={nb_cells(json_data)}"
           
 def die(msg):
@@ -239,14 +277,6 @@ def substitute_vars_in_line(source_line, slno, VARS_SEEN):
 
 def replace_vars_in_line(line, vars_seen):
     return substitute_vars_in_line(line, -1, vars_seen)
-    oline = line
-    for VAR_NAME in vars_seen.keys():
-        VAR_VALUE=vars_seen[VAR_NAME]
-        #if '\$__'+VAR_NAME in line:
-        line.replace('$'+VAR_NAME, VAR_VALUE)
-
-    if oline != line: print(f"REPLACED:\n    '{oline}'\nby  '{line}'\n")
-    return line
 
 def replace_vars_in_cell_output_lines(json_data, cellno, vars_seen):
     op=json_data['cells'][cellno]['outputs']
@@ -260,8 +290,6 @@ def replace_vars_in_cell_output_lines(json_data, cellno, vars_seen):
 
 
 def get_var_defs_in_cell_output_lines(output_lines):
-    #print("Press <enter>")
-    #sys.stdin.readline()
     vars_seen={}
 
     for opno in range(len(output_lines)):
@@ -270,12 +298,13 @@ def get_var_defs_in_cell_output_lines(output_lines):
                 line = output_lines[opno]['text'][textno]
                 if 'VAR __' in line:
                     VAR_NAME=line[ line.find('VAR __') + 6: line.find('=') ]
-                    DEBUG=True
+                    #DEBUG=True
                     VAR_SET='VAR __'+VAR_NAME+'='
                     if output_lines[opno]['text'][textno].find(VAR_SET)==0:
                         VAR_VALUE=output_lines[opno]['text'][textno][len(VAR_SET):].rstrip()
                         if DEBUG: print(f"VAR {VAR_NAME}={VAR_VALUE}")
                         vars_seen[VAR_NAME]=VAR_VALUE
+                        #print(f"VAR {VAR_NAME}={VAR_VALUE}")
                         #print(VAR_VALUE)
 
                         #output_lines'][opno]['texts'][textno].replace('$'+VAR_NAME, VAR_VALUE)
@@ -283,10 +312,11 @@ def get_var_defs_in_cell_output_lines(output_lines):
     return vars_seen
 
 def filter_nb(json_data, DEBUG=False):
+    global VARS_SEEN
+
     EXCL_FN_regex = re.compile(r"\|?\&?\s*EXCL_FN_.*$") #, re.IGNORECASE)
     include=False
     cells=[]
-    VARS_SEEN={}
 
     toc_cellno=-1
     count_sections=False
@@ -331,17 +361,28 @@ def filter_nb(json_data, DEBUG=False):
               cells.append(cellno)
               continue
 
+          EXCLUDED_CODE_CELL=False
+          if source_lines[0].find('#EXCLUDE') == 0 and cell_type == 'code':
+              EXCLUDED_CODE_CELL=True
+              # NOTE: Code will be excluded but continue to parse/search for variables settings
+
           include_cell=True
           for slno in range(len(source_lines)):
               source_line=source_lines[slno]
 
-              if cell_type == 'code' and len(source_line) > MAX_LINE_LEN:
-                  #RED='\[00;31m'
-                  #NORMAL='\e[00m'
-                  RED='\x1B[00;31m'
-                  NORMAL='\x1B[00m'
-                  #print(f"{RED}len={len(source_line)} > {MAX_LINE_LEN}{NORMAL} in cell {sec_cell_no}[{cellno}] of section {section_title} in line '{source_line}'")
-                  print(f"{RED}len={len(source_line)} > {MAX_LINE_LEN} in cell In[{In_cell_no}] {NORMAL}of section {section_title} in line '{source_line}'")
+              if cell_type == 'code' and not EXCLUDED_CODE_CELL:
+                  inc_source_line = source_line
+                  if '| EXCL_FN' in source_line:
+                      inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
+                  if len(inc_source_line) > MAX_LINE_LEN:
+                      print(f'[filter_nb] long {inc_source_line} > {MAX_LINE_LEN} {EXCLUDED_CODE_CELL}' )
+
+                      #RED='\[00;31m'
+                      #NORMAL='\e[00m'
+                      RED='\x1B[00;31m'
+                      NORMAL='\x1B[00m'
+                      #print(f"{RED}len={len(source_line)} > {MAX_LINE_LEN}{NORMAL} in cell {sec_cell_no}[{cellno}] of section {section_title} in line '{source_line}'")
+                      print(f"[filter_nb] {RED}len={len(inc_source_line)} > {MAX_LINE_LEN} in cell In [{In_cell_no}] {NORMAL}of section {section_title} in line '{source_line}'")
 
               # Build up TableOfContents - Count sections headers and retain list for ToC text
               if source_line.find("#") == 0 and count_sections and cell_type == "markdown":
@@ -382,6 +423,8 @@ def filter_nb(json_data, DEBUG=False):
               if cell_type == "markdown" and '__' in source_line:
                   o = source_line
                   source_line = replace_vars_in_line(source_line, VARS_SEEN)
+                  show_vars_seen(cell_type, source_line, cellno)
+
                   json_data['cells'][cellno]['source'][slno] = source_line
                   #print(f"MARKDOWN[cell{cellno}] {source_line.rstrip()}")
                   #if o != source_line: print(o); die("GOT HERE")
@@ -424,6 +467,7 @@ def filter_nb(json_data, DEBUG=False):
               for var in VARS_SEEN:
                   if '$__'+var in source_line:
                       new_line=substitute_vars_in_line(source_line, slno, VARS_SEEN)
+                      show_vars_seen(f'{cell_type}[$__{var}]', source_line, cellno)
                       #if DEBUG:
                       #    print(f"{var} seen in {source_line} will replace '$__{var}'")
                       #    print(json_data['cells'][cellno]['source'][slno])
@@ -477,12 +521,12 @@ def filter_nb(json_data, DEBUG=False):
                   continue
 
               # NOT Pragma SET_VAR:
-              # NOT Pragma SET_VAR and NOT KUBECTL_GET_* 
+              # NOT Pragma SET_VAR and NOT K_GET_* 
               if source_line.find("SET_VAR_") == -1 and \
-                 source_line.find("KUBECTL_GET_") == -1:
+                 source_line.find("K_GET_") == -1:
                   continue
 
-              print(f"EXCLUDING var setting cell - SEEN {source_line}")
+              #print(f"EXCLUDING var setting cell - SEEN {source_line}")
               # Pragma SET_VAR:
               include_cell=False
 
@@ -499,7 +543,10 @@ def filter_nb(json_data, DEBUG=False):
 
               if json_data['cells'][cellno]['outputs']:
                   op_vars_seen = get_var_defs_in_cell_output_lines( json_data['cells'][cellno]['outputs'] )
-                  VARS_SEEN.update( op_vars_seen )
+                  if len(op_vars_seen) > 0:
+                      #print(f'NEW VARS_SEEN: "{op_vars_seen}"')
+                      VARS_SEEN.update( op_vars_seen )
+                      show_vars_seen('output', source_line, cellno)
                   #replace_vars_in_cell_output_lines( json_data['cells'][cellno]['outputs'], VARS_SEEN )
                   replace_vars_in_cell_output_lines(json_data, cellno, VARS_SEEN)
 
@@ -539,6 +586,8 @@ def write_markdown(markdown_file, cell_num, cell_type, section_title, current_se
 
 def split_nb(json_data, DEBUG=False):
     cells=[]
+    global VARS_SEEN
+    print("-- split_nb: resetting VARS_SEEN !!")
     VARS_SEEN={}
 
     md_files_index=''
@@ -577,11 +626,23 @@ def split_nb(json_data, DEBUG=False):
           if cell_type == 'code': current_section_text+='\n```'
           # current_cell_text='' 
 
+          EXCLUDED_CODE_CELL=False
+          if source_lines[0].find('#EXCLUDE') == 0 and cell_type == 'code':
+              EXCLUDED_CODE_CELL=True
+              # NOTE: Code will be excluded but continue to parse/search for variables settings
+
           for slno in range(len(source_lines)):
               source_line=source_lines[slno]
-              if cell_type == 'code':
+              if cell_type == 'code' and not EXCLUDED_CODE_CELL:
+                  inc_source_line = source_line
+                  if '| EXCL_FN' in source_line:
+                      inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
+                  #if len(inc_source_line) > MAX_LINE_LEN:
+                      #print(f'[split_nb]: long {inc_source_line} > {MAX_LINE_LEN} {EXCLUDED_CODE_CELL}' )
+
                   if len(source_line) > MAX_LINE_LEN:
-                      print(f"len={len(source_line)} > {MAX_LINE_LEN} in cell {sec_cell_no} of section {section_title} in line '{source_line}'")
+                      print(f"[split_nb]: len={len(inc_source_line)} > {MAX_LINE_LEN} in cell {sec_cell_no} of section {section_title} in line '{source_line}'")
+
 
               if div_sec in source_line:
                   start_pos = source_line.find( div_sec )
