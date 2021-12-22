@@ -347,31 +347,44 @@ def filter_nb(json_data, DEBUG=False):
     count_sections=False
     current_sections=[]
     toc_text='<div id="TOC" >\n'
-    sec_cell_no=0
-    In_cell_no='unknown'
+    sec_cellno=0
+    In_cellno='unknown'
     section_title=''
 
+    exclude_cells=[]
+    incl_code_cells=[]
+    incl_md_cells=[]
+
     for cellno in range(nb_cells(json_data)):
-          sec_cell_no+=1
+          sec_cellno+=1
           #print(cellno)
           cell_type=json_data['cells'][cellno]['cell_type']
-          In_cell_no='unknown'
+          In_cellno='unknown'
           if cell_type == 'code':
-              In_cell_no=json_data['cells'][cellno]['execution_count']
+              In_cellno=json_data['cells'][cellno]['execution_count']
 
           source_lines=json_data['cells'][cellno]['source']
           if len(source_lines) == 0:
               if DEBUG: print("empty")
               continue
+
+          if DEBUG_CELLNOS:
+              source_lines.append( f'\n\n#### Cell[{cellno}]\n')
+
           # Pragma --INCLUDE--SECTION--
           if '--INCLUDE--SECTION--' in source_lines[0]: 
               include=True
+              # BUT THIS CELL IS EXCLUDED:
+              exclude_cells.append(cellno)
               continue
           # Pragma --EXCLUDE--SECTION--
           if '--EXCLUDE--SECTION--' in source_lines[0]:
               include=False
+              exclude_cells.append(cellno)
               continue
+
           if not include:
+              exclude_cells.append(cellno)
               continue
 
           # Detect TableOfContents Cell No:
@@ -389,11 +402,21 @@ def filter_nb(json_data, DEBUG=False):
           EXCLUDED_CODE_CELL=False
           if source_lines[0].find('#EXCLUDE') == 0 and cell_type == 'code':
               EXCLUDED_CODE_CELL=True
+              exclude_cells.append(cellno)
               # NOTE: Code will be excluded but continue to parse/search for variables settings
+
+          if cell_type == 'markdown' and not EXCLUDED_CODE_CELL:
+              incl_md_cells.append(cellno)
+
+          if cell_type == 'code' and not EXCLUDED_CODE_CELL:
+              incl_code_cells.append(cellno)
 
           include_cell=True
           for slno in range(len(source_lines)):
               source_line=source_lines[slno]
+              if DEBUG_LINES:
+                  s_line=source_line.rstrip()
+                  print(f'[{cell_type}][{cellno} l{slno}] "{s_line}"')
 
               if cell_type == 'code' and not EXCLUDED_CODE_CELL:
                   inc_source_line = source_line
@@ -406,8 +429,8 @@ def filter_nb(json_data, DEBUG=False):
                       #NORMAL='\e[00m'
                       RED='\x1B[00;31m'
                       NORMAL='\x1B[00m'
-                      #print(f"{RED}len={len(source_line)} > {MAX_LINE_LEN}{NORMAL} in cell {sec_cell_no}[{cellno}] of section {section_title} in line '{source_line}'")
-                      print(f"[filter_nb] {RED}len={len(inc_source_line)} > {MAX_LINE_LEN} in cell In [{In_cell_no}] {NORMAL}of section {section_title} in line '{source_line}'")
+                      #print(f"{RED}len={len(source_line)} > {MAX_LINE_LEN}{NORMAL} in cell {sec_cellno}[{cellno}] of section {section_title} in line '{source_line}'")
+                      print(f"[filter_nb] {RED}len={len(inc_source_line)} > {MAX_LINE_LEN} in cell In [{In_cellno}] {NORMAL}of section {section_title} in line '{source_line}'")
 
               # Build up TableOfContents - Count sections headers and retain list for ToC text
               if source_line.find("#") == 0 and count_sections and cell_type == "markdown":
@@ -417,7 +440,7 @@ def filter_nb(json_data, DEBUG=False):
                   if source_line.find("## ") == 0:   (level, section_num, toc_line) = next_section(current_sections, 1, source_line)
                   if source_line.find("### ") == 0:  (level, section_num, toc_line) = next_section(current_sections, 2, source_line)
                   if source_line.find("#### ") == 0: (level, section_num, toc_line) = next_section(current_sections, 3, source_line)
-                  sec_cell_no=0
+                  sec_cellno=0
                   section_title=toc_line
 
                   toc_link = f'<a href="#sec{section_num}" /> {toc_line} </a>'
@@ -582,6 +605,7 @@ def filter_nb(json_data, DEBUG=False):
     #             if not findInSource(source_lines, "SET_VAR_"):
     #                 cells.append(cellno)
     #                 continue
+
            
     # Patch TableOfContents:
     toc_text+='</div>'
@@ -599,6 +623,9 @@ def filter_nb(json_data, DEBUG=False):
             del(json_data['cells'][cellno])
 
     print(f"cells to include[#{len(cells)}]=[{cells}]")
+    print(f"included markdown cells={incl_md_cells}")
+    print(f"included code     cells={incl_code_cells}")
+    print(f"excluded          cells={exclude_cells}")
     return json_data
 
 def write_markdown(markdown_file, cell_num, cell_type, section_title, current_section_text):
@@ -634,12 +661,12 @@ def split_nb(json_data, DEBUG=False):
     markdown_file_path=f'md/{markdown_file}'
     # md_files_index+=markdown_file+'\n'
 
-    sec_cell_no=0
+    sec_cellno=0
 
     div_sec='<div id="sec'
     len_div_sec=len( div_sec )
     for cellno in range(nb_cells(json_data)):
-          sec_cell_no+=1
+          sec_cellno+=1
           #print(cellno)
           cell_type=json_data['cells'][cellno]['cell_type']
           source_lines=json_data['cells'][cellno]['source']
@@ -666,7 +693,7 @@ def split_nb(json_data, DEBUG=False):
                       #print(f'[split_nb]: long {inc_source_line} > {MAX_LINE_LEN} {EXCLUDED_CODE_CELL}' )
 
                   if len(source_line) > MAX_LINE_LEN:
-                      print(f"[split_nb]: len={len(inc_source_line)} > {MAX_LINE_LEN} in cell {sec_cell_no} of section {section_title} in line '{source_line}'")
+                      print(f"[split_nb]: len={len(inc_source_line)} > {MAX_LINE_LEN} in cell {sec_cellno} of section {section_title} in line '{source_line}'")
 
 
               if div_sec in source_line:
@@ -689,7 +716,7 @@ def split_nb(json_data, DEBUG=False):
                           current_section_text='' 
                       section_no=next_section_no
                       section_title=next_section_title
-                      sec_cell_no=0
+                      sec_cellno=0
                       #section_title=section_title.replace(" ", "")
                       markdown_file=f'section_{section_no}.md'
                       markdown_file_path=f'md/{markdown_file}'
