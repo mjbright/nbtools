@@ -326,7 +326,8 @@ def get_var_defs_in_cell_output_lines(output_lines):
                     VAR_SET='VAR __'+VAR_NAME+'='
                     if output_lines[opno]['text'][textno].find(VAR_SET)==0:
                         VAR_VALUE=output_lines[opno]['text'][textno][len(VAR_SET):].rstrip()
-                        if DEBUG: print(f"VAR {VAR_NAME}={VAR_VALUE}")
+                        #if DEBUG: print(f"VAR {VAR_NAME}={VAR_VALUE}")
+                        if DEBUG: print(f"<<<<<<<<DEBUG>>>>>>>> VAR {VAR_NAME}={VAR_VALUE}")
                         vars_seen[VAR_NAME]=VAR_VALUE
                         #print(f"VAR {VAR_NAME}={VAR_VALUE}")
                         #print(VAR_VALUE)
