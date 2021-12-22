@@ -646,6 +646,12 @@ WAIT_PODS() {
     return 0
 }
 
+# Note: would be useful a function which waits for *all* matching Pods to be running
+WAIT_ALL_PODS_RUNNING() {
+    WAIT_SLEEP=2
+    while kubectl get pods --no-headers | grep -vq Running; do sleep $WAIT_SLEEP; done
+}
+
 WAIT_NO_PODS() {
     if [ "$1" = "-n" ]; then
         shift; SET_NAMESPACE $1; shift
