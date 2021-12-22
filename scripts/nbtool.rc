@@ -74,6 +74,15 @@ CHECK_FILE_SIZE() {
 }
 
 EXCL_FN_INIT_NOTEBOOK() {
+    NB=""
+    if [ -z "$1" ]; then
+        NB="README.ipynb"
+    else
+        NB=$( basename "$1" )
+    fi
+
+    [ ! -f "$NB" ] && DIE "[$PWD] No such notebook as '$NB'"
+    
     #set -x
     set +x
 
@@ -194,29 +203,40 @@ REPLACE_HOME_STDIN() {
 #
 EXCL_FN_FILTER_NOTEBOOK() {
     NOTEBOOK="$1"
-    #[ -z "$NOTEBOOK" ] && NOTEBOOK=$(ls -1tr *.ipynb | grep -v filtered | tail -1)
     [ -z "$NOTEBOOK" ] && NOTEBOOK=README.ipynb
     
-    echo; echo "==== Filtering current notebook ===="
+    echo; echo "==== Filtering current notebook [$NOTEBOOK] ===="
 
     # Re-source latest version:
     echo "-- . $NBTOOL_RC" | REPLACE_HOME_STDIN
     . $NBTOOL_RC
 
     # In kubelab:
-    #CMD="/opt/conda/bin/python3 ./nbtool.py -f $NOTEBOOK"
-
     # Jupyter on Ubuntu, or in kubelab:
     PYTHON3=$(which python3 || echo /opt/conda/bin/python3)
+    #CMD="/opt/conda/bin/python3 ./nbtool.py -f $NOTEBOOK"
     #CMD="$PYTHON3 ./nbtool.py -f $NOTEBOOK"
+
+    #if [ "$NOTEBOOK" = "${NOTEBOOK##*TEST}" ]; then
+    #else
+        ## TEST notebook:
+    #fi
     CMD="$PYTHON3 $NBTOOL_PY -f $NOTEBOOK"
     echo; echo "-- $CMD" | REPLACE_HOME_STDIN
     $CMD
 
-    OP_NOTEBOOK=$(ls -1tr $NB_DIR/README*.ipynb | grep filtered | tail -1)
+    #OP_NOTEBOOK=$(ls -1tr $NB_DIR/README*.ipynb | grep filtered | tail -1)
+    OP_NOTEBOOK=$(ls -1tr $NB_DIR/ | grep filtered.ipynb$ | tail -1)
+
+    # echo "==============="
+    # ls -1tr $NB_DIR/ 
+    # echo "==============="
+    # ls -1tr $NB_DIR/ | grep filtered | sed 's/^/>> /'
+    # echo "==============="
+
     [ -z "$OP_NOTEBOOK" ] && {
         echo "[$PWD] Error: failed to find filtered README*.ipynb in directory '$NB_DIR'"
-        ls -1tr $NB_DIR/README*.ipynb | REPLACE_HOME_STDIN
+        ls -1tr $NB_DIR/ | grep .ipynb$ | REPLACE_HOME_STDIN | sed 's/^/::/'
         exit 1
     }
     ls -altr $OP_NOTEBOOK| REPLACE_HOME_STDIN
