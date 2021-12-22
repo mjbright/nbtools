@@ -439,9 +439,12 @@ SET_VAR() {
     }
 
     # Output variables so they will be seen by nbtool.py:
-    eval $VARNAME="$*"
-    #echo "VAR $VARNAME='$*'"
-    echo "VAR $VARNAME=$*"
+    local VALUE="$*"
+    echo $VALUE | grep -q $HOME && {
+        VALUE=$(echo $VALUE | sed -e "s?$HOME?~?g")
+    }
+    eval $VARNAME="$VALUE"
+    echo "VAR $VARNAME='$VALUE'"
 }
 
 # Usage:
