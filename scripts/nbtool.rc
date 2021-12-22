@@ -115,6 +115,12 @@ EXCL_FN_INIT_NOTEBOOK() {
             ;;
 
         Kubernetes)
+            [ -z "$KUBECONFIG" ] && export KUBECONFIG=~/.kube/config
+            echo "KUBECONFIG='$KUBECONFIG'"
+            grep current-context "$KUBECONFIG" | grep -q kubernetes-admin && echo "## ASSUMING full cluster admin rights"
+            grep server: $KUBECONFIG
+            kubectl get nodes
+            kubectl config get-contexts
             #DEBUG_WAIT=1; EXCL_FN_CLEANUP; DEBUG_WAIT=0
             #kubectl delete pods -lapp=web-student0
             ;;
