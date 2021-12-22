@@ -273,27 +273,39 @@ EXCL_FN_FILTER_NOTEBOOK() {
     } || {
         echo; echo "Error: $NUM VAR defs/usages in o/p file: $S_OP_NB"
         #echo; echo "VARS in output file: $S_OP_NB"
-        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep __ | EXCL_FN_HIGHLIGHT
+        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __ | EXCL_FN_HIGHLIGHT
         #DIE "Can't continue"
     }
 
-    ( cd $NB_DIR;
+    [ "$NOTEBOOK" = "${NOTEBOOK##*TEST}" ] && EXCL_FN_NBCONVERT
 
-        CMD="jupyter-nbconvert --to markdown README.ipynb.filtered.ipynb"
+    return 0
+}
+
+EXCL_FN_NBCONVERT() {
+   (
+        cd $NB_DIR;
+
+        # TODO after nbconvert ??
+        # ansi highlighting => strip output and add as separate html
+        #   command | TREAT_OUTPUT
+        #   command | TREAT_OUTPUT yaml
+
+        CMD="jupyter-nbconvert --to markdown $OP_NOTEBOOK"
         echo; echo "-- $CMD"
         $CMD
 
         echo "$FRONTMATTER"           > README.md
-        cat README.ipynb.filtered.md >> README.md
-        mv  README.ipynb.filtered.md README.ipynb.filtered.md.bak
+        cat $OP_NOTEBOOK >> README.md
+        cp -a  $OP_NOTEBOOK ${OP_NOTEBOOK}.bak
 
         #echo; ls -altr *.md | EXCL_FN_COLOUR green
 
-        #TEST: cp /dev/null README.ipynb.filtered.ipynb
+        #TEST: cp /dev/null $OP_NOTEBOOK
         #echo
-        CHECK_FILE_SIZE README.ipynb.filtered.ipynb 1000 || {
-            #ls -altr README.ipynb.filtered.ipynb
-            DIE "File README.ipynb.filtered.ipynb is too small - supsicious"
+        CHECK_FILE_SIZE $OP_NOTEBOOK 1000 || {
+            #ls -altr $OP_NOTEBOOK
+            DIE "File $OP_NOTEBOOK is too small - supsicious"
         }
 
         #cp /dev/null README.md
@@ -304,7 +316,7 @@ EXCL_FN_FILTER_NOTEBOOK() {
         }
 
         NAME=$( echo $LAB_NAME | sed 's/  */_/g' )
-        mv README.ipynb.filtered.ipynb ${NAME}.ipynb
+        mv $OP_NOTEBOOK ${NAME}.ipynb
         # Save as a dotfile to not perturb Hugo serving:
         #cp -a  README.md .${NAME}.md
         mv README.md ${NAME}.md
@@ -314,8 +326,6 @@ EXCL_FN_FILTER_NOTEBOOK() {
         echo; ls -altr ${NAME}.*  | EXCL_FN_COLOUR green
         #ls -altr *.md
     )
-
-    return 0
 }
 
 # Special   FUNCTIONS: ------------------------------------------------
