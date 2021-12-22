@@ -424,12 +424,8 @@ def filter_nb(json_data, DEBUG=False):
                       inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
                   if len(inc_source_line) > MAX_LINE_LEN:
                       print(f'[filter_nb] long {inc_source_line} > {MAX_LINE_LEN} {EXCLUDED_CODE_CELL}' )
-
-                      #RED='\[00;31m'
-                      #NORMAL='\e[00m'
                       RED='\x1B[00;31m'
                       NORMAL='\x1B[00m'
-                      #print(f"{RED}len={len(source_line)} > {MAX_LINE_LEN}{NORMAL} in cell {sec_cellno}[{cellno}] of section {section_title} in line '{source_line}'")
                       print(f"[filter_nb] {RED}len={len(inc_source_line)} > {MAX_LINE_LEN} in cell In [{In_cellno}] {NORMAL}of section {section_title} in line '{source_line}'")
 
               # Build up TableOfContents - Count sections headers and retain list for ToC text
@@ -533,6 +529,14 @@ def filter_nb(json_data, DEBUG=False):
                       #    print("=>")
                       #    print(json_data['cells'][cellno]['source'][slno])
                       json_data['cells'][cellno]['source'][slno]=new_line
+
+                      # TODO: generalize line lenght checking after all replacements (how to hook i on 'continue' ??
+                      if len(new_line) > MAX_LINE_LEN:
+                          print(f'[filter_nb] long {new_line} > {MAX_LINE_LEN} {EXCLUDED_CODE_CELL}' )
+                          RED='\x1B[00;31m'
+                          NORMAL='\x1B[00m'
+                          print(f"[filter_nb] {RED}len={len(new_line)} > {MAX_LINE_LEN} in cell In [{In_cellno}] {NORMAL}of section {section_title} in line '{source_line}'")
+
 
                       #if not findInSource(source_lines, "SET_VAR_"):
 
