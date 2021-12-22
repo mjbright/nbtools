@@ -293,7 +293,7 @@ def substitute_vars_in_line(source_line, slno, VARS_SEEN):
 
     if new_line != source_line:
         if DEBUG:
-            print(f"[line{slno}]: {var} seen in '{source_line}' will replace vars [{__vars_seen}]")
+            print(f"[line{slno}]: {var} seen in '{source_line}' will replace vars [{vars_seen}]")
             #print(f"{var} seen in '{source_line}' will replace '$__{var}'")
             #print(f"'{source_line}'\n===> '{new_line}'")
             print(f"===> '{new_line}'")
