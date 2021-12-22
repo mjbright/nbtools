@@ -6,7 +6,18 @@ import json, sys, re, os
 from ansi2html import Ansi2HTMLConverter
 ansi2html_conv = Ansi2HTMLConverter()
 
-DEBUG=False
+def getenvBOOLEAN(NAME, DEFAULT):
+    if DEFAULT:
+        value = os.getenv(NAME, '1')
+    else:
+        value = os.getenv(NAME, '0')
+
+    if value == '0': return False
+    return True
+
+DEBUG         = getenvBOOLEAN('DEBUG', False)
+DEBUG_LINES   = getenvBOOLEAN('DEBUG_LINES', False)
+DEBUG_CELLNOS = getenvBOOLEAN('DEBUG_CELLNOS', False)
 
 # Max length for code-cell lines:
 #MAX_LINE_LEN=110
