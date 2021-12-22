@@ -99,18 +99,25 @@ def nb_dump1sourceLine(ipfile):
 def show_vars_seen(context, source_line, cellno ):
     global VARS_SEEN
 
+    if len(VARS_SEEN) == 0:
+        print("---- no VARS_SEEN ----")
+        return False
+
     DEBUG=False
-    if context == 'nb':
-        DEBUG=True
+    if context.find('nb') == 0: DEBUG=True
     '''
     if context == 'nb':
         print("---- VARS_SEEN: start ----")
     else:
         print(f"---- VARS_SEEN[{context} cell[{cellno}]: start ---- {source_line}")
     '''
+    show_exit_marker=False
     if DEBUG:
-        if context == 'nb':
+        if context.find('nb') == 0:
+            nbfile=context[2:]
+            print(f'----- VARS_SEEN [{nbfile}] ------')
             ctxt="nb"
+            show_exit_marker=True
         else:
             ctxt=f"[{context} cell[{cellno}] line '{source_line}'"
 
@@ -120,6 +127,9 @@ def show_vars_seen(context, source_line, cellno ):
                 value=f' (last value: "{value}")'
             print(f'{ctxt} __{var}\t{value}')
 
+    if show_exit_marker: print(f'---------------------------------')
+    return True
+
 '''
     if context == 'nb':
         print("---- VARS_SEEN: end ----")
@@ -127,10 +137,16 @@ def show_vars_seen(context, source_line, cellno ):
         print(f"---- VARS_SEEN[{context} cell[{cellno}]: end ----")
 '''
 
-def nb_info(ipfile):
+def nb_info(ip_or_op, ipfile):
     json_data = read_json(ipfile)
 
-    show_vars_seen('nb','','')
+    any_vars_seen = show_vars_seen(f'nb{ipfile}','','')
+    if not any_vars_seen:
+        if ip_or_op == 'ip':
+            print(f'i/p nb has 0 variables')
+        else:
+            print(f'o/p nb has 0 variables')
+    
 
     return f"{ipfile}:\n\t#cells={nb_cells(json_data)}"
           
@@ -164,24 +180,21 @@ def main():
 
     if MODE=='info':
         for ipfile in sys.argv[a:]:
-            print(nb_info(ipfile))
+            print(nb_info('ip', ipfile))
 
     if MODE=='filter':
         for ipfile in sys.argv[a:]:
-            #print(nb_info(ipfile))
+            print(nb_info('ip', ipfile))
             new_data = filter_nb( read_json(ipfile), DEBUG )
             opfile=ipfile+'.filtered.ipynb'
             write_nb(opfile, new_data)
-            nb_info(opfile)
+            print(nb_info('op', opfile))
 
     if MODE=='split':
         for ipfile in sys.argv[a:]:
-            print(nb_info(ipfile))
+            print(nb_info('ip', ipfile))
             split_nb( read_json(ipfile), DEBUG )
             print("DONE")
-            #opfile=ipfile+'.filtered.ipynb'
-            #write_nb(opfile, new_data)
-            #nb_info(opfile)
 
 def findInSource(source_lines, match):
     for line in source_lines:
