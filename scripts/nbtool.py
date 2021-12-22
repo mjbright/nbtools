@@ -579,13 +579,16 @@ def filter_nb(json_data, DEBUG=False):
 
               # NOT Pragma SET_VAR:
               # NOT Pragma SET_VAR and NOT K_GET_* 
-              if source_line.find("SET_VAR_") == -1 and \
-                 source_line.find("K_GET_") == -1:
-                  continue
+              #if source_line.find("SET_VAR_") == -1: continue
+              #if source_line.find("K_GET_") == -1: continue
+              #if source_line.find("SET_VAR") != -1: print(f'======== {source_line} ========')
+              #if source_line.find("SET_VAR_") == -1 and source_line.find("K_GET_") == -1: continue
+              if source_line.find("SET_VAR") == -1 and source_line.find("K_GET_") == -1: continue
 
               #print(f"EXCLUDING var setting cell - SEEN {source_line}")
               # Pragma SET_VAR:
               include_cell=False
+              #if source_line.find("SET_VAR") != -1: print(f'======== {source_line} ========')
 
               # If SET_VAR seen in source, we exclude **this cell** and set the variable
               #if source_line.find("SET_VAR_") == 0:
