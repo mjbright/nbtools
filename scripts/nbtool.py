@@ -459,14 +459,23 @@ def filter_nb(json_data, DEBUG=False):
                           source_line[ :1+source_line.find(' ') ] + f'<div id="sec{section_num}" > '+toc_line+' </div>'
 
               if cell_type == "markdown" and \
-                 (source_line.find("**RedNote") != -1 or \
-                  source_line.find("**BlueNote") != -1 or \
-                  source_line.find("**GreenNote") != -1):
-                     source_line=source_line.replace("**RedNote", "<div class='red_bold_text'>Note")
-                     source_line=source_line.replace("**BlueNote", "<div class='blue_bold_text'>Note")
-                     source_line=source_line.replace("**GreenNote", "<div class='green_bold_text'>Note")
-                     source_line=source_line.replace("**", "</div>")
+                 (source_line.find("**Red**") != -1 or \
+                  source_line.find("**Green**") != -1 or \
+                  source_line.find("**Blue**") != -1 or \
+                  source_line.find("**Yellow**") != -1):
+                     #print(source_line)
+                     source_line=source_line.replace("**Red**", "<div class='alert alert-danger'> ")
+                     source_line=source_line.replace("**Green**", "<div class='alert alert-success'> ")
+                     source_line=source_line.replace("**Blue**", "<div class='alert alert-info'> ")
+                     source_line=source_line.replace("**Yellow**", "<div class='alert alert-warning'> ")
+                     source_line=source_line + "</div>"
+                     # source_line=source_line.replace("**RedNote", "<div class='red_bold_text'>Note")
+                     # source_line=source_line.replace("**BlueNote", "<div class='blue_bold_text'>Note")
+                     # source_line=source_line.replace("**GreenNote", "<div class='green_bold_text'>Note")
+                     # source_line=source_line.replace("**", "</div>")
+                     #print(source_line)
                      json_data['cells'][cellno]['source'][slno] = source_line
+                     #die(" ===================  OK  ===================")
 
               if cell_type == "markdown" and '__' in source_line:
                   o = source_line
