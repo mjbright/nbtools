@@ -40,11 +40,6 @@ EXCL_FN_COLOUR() {
 # e.g.
 #    ls -al # STRIP_ARG 2 ==> 'ls'
 
-# TODO after nbconvert ??
-# ansi highlighting => stip output and add as separate html
-#   command | TREAT_OUTPUT
-#   command | TREAT_OUTPUT yaml
-
 # RECORD NEW FUNCTIONS: -----------------------------------------------
 
 FN_0_LIST_ORIG=/tmp/nbtool.functions.0.list
@@ -90,9 +85,9 @@ EXCL_FN_INIT_NOTEBOOK() {
         else
             echo $PWD > .dir
         fi
-        #[ -z "$NB" ] && NB=$(cat .dir)/README.ipynb
+
         NB_DIR=$(cat .dir)
-        NB=$NB_DIR/README.ipynb
+        NB=$NB_DIR/$NB
         echo "NB_DIR=$NB_DIR" | EXCL_FN_HIGHLIGHT
     fi
 
@@ -381,6 +376,30 @@ EXCL_FN_HIGHLIGHT_MATCH() { grep --color=always -E "${*}";    return 0; }
 
 # VARIABLE  FUNCTIONS: ------------------------------------------------
 
+SET_VAR() {
+    local VARNAME=$1; shift
+
+    [ "${VARNAME#*=}" != "$VARNAME" ] && {
+        echo "Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
+        local ARGS="${VARNAME#*=}"
+        VARNAME=${VARNAME%%=*}
+        #set -- ${VARNAME#*=}
+        set -- $ARGS
+        echo "Setting args to $*"
+        #echo "Leaving args as $*"
+    }
+
+    [ "${VARNAME#__}" = "$VARNAME" ] && {
+        echo "Correcting var name '$VARNAME' to '__$VARNAME'"
+        VARNAME=__$VARNAME
+    }
+
+    # Output variables so they will be seen by nbtool.py:
+    eval $VARNAME="$*"
+    #echo "VAR $VARNAME='$*'"
+    echo "VAR $VARNAME=$*"
+}
+
 # Usage:
 # SET_VAR_LAST_FILE args
 SET_VAR_LAST_FILE() {
@@ -577,7 +596,7 @@ WAIT_CMD() {
 # See - https://mrkaran.dev/posts/kubectl-wait/
 
 # Waits for at least 1 Pod to be in state (default: Running)
-# Note: would be useful a function which waits for *all* matching Pods to be running
+
 WAIT_PODS() {
     if [ "$1" = "-n" ]; then
         shift; SET_NAMESPACE $1; shift
