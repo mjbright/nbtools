@@ -277,6 +277,14 @@ EXCL_FN_FILTER_NOTEBOOK() {
         #DIE "Can't continue"
     }
 
+    NUM=$( jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c '${__' )
+    [ "$NUM" != "0" ] && {
+        echo; echo "Error: $NUM \${__XX} defs/usages in o/p file: $S_OP_NB"
+        #echo; echo "VARS in output file: $S_OP_NB"
+        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n '${__' | EXCL_FN_HIGHLIGHT
+        #DIE "Can't continue"
+    }
+
     [ "$NOTEBOOK" = "${NOTEBOOK##*TEST}" ] && EXCL_FN_NBCONVERT
 
     return 0
