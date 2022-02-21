@@ -6,6 +6,11 @@ SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
 NBTOOL_RC=$SCRIPT_DIR/nbtool.rc
 NBTOOL_PY=$SCRIPT_DIR/nbtool.py
 
+ENVIRONMENT=""
+[ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
+
+HOSTNAME=$(hostname)
+
 DEBUG_WAIT=0
 WAIT_SLEEP=1
 
@@ -82,6 +87,8 @@ EXCL_FN_INIT_NOTEBOOK() {
     fi
 
     [ ! -f "$NB" ] && DIE "[$PWD] No such notebook as '$NB'"
+
+    echo; echo "******** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"; echo
     
     #set -x
     set +x
@@ -212,6 +219,7 @@ EXCL_FN_FILTER_NOTEBOOK() {
     [ -z "$NOTEBOOK" ] && NOTEBOOK=README.ipynb
     
     echo; echo "==== Filtering current notebook [$NOTEBOOK] ===="
+    echo; echo "******** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"; echo
 
     # Re-source latest version:
     echo "-- . $NBTOOL_RC" | REPLACE_HOME_STDIN
