@@ -215,6 +215,23 @@ REPLACE_HOME_STDIN() {
     sed -e "s?${HOME}/?~/?g"
 }
 
+ARCHIVE_SOLUTIONS() {
+    LAB_NAME="$*"
+
+    LAB_NUMBER=$LAB_NAME
+    LAB_NUM=${LAB_NUM,,}
+    LAB_NUM=${LAB_NUM#lab}
+    LAB_NUM=${LAB_NUM# *}
+    LAB_NUM=${LAB_NUM%%-*}
+
+    mkdir -p ~/Solutions/BAK
+    SOLUTION_DIR=~/Solutions/Lab${LAB_NUM}
+    [ -d $SOLUTION_DIR ] && mv $SOLUTION_DIR ~/Solutions/BAK
+
+    mkdir -p $SOLUTION_DIR
+    cp -a *.yml *.yaml *.tf *.tfvars *.json $SOLUTION_DIR/ 2>/dev/null
+}
+
 #
 # Perform nbtool.py processing
 # - filters out '#EXCLUDE' cells
@@ -229,6 +246,8 @@ EXCL_FN_FILTER_NOTEBOOK() {
     
     echo; echo "==== Filtering current notebook [$NOTEBOOK] ===="
     echo; echo "******** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"; echo
+
+    ARCHIVE_SOLUTIONS $LAB_NAME
 
     # Re-source latest version:
     echo "-- . $NBTOOL_RC" | REPLACE_HOME_STDIN
