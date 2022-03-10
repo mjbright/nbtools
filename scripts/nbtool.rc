@@ -489,18 +489,18 @@ SET_NAMESPACE() {
 }
 
 K_GET_SVC() {
-    SET_NAMESPACE
     [ "$1" = "-n" ] && { NS=$2; shift; shift; }
+    #SET_NAMESPACE
 
     kubectl -n $NS get svc $*
-    SET_VAR_SVC_IP $1
-    SET_VAR_SVC_PORT $1
-    SET_VAR_SVC_EXTIP $1
+    SET_VAR_SVC_IP $1 "$NS"
+    SET_VAR_SVC_PORT $1 "$NS"
+    SET_VAR_SVC_EXTIP $1 "$NS"
 }
 
 K_GET_PODS() {
-    SET_NAMESPACE
     [ "$1" = "-n" ] && { NS=$2; shift; shift; }
+    #SET_NAMESPACE
     POD_NAME=$1;
 
     #kubectl get pod $*
