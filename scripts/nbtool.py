@@ -375,12 +375,16 @@ def filter_nb(json_data, DEBUG=False):
           if '--INCLUDE--SECTION--' in source_lines[0]: 
               include=True
               # BUT THIS CELL IS EXCLUDED:
+
+              # TODO: PLACE THICK LINE HERE:
               exclude_cells.append(cellno)
               continue
           # Pragma --EXCLUDE--SECTION--
           if '--EXCLUDE--SECTION--' in source_lines[0]:
               include=False
               exclude_cells.append(cellno)
+
+              # TODO: PLACE THICK LINE HERE:
               continue
 
           if not include:
@@ -428,6 +432,13 @@ def filter_nb(json_data, DEBUG=False):
                       NORMAL='\x1B[00m'
                       print(f"[filter_nb] {RED}len={len(inc_source_line)} > {MAX_LINE_LEN} in cell In [{In_cellno}] {NORMAL}of section {section_title} in line '{source_line}'")
 
+              insert_line_image=''
+              if source_line.find("# ") == 0 and cell_type == "markdown":
+                  # TODO: PLACE THIN LINE HERE:
+                  insert_line_image='<img src="../images/ThinBlueBar.png" />'
+                  #ThickBlueBar.png
+                  #ThinBlueBar.png
+
               # Build up TableOfContents - Count sections headers and retain list for ToC text
               if source_line.find("#") == 0 and count_sections and cell_type == "markdown":
                   toc_line=''
@@ -453,6 +464,10 @@ def filter_nb(json_data, DEBUG=False):
                   json_data['cells'][cellno]['source'][slno] =\
                           f'<a href="#TOC{top_section_num}" > Return to INDEX </a>\n' + \
                           source_line[ :1+source_line.find(' ') ] + f'<div id="sec{section_num}" > '+toc_line+' </div>'
+
+              if insert_line_image != '':
+                  json_data['cells'][cellno]['source'][slno] = f'\n\n{insert_line_image}\n\n' + json_data['cells'][cellno]['source'][slno]
+                  insert_line_image=''
 
               if cell_type == "markdown" and \
                  (source_line.find("**Red**") != -1 or \
@@ -530,7 +545,7 @@ def filter_nb(json_data, DEBUG=False):
                       #    print(json_data['cells'][cellno]['source'][slno])
                       json_data['cells'][cellno]['source'][slno]=new_line
 
-                      # TODO: generalize line lenght checking after all replacements (how to hook i on 'continue' ??
+                      # TODO: generalize line length checking after all replacements (how to hook i on 'continue' ??
                       if len(new_line) > MAX_LINE_LEN:
                           print(f'[filter_nb] long {new_line} > {MAX_LINE_LEN} {EXCLUDED_CODE_CELL}' )
                           RED='\x1B[00;31m'
