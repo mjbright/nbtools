@@ -153,7 +153,12 @@ EXCL_FN_INIT_NOTEBOOK() {
 }
 
 EXCL_FN_LAB_ENV() {
+    local REPO=$( git remote -v | awk '/fetch/ { print $2; exit; }' | sed -e 's?ssh://?https://?' )
+    local SHA=$( git log | awk '{ print $2; exit; }' )
+    local $DATE=$( git log | grep -m1 ^Date: | sed -e 's/Date: *//' )
+
     echo "$(date +%Y-%b-%d):[$ENVIRONMENT] Lab updated on node ${HOSTNAME}[$(kubectl version --short )]"
+    echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
 }
 
 EXCL_FN_k8s_SETUP() {
@@ -210,6 +215,23 @@ REPLACE_HOME_STDIN() {
     sed -e "s?${HOME}/?~/?g"
 }
 
+ARCHIVE_SOLUTIONS() {
+    LAB_NAME="$*"
+
+    LAB_NUMBER=$LAB_NAME
+    LAB_NUM=${LAB_NUM,,}
+    LAB_NUM=${LAB_NUM#lab}
+    LAB_NUM=${LAB_NUM# *}
+    LAB_NUM=${LAB_NUM%%-*}
+
+    mkdir -p ~/Solutions/BAK
+    SOLUTION_DIR=~/Solutions/Lab${LAB_NUM}
+    [ -d $SOLUTION_DIR ] && mv $SOLUTION_DIR ~/Solutions/BAK
+
+    mkdir -p $SOLUTION_DIR
+    cp -a *.yml *.yaml *.tf *.tfvars *.json $SOLUTION_DIR/ 2>/dev/null
+}
+
 #
 # Perform nbtool.py processing
 # - filters out '#EXCLUDE' cells
@@ -224,6 +246,8 @@ EXCL_FN_FILTER_NOTEBOOK() {
     
     echo; echo "==== Filtering current notebook [$NOTEBOOK] ===="
     echo; echo "******** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"; echo
+
+    ARCHIVE_SOLUTIONS $LAB_NAME
 
     # Re-source latest version:
     echo "-- . $NBTOOL_RC" | REPLACE_HOME_STDIN
@@ -489,18 +513,18 @@ SET_NAMESPACE() {
 }
 
 K_GET_SVC() {
-    SET_NAMESPACE
     [ "$1" = "-n" ] && { NS=$2; shift; shift; }
+    #SET_NAMESPACE
 
     kubectl -n $NS get svc $*
-    SET_VAR_SVC_IP $1
-    SET_VAR_SVC_PORT $1
-    SET_VAR_SVC_EXTIP $1
+    SET_VAR_SVC_IP $1 "$NS"
+    SET_VAR_SVC_PORT $1 "$NS"
+    SET_VAR_SVC_EXTIP $1 "$NS"
 }
 
 K_GET_PODS() {
-    SET_NAMESPACE
     [ "$1" = "-n" ] && { NS=$2; shift; shift; }
+    #SET_NAMESPACE
     POD_NAME=$1;
 
     #kubectl get pod $*
