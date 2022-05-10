@@ -153,9 +153,10 @@ EXCL_FN_INIT_NOTEBOOK() {
 }
 
 EXCL_FN_LAB_ENV() {
+    #set -x
     local REPO=$( git remote -v | awk '/fetch/ { print $2; exit; }' | sed -e 's?ssh://?https://?' )
     local SHA=$( git log | awk '{ print $2; exit; }' )
-    local $DATE=$( git log | grep -m1 ^Date: | sed -e 's/Date: *//' )
+    local DATE=$( git log | grep -m1 ^Date: | sed -e 's/Date: *//' )
 
     echo "$(date +%Y-%b-%d):[$ENVIRONMENT] Lab updated on node ${HOSTNAME}[$(kubectl version --short )]"
     echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
