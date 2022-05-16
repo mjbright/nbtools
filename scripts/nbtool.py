@@ -435,9 +435,11 @@ def filter_nb(json_data, DEBUG=False):
               insert_line_image=''
               if source_line.find("# ") == 0 and cell_type == "markdown":
                   # TODO: PLACE THIN LINE HERE:
-                  insert_line_image='<img src="../images/ThinBlueBar.png" />'
+                  insert_line_image='<img align="left" src="../images/ThinBlueBar.png" />'
                   #ThickBlueBar.png
                   #ThinBlueBar.png
+              if source_line.find("## ") == 0 and cell_type == "markdown":
+                  insert_line_image='<img align="left" src="../images/ThinBlueBar.png" width="400" />'
 
               # Build up TableOfContents - Count sections headers and retain list for ToC text
               if source_line.find("#") == 0 and count_sections and cell_type == "markdown":
