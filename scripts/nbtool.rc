@@ -158,7 +158,20 @@ EXCL_FN_LAB_ENV() {
     local SHA=$( git log | awk '{ print $2; exit; }' )
     local DATE=$( git log | grep -m1 ^Date: | sed -e 's/Date: *//' )
 
-    echo "$(date +%Y-%b-%d):[$ENVIRONMENT] Lab updated on node ${HOSTNAME}[$(kubectl version --short )]"
+    INFO="Unknown LAB_MODE"
+    case $LAB_MODE in
+        Terraform)
+            #TF_VERSION=$( which terraform >/dev/null && terraform --version || echo No terraform )
+            TF_VERSION=$( which terraform >/dev/null && terraform version -json | jq -rc '.terraform_version' || echo missing )
+            INFO="terraform $TF_VERSION"
+            ;;
+        Kubernetes)
+            K8S_VERSION=$( which kubectl >/dev/null && kubectl version --short || echo No kubectl )
+            INFO=$K8S_VERSION
+            ;;
+    esac
+                  
+    echo "$(date +%Y-%b-%d):[$ENVIRONMENT] Lab updated on node ${HOSTNAME}[$INFO]"
     echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
 }
 
