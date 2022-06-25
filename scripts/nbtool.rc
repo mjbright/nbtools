@@ -166,12 +166,15 @@ EXCL_FN_LAB_ENV() {
             INFO="terraform $TF_VERSION"
             ;;
         Kubernetes)
-            K8S_VERSION=$( which kubectl >/dev/null && kubectl version --short || echo No kubectl )
+            # Short term as --short will be deprecated:
+            K8S_VERSION=$( which kubectl >/dev/null && kubectl version --short 2>/dev/null || echo No kubectl )
+            # Later:
+            # K8S_VERSION=$( which kubectl >/dev/null && kubectl version 2>/dev/null || echo No kubectl )
             INFO=$K8S_VERSION
             ;;
     esac
                   
-    echo "$(date +%Y-%b-%d):[$ENVIRONMENT] Lab updated on node ${HOSTNAME}[$INFO]"
+    echo "$(date +%Y-%b-%d):[$ENVIRONMENT] Lab updated on node ${HOSTNAME}["$INFO"]"
     echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
 }
 
