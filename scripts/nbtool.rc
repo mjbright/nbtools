@@ -8,6 +8,7 @@ NBTOOL_PY=$SCRIPT_DIR/nbtool.py
 
 ENVIRONMENT=""
 [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
+echo "$ENVIRONMENT $( ls -al ~/.environment )"
 
 HOSTNAME=$(hostname)
 
@@ -154,9 +155,14 @@ EXCL_FN_INIT_NOTEBOOK() {
 
 EXCL_FN_LAB_ENV() {
     #set -x
-    local REPO=$( git remote -v | awk '/fetch/ { print $2; exit; }' | sed -e 's?ssh://?https://?' )
-    local SHA=$( git log | awk '{ print $2; exit; }' )
-    local DATE=$( git log | grep -m1 ^Date: | sed -e 's/Date: *//' )
+    local REPO=""
+    local SHA=""
+    local DATE=""
+    git remote -v >/dev/null 2>&1 | grep -q origin && {
+        REPO=$( git remote -v | awk '/fetch/ { print $2; exit; }' | sed -e 's?ssh://?https://?' )
+        SHA=$( git log | awk '{ print $2; exit; }' )
+        DATE=$( git log | grep -m1 ^Date: | sed -e 's/Date: *//' )
+    }
 
     INFO="Unknown LAB_MODE"
     case $LAB_MODE in
@@ -175,7 +181,7 @@ EXCL_FN_LAB_ENV() {
     esac
                   
     echo "$(date +%Y-%b-%d):[$ENVIRONMENT] Lab updated on node ${HOSTNAME}["$INFO"]"
-    echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
+    [ ! -z "$REPO" ] && echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
 }
 
 EXCL_FN_k8s_SETUP() {
