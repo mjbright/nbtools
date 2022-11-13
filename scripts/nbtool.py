@@ -435,7 +435,9 @@ def filter_nb(json_data, DEBUG=False):
               insert_line_image=''
               if source_line.find("# STRETCH-GOALS") == 0 and cell_type == "markdown":
                   # PLACE THICK LINE HERE: Start of Stretch Goals
-                  insert_line_image='<img align="left" src="../images/Thick120BlueBar.png" height="100" /><br/>'
+                  # insert_line_image='<img align="left" src="../images/Thick120BlueBar.png" height="200" /><br/>'
+                  insert_line_image='<img align="left" src="../images/Thick240BlueBar.png" height="200" /><br/>'
+                  insert_line_image+='<img align="left" src="../images/Thick240BlueBar.png" height="200" /><br/>'
                   source_line="# Stretch Goals"
               elif source_line.find("# ") == 0 and cell_type == "markdown":
                   # PLACE MEDIUM LINE HERE:
