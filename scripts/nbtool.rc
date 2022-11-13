@@ -362,8 +362,9 @@ EXCL_FN_NBCONVERT() {
         #   command | TREAT_OUTPUT yaml
 
         CMD="jupyter-nbconvert --to markdown $OP_NOTEBOOK"
-        echo; echo "-- $CMD"
-        $CMD
+        echo; echo "-- $CMD"; $CMD
+        CMD="jupyter-nbconvert --to html $OP_NOTEBOOK"
+        echo; echo "-- $CMD"; $CMD
 
         echo "$FRONTMATTER"           > README.md
         OP_NOTEBOOK_MD=${OP_NOTEBOOK%.ipynb}.md
