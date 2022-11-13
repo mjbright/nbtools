@@ -6,7 +6,7 @@ SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
 NBTOOL_RC=$SCRIPT_DIR/nbtool.rc
 NBTOOL_PY=$SCRIPT_DIR/nbtool.py
 
-ENVIRONMENT=""
+ENVIRONMENT="**** NO ~/.environment ****"
 [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
 
 HOSTNAME=$(hostname)
