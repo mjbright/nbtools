@@ -433,12 +433,17 @@ def filter_nb(json_data, DEBUG=False):
                       print(f"[filter_nb] {RED}len={len(inc_source_line)} > {MAX_LINE_LEN} in cell In [{In_cellno}] {NORMAL}of section {section_title} in line '{source_line}'")
 
               insert_line_image=''
-              if source_line.find("# ") == 0 and cell_type == "markdown":
-                  # TODO: PLACE THIN LINE HERE:
+              if source_line.find("# STRETCH-GOALS") == 0 and cell_type == "markdown":
+                  # PLACE THICK LINE HERE: Start of Stretch Goals
+                  insert_line_image='<img align="left" src="../images/Thick120BlueBar.png" height="100" /><br/>'
+                  source_line="# Stretch Goals"
+              elif source_line.find("# ") == 0 and cell_type == "markdown":
+                  # PLACE MEDIUM LINE HERE:
                   insert_line_image='<img align="left" src="../images/ThinBlueBar.png" /><br/>'
                   #ThickBlueBar.png
                   #ThinBlueBar.png
-              if source_line.find("## ") == 0 and cell_type == "markdown":
+              elif source_line.find("## ") == 0 and cell_type == "markdown":
+                  # PLACE THIN LINE HERE:
                   insert_line_image='<img align="left" src="../images/ThinBlueBar.png" width="400" /><br/>'
 
               # Build up TableOfContents - Count sections headers and retain list for ToC text
