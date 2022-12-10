@@ -70,7 +70,8 @@ CHECK_FILE_SIZE() {
     local FILE=$1; shift;
     local MIN_BYTES=$1; shift;
 
-    SIZE=$( stat -c %s $FILE )
+    #SIZE=$( stat -c %s $FILE )
+    SIZE=$( wc -c < $FILE )
     [[ $SIZE -lt $MIN_BYTES ]] && {
         echo "File looks suspiciously small"
         ls -al $FILE 
@@ -80,6 +81,7 @@ CHECK_FILE_SIZE() {
 }
 
 EXCL_FN_INIT_NOTEBOOK() {
+    #set -x
     NB=""
     if [ -z "$1" ]; then
         NB="README.ipynb"
@@ -92,7 +94,7 @@ EXCL_FN_INIT_NOTEBOOK() {
     echo; echo "******** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"; echo
     
     #set -x
-    set +x
+    #set +x
 
     if [ -f README.ipynb ]; then
         if [ -f .dir ]; then
@@ -120,6 +122,11 @@ EXCL_FN_INIT_NOTEBOOK() {
             echo; echo "==== Setting AWS vars for student20 account ===="
             . ~/.aws/linked/student20.rc; env | grep MYAWS_ACCOUNT_NAME= | EXCL_FN_HIGHLIGHT_EOL =
             #env | grep AWS_LINKED_ACCOUNT= | EXCL_FN_HIGHLIGHT_EOL =
+            ;;
+
+        Docker)
+            echo "In Docker Mode"
+            #exit 1
             ;;
 
         Kubernetes)
@@ -171,6 +178,9 @@ EXCL_FN_LAB_ENV() {
             TF_VERSION=$( which terraform >/dev/null && terraform version -json | jq -rc '.terraform_version' || echo missing )
             INFO="terraform $TF_VERSION"
             ;;
+        Docker)
+            INFO=$( echo "docker"; docker version | grep -A 1 Engine | awk '/ Version:/ { print $2; }' )
+            ;;
         Kubernetes)
             # Short term as --short will be deprecated:
             K8S_VERSION=$( which kubectl >/dev/null && kubectl version --short 2>/dev/null || echo No kubectl )
@@ -221,7 +231,8 @@ SET_FRONTMATTER() {
     local __WEIGHT="$1"; shift
 
     #local __DATE=$(date)
-    local __DATE=$(date  --iso-8601=seconds)
+    #local __DATE=$(date  --iso-8601=seconds)
+    local __DATE=$(date +%s)
     #date: 2018-11-28T15:14:39+10:00
 
     read -r -d '' FRONTMATTER <<EOF
@@ -278,6 +289,9 @@ EXCL_FN_FILTER_NOTEBOOK() {
 
     # In kubelab:
     # Jupyter on Ubuntu, or in kubelab:
+    export PATH=~/.venv/jupyter_bash/bin:$PATH
+    which python3
+    #exit 1
     PYTHON3=$(which python3 || echo /opt/conda/bin/python3)
     #CMD="/opt/conda/bin/python3 ./nbtool.py -f $NOTEBOOK"
     #CMD="$PYTHON3 ./nbtool.py -f $NOTEBOOK"
@@ -300,6 +314,7 @@ EXCL_FN_FILTER_NOTEBOOK() {
     # echo "==============="
 
     [ -z "$OP_NOTEBOOK" ] && {
+        which python3
         echo "[$PWD] Error: failed to find filtered README*.ipynb in directory '$NB_DIR'"
         ls -1tr $NB_DIR/ | grep .ipynb$ | REPLACE_HOME_STDIN | sed 's/^/::/'
         exit 1
