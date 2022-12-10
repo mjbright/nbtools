@@ -181,7 +181,14 @@ EXCL_FN_LAB_ENV() {
             INFO="terraform $TF_VERSION"
             ;;
         Docker)
-            INFO=$( echo "docker"; docker version | grep -A 1 Engine | awk '/ Version:/ { print $2; }' )
+            if which docker; then
+                #INFO=$( echo "docker"; docker version | grep -A 1 Engine | awk '/ Version:/ { print $2; }' )
+                set -x; docker version; set +x
+                INFO=$( docker version | grep -A 1 Engine | awk '/ Version:/ { print $2; }' )
+            else
+                echo "************ NO DOCKER ***************"
+                INFO="No-Docker"
+            fi
             ;;
         Kubernetes)
             # Short term as --short will be deprecated:
