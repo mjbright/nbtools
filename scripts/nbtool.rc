@@ -317,6 +317,7 @@ EXCL_FN_FILTER_NOTEBOOK() {
     OP_NOTEBOOK=$(ls -1tr $NB_DIR/ | grep filtered.ipynb$ | tail -1)
 
     # Attempt line-wrapped cells:
+    #   based on https://medium.com/znippet/adding-word-wrap-to-jupyter-notebooks-97040d131784
     OP_NOTEBOOK_LINEWRAPPED=${OP_NOTEBOOK%.ipynb}.LineWrapped.ipynb
     jq '. + { "MarkdownCell": { "cm_config": { "lineWrapping": true } }, "CodeCell": { "cm_config": { "lineWrapping": true } } }' \
         ${OP_NOTEBOOK} > ${OP_NOTEBOOK_LINEWRAPPED}
