@@ -475,8 +475,8 @@ EXCL_FN_NBCONVERT() {
         echo "$FRONTMATTER"           > README.md
         OP_NOTEBOOK_MD=${OP_NOTEBOOK%.ipynb}.md
         sed \
-            -e 's?../../../static/images/?/images/?' \
-            -e 's?../images/?/images/?' \
+            -e 's?\.\./\.\./\.\./static/images/?/images/?' \
+            -e 's?\.\./images/?/images/?' \
             $OP_NOTEBOOK_MD >> README.md
         #cat $OP_NOTEBOOK_MD >> README.md
         mv     $OP_NOTEBOOK_MD ${OP_NOTEBOOK_MD}.bak
