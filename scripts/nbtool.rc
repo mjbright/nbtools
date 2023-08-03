@@ -419,7 +419,7 @@ EXCL_FN_NBCONVERT() {
             DIE "File README.md is too small - supsicious"
         }
 
-        NAME=$( echo $LAB_NAME | sed 's/  */_/g' )
+        NAME=$( echo $LAB_NAME | sed -e 's/  */_/g' -e 's/_-_/-/g' -e 's/\._/\./' )
         mv $OP_NOTEBOOK ${NAME}.ipynb
         # Save as a dotfile to not perturb Hugo serving:
         #cp -a  README.md .${NAME}.md
