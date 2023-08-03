@@ -12,6 +12,19 @@ ansi2html_conv = Ansi2HTMLConverter()
 from inspect import currentframe, getframeinfo
 from inspect import stack
 
+#IDIR="../images"
+IDIR="/images"
+
+THICK_BAR=f"{IDIR}/ThickPurpleBar.png"
+THIN_BAR=f"{IDIR}/ThinPurpleBar.png"
+
+INSERT_THICK_BAR='![]('+f'{THICK_BAR})\n'
+INSERT_THIN_BAR='![]('+f'{THIN_BAR})\n'
+# TODO:
+INSERT_MED_BAR='![]('+f'{THIN_BAR})\n'
+#INSERT_THICK_BAR==f'<img align="left" src="{THICK_BAR}" height="200" /><br/>'
+#INSERT_THIN_BAR==f'<img align="left" src="{THICK_BAR}" height="200" /><br/>'
+
 #frameinfo = getframeinfo(currentframe())
 #print(frameinfo.filename, frameinfo.lineno)
 #currentframe().f_back
@@ -458,18 +471,19 @@ def filter_nb(json_data, DEBUG=False):
               insert_line_image=''
               if source_line.find("# STRETCH-GOALS") == 0 and cell_type == "markdown":
                   # PLACE THICK LINE HERE: Start of Stretch Goals
-                  # insert_line_image='<img align="left" src="../images/Thick120BlueBar.png" height="200" /><br/>'
-                  insert_line_image='<img align="left" src="../images/Thick240BlueBar.png" height="200" /><br/>'
-                  insert_line_image+='<img align="left" src="../images/Thick240BlueBar.png" height="200" /><br/>'
+                  insert_line_image=INSERT_THICK_BAR
+                  insert_line_image+=INSERT_THICK_BAR
                   source_line="# Stretch Goals"
               elif source_line.find("# ") == 0 and cell_type == "markdown":
                   # PLACE MEDIUM LINE HERE:
-                  insert_line_image='<img align="left" src="../images/ThinBlueBar.png" /><br/>'
+                  insert_line_image=INSERT_MED_BAR
+                  ## print("XX MED DEBUG:" + insert_line_image)
                   #ThickBlueBar.png
                   #ThinBlueBar.png
               elif source_line.find("## ") == 0 and cell_type == "markdown":
                   # PLACE THIN LINE HERE:
-                  insert_line_image='<img align="left" src="../images/ThinBlueBar.png" width="400" /><br/>'
+                  insert_line_image=INSERT_THIN_BAR
+                  ## print("XX THIN DEBUG:" + insert_line_image)
 
               # Build up TableOfContents - Count sections headers and retain list for ToC text
               if source_line.find("#") == 0 and count_sections and cell_type == "markdown":
@@ -498,7 +512,9 @@ def filter_nb(json_data, DEBUG=False):
                           source_line[ :1+source_line.find(' ') ] + f'<div id="sec{section_num}" > '+toc_line+' </div>'
 
               if insert_line_image != '':
-                  json_data['cells'][cell_no]['source'][slno] = f'\n\n{insert_line_image}\n\n' + json_data['cells'][cell_no]['source'][slno]
+                  new_lines = '\n\n' + insert_line_image + '\n\n' + json_data['cells'][cell_no]['source'][slno]
+                  json_data['cells'][cell_no]['source'][slno] = new_lines
+                  ## print("XX new_lines DEBUG:" + new_lines)
                   insert_line_image=''
 
               if cell_type == "markdown" and \
