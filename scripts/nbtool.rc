@@ -6,9 +6,14 @@ SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
 NBTOOL_RC=$SCRIPT_DIR/nbtool.rc
 NBTOOL_PY=$SCRIPT_DIR/nbtool.py
 
-ENVIRONMENT="**** NO ~/.environment ****"
+# Max number of chars/line to allow in markdown output:
+# MAX_LEN_MD=110
+# In practice 74 seems to be a good limit for the PDF output (tested using Safari/macOS):
+MAX_LEN_MD=74
+
+ENVIRONMENT="** NO ~/.environment **"
 [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
-echo "$ENVIRONMENT $( ls -al ~/.environment )"
+echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"
 
 which banner >/dev/null && sudo apt install -y sysvbanner
 
@@ -16,6 +21,37 @@ HOSTNAME=$(hostname)
 
 DEBUG_WAIT=0
 WAIT_SLEEP=1
+
+SHOW_LONG_LINES() {
+    local IPFILE=""
+    local MAX_LINE_LEN=80
+    local LEFT_COLS=7
+
+    while [ ! -z "$1" ]; do
+        case $1 in
+            -m) shift; MAX_LINE_LEN=$1;;
+             *) IPFILE=$1;;
+        esac
+        shift
+    done
+
+    let MAX=MAX_LINE_LEN+LEFT_COLS
+
+    # CAT input file with line numbers:
+    # - if/cat: cat input file or stdin, with line numbers
+    #           also sanitize output (control chars can mess up terminal colours)
+    # - cut: select first columns with line number and columns after MAX_LINE_LEN chars
+    # - grep: Remove lines with no extra chars (after column 80 of input file)
+    #         By detecting lines with initial spaces, line number and then a TAB then end of line
+
+    if [ ! -z "$IPFILE" ]; then
+        cat -vn $IPFILE
+    else
+        cat -vn
+    fi |
+        cut -c 1-${LEFT_COLS},${MAX}-5000 |
+        grep -v "^ *[0-9]*"$'\t'"$"
+}
 
 #EXCL_FN_COLOUR() { grep --color always ''; }
 #EXCL_FN_COLOUR() { sed -e 's/^/\\01b[1;34m/' -e 's/$/\\01b[0m/'; }
@@ -93,7 +129,8 @@ EXCL_FN_INIT_NOTEBOOK() {
 
     [ ! -f "$NB" ] && DIE "[$PWD] No such notebook as '$NB'"
 
-    echo; echo "******** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"; echo
+    echo
+    echo "**** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"; echo
     
     #set -x
     #set +x
@@ -112,26 +149,47 @@ EXCL_FN_INIT_NOTEBOOK() {
         echo "NB_DIR=$NB_DIR" | EXCL_FN_HIGHLIGHT
     fi
 
-    #echo "==== Reading nbtool functions from '$NBTOOL_RC' ===="
+    # echo
+    # echo "======== Reading nbtool functions from '$NBTOOL_RC' ========"
     #[ ! -f $NBTOOL_RC ] && DIE "No such file '$NBTOOL_RC'"
     #. $NBTOOL_RC
 
+    # To be used in markdown front-matter, picked up by Hugo/Printing to give PDF filename ...
+    TITLE_MODE=""
     case $LAB_MODE in
         Terraform)
+            TITLE_MODE="TF"
             rm -rf ~/tmp/terraform*
             echo; echo "==== Setting TF_DATA_DIR ===="
-            export TF_DATA_DIR=~/dot.terraform; echo "TF_DATA_DIR=$TF_DATA_DIR" | EXCL_FN_HIGHLIGHT_EOL =
-            echo; echo "==== Setting AWS vars for student20 account ===="
-            . ~/.aws/linked/student20.rc; env | grep MYAWS_ACCOUNT_NAME= | EXCL_FN_HIGHLIGHT_EOL =
-            #env | grep AWS_LINKED_ACCOUNT= | EXCL_FN_HIGHLIGHT_EOL =
+            export TF_DATA_DIR=~/dot.terraform
+            echo "TF_DATA_DIR=$TF_DATA_DIR" | EXCL_FN_HIGHLIGHT_EOL =
+            if [ -f ~/.aws/linked/student20.rc ]; then
+                env | grep MYAWS_ACCOUNT_NAME= | EXCL_FN_HIGHLIGHT_EOL =
+                echo; echo "==== Setting AWS vars for student20 account ===="
+                . ~/.aws/linked/student20.rc; env | grep MYAWS_ACCOUNT_NAME= | EXCL_FN_HIGHLIGHT_EOL =
+                #env | grep AWS_LINKED_ACCOUNT= | EXCL_FN_HIGHLIGHT_EOL =
+                TITLE_MODE="TF-AWS"
+            else
+                echo; echo "==== No AWS vars ( ~/.aws/linked/student20.rc )"
+            fi
+            if [ -f ~/.student.rc ]; then
+                env | grep MYAWS_ACCOUNT_NAME= | EXCL_FN_HIGHLIGHT_EOL =
+                echo; echo "==== Setting AZURE vars for student account ===="
+                . ~/.student.rc;
+                env | grep AZURE_CONFIG_DIR= | EXCL_FN_HIGHLIGHT_EOL =
+                env | grep ^ARM_.*=          | EXCL_FN_HIGHLIGHT_EOL =
+                TITLE_MODE="TF-AZ"
+            else
+                echo; echo "==== No AZURE vars ( ~/.student.rc )"
+            fi
             ;;
-
         Docker)
+            TITLE_MODE="DO"
             echo "In Docker Mode"
             #exit 1
             ;;
-
         Kubernetes)
+            TITLE_MODE="K8S"
             [ -z "$KUBECONFIG" ] && export KUBECONFIG=~/.kube/config
             echo "KUBECONFIG='$KUBECONFIG'"
             grep current-context "$KUBECONFIG" | grep -q kubernetes-admin && echo "## ASSUMING full cluster admin rights"
@@ -154,8 +212,10 @@ EXCL_FN_INIT_NOTEBOOK() {
     #EXEC    echo SHOULD BE SEEN     | EXCL_FN_HIGHLIGHT_SOL SHOULD
 
     #echo "LABTAG=$LAB_TAG" | EXCL_FN_HIGHLIGHT_EOL =
-    echo "==== $LAB_MODE Lab weight[$LAB_WEIGHT] / tag[$LAB_TAG] / name[$LAB_NAME] ====" | EXCL_FN_HIGHLIGHT_EOL weight
-    SET_FRONTMATTER "$LAB_NAME" "$LAB_WEIGHT"
+    echo
+    echo "======== $LAB_MODE Lab weight[$LAB_WEIGHT] / tag[$LAB_TAG] / name[$LAB_NAME] ========" | EXCL_FN_HIGHLIGHT_EOL weight
+    PDF_NAME=$( echo "$LAB_NAME" | sed -e 's/  */_/g' -e "s/^/${TITLE_MODE}_/" -e 's/_-_/-/g' )
+    SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
 
     echo "NB_DIR=$NB_DIR"
     echo "NB=$NB"
@@ -179,12 +239,14 @@ EXCL_FN_LAB_ENV() {
             #TF_VERSION=$( which terraform >/dev/null && terraform --version || echo No terraform )
             TF_VERSION=$( which terraform >/dev/null && terraform version -json | jq -rc '.terraform_version' || echo missing )
             INFO="terraform $TF_VERSION"
+            TITLE_MODE+="_$TF_VERSION"
             ;;
         Docker)
             if which docker >/dev/null; then
                 #INFO=$( echo "docker"; docker version --format '{{.Server.Version}}' | grep -A 1 Engine | awk '/ Version:/ { print $2; }' )
                 #set -x; docker version --format '{{.Server.Version}}'; set +x
                 INFO=$( docker version --format '{{.Server.Version}}' | grep -A 1 Engine | awk '/ Version:/ { print $2; }' )
+                TITLE_MODE+="_$INFO"
             else
                 echo "************ NO DOCKER ***************"
                 INFO="No-Docker"
@@ -196,10 +258,11 @@ EXCL_FN_LAB_ENV() {
             # Later:
             # K8S_VERSION=$( which kubectl >/dev/null && kubectl version 2>/dev/null || echo No kubectl )
             INFO=$K8S_VERSION
+            TITLE_MODE+="_$K8S_VERSION"
             ;;
     esac
                   
-    echo "$(date +%Y-%b-%d):[$ENVIRONMENT] Lab updated on node ${HOSTNAME}["$INFO"]"
+    echo "$(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
     [ ! -z "$REPO" ] && echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
 }
 
@@ -261,11 +324,8 @@ REPLACE_HOME_STDIN() {
 ARCHIVE_SOLUTIONS() {
     LAB_NAME="$*"
 
-    LAB_NUMBER=$LAB_NAME
-    LAB_NUM=${LAB_NUM,,}
-    LAB_NUM=${LAB_NUM#lab}
-    LAB_NUM=${LAB_NUM# *}
-    LAB_NUM=${LAB_NUM%%-*}
+    LAB_NUM=$( echo $LAB_NAME | sed -e 's/^lab//i' -e 's/ .*//' -e 's/\..*//' )
+    #echo "LAB_NUM='$LAB_NUM'"
 
     mkdir -p ~/Solutions/BAK
     SOLUTION_DIR=~/Solutions/Lab${LAB_NUM}
@@ -287,8 +347,9 @@ EXCL_FN_FILTER_NOTEBOOK() {
     NOTEBOOK="$1"
     [ -z "$NOTEBOOK" ] && NOTEBOOK=README.ipynb
     
-    echo; echo "==== Filtering current notebook [$NOTEBOOK] ===="
-    echo; echo "******** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"; echo
+    echo
+    echo "======== Filtering current notebook [$NOTEBOOK] ========"
+    echo "**** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"; echo
 
     ARCHIVE_SOLUTIONS $LAB_NAME
 
@@ -309,9 +370,11 @@ EXCL_FN_FILTER_NOTEBOOK() {
     #else
         ## TEST notebook:
     #fi
+    echo; echo "======== FILTERING NOTEBOOK ===================================================="
     CMD="$PYTHON3 $NBTOOL_PY -f $NOTEBOOK"
     echo; echo "-- $CMD" | REPLACE_HOME_STDIN
     $CMD
+    echo "======== DONE =================================================================="; echo
 
     #OP_NOTEBOOK=$(ls -1tr $NB_DIR/README*.ipynb | grep filtered | tail -1)
     OP_NOTEBOOK=$(ls -1tr $NB_DIR/ | grep filtered.ipynb$ | tail -1)
@@ -322,10 +385,8 @@ EXCL_FN_FILTER_NOTEBOOK() {
     jq '. + { "MarkdownCell": { "cm_config": { "lineWrapping": true } }, "CodeCell": { "cm_config": { "lineWrapping": true } } }' \
         ${OP_NOTEBOOK} > ${OP_NOTEBOOK_LINEWRAPPED}
 
-    # echo "==============="
-    # ls -1tr $NB_DIR/ 
-    # echo "==============="
-    # ls -1tr $NB_DIR/ | grep filtered | sed 's/^/>> /'
+    # echo "==============="; # ls -1tr $NB_DIR/ 
+    # echo "==============="; # ls -1tr $NB_DIR/ | grep filtered | sed 's/^/>> /'
     # echo "==============="
 
     [ -z "$OP_NOTEBOOK" ] && {
@@ -335,11 +396,26 @@ EXCL_FN_FILTER_NOTEBOOK() {
         exit 1
     }
     ls -altr $OP_NOTEBOOK| REPLACE_HOME_STDIN
-    # WHY? grep EXCLUDE $OP_NOTEBOOK
+
+    # Detect visibility of EXCLUDE/FN_EXCL in output (even if "# EXCLUDE" rather than "#EXCLUDE"):
     grep -qE "EXCLUDE|FN_EXCL" $OP_NOTEBOOK && {
-        echo; echo "-- Error: EXCLUDE/FN_EXCL seen in $OP_NOTEBOOK:"
-        grep EXCLUDE $OP_NOTEBOOK | EXCL_FN_HIGHLIGHT_MATCH EXCLUDE
-        grep FN_EXCL $OP_NOTEBOOK | EXCL_FN_HIGHLIGHT_MATCH FN_EXCL
+        echo; echo "---- Error: EXCLUDE/FN_EXCL seen in $OP_NOTEBOOK:"
+        echo "Occurrences of EXCLUDE in $OP_NOTEBOOK:" $( grep -o EXCLUDE $OP_NOTEBOOK | wc -l )
+        #grep EXCLUDE $OP_NOTEBOOK | EXCL_FN_HIGHLIGHT_MATCH EXCLUDE
+        echo "Occurrences of FN_EXCL in $OP_NOTEBOOK:" $( grep -o FN_EXCL $OP_NOTEBOOK | wc -l )
+        #grep FN_EXCL $OP_NOTEBOOK | EXCL_FN_HIGHLIGHT_MATCH FN_EXCL
+
+        #grep -n -A 5 "EXCLUDE|FN_EXCL" ${OP_NOTEBOOK%.ipynb}.md
+        JUPYTEXT=$( which jupytext )
+        echo "JUPYTEXT='$JUPYTEXT'"
+        if [ -x "$JUPYTEXT" ]; then
+            #jupytext --to sh:percent README.ipynb
+            jupytext --to sh:percent $OP_NOTEBOOK # filtered
+            grep -nE -A 5 "EXCLUDE|FN_EXCL" ${OP_NOTEBOOK%.ipynb}.sh # filtered
+        fi
+
+        ls -altr README.ipynb  README.sh
+        echo "-------------------------------------------------"
     }
 
     TF_OK="TF_DATA_DIR|TF_VAR_|TF_INPUT|TF_CLI|TF_CLI_ARG|TF_LOG"
@@ -398,8 +474,11 @@ EXCL_FN_NBCONVERT() {
 
         echo "$FRONTMATTER"           > README.md
         OP_NOTEBOOK_MD=${OP_NOTEBOOK%.ipynb}.md
-        sed -e 's?../../../static/images/?/images/?' $OP_NOTEBOOK_MD >> README.md
-        cat $OP_NOTEBOOK_MD >> README.md
+        sed \
+            -e 's?../../../static/images/?/images/?' \
+            -e 's?../images/?/images/?' \
+            $OP_NOTEBOOK_MD >> README.md
+        #cat $OP_NOTEBOOK_MD >> README.md
         mv     $OP_NOTEBOOK_MD ${OP_NOTEBOOK_MD}.bak
         cp -a  $OP_NOTEBOOK ${OP_NOTEBOOK}.bak
 
@@ -412,6 +491,13 @@ EXCL_FN_NBCONVERT() {
             DIE "File $OP_NOTEBOOK is too small - supsicious"
         }
 
+        NUM_LONG_LINES=$( SHOW_LONG_LINES -m $MAX_LEN_MD README.md | wc -l )
+        if [ "$NUM_LONG_LINES" != "0" ]; then
+            echo
+            echo "---- $NUM_LONG_LINES long lines (> $MAX_LEN_MD) in README.md:"
+            SHOW_LONG_LINES -m $MAX_LEN_MD README.md | EXCL_FN_COLOUR red
+        fi
+
         #cp /dev/null README.md
         #echo
         CHECK_FILE_SIZE README.md 1000 || {
@@ -419,10 +505,14 @@ EXCL_FN_NBCONVERT() {
             DIE "File README.md is too small - supsicious"
         }
 
+        # Sanitize notebook/markdown filename:
         NAME=$( echo $LAB_NAME | sed -e 's/  */_/g' -e 's/_-_/-/g' -e 's/\._/\./' )
         mv $OP_NOTEBOOK ${NAME}.ipynb
-        # Save as a dotfile to not perturb Hugo serving:
-        #cp -a  README.md .${NAME}.md
+
+        ## Remove leading spaces from markdown file:
+        #  Disabled - messes up output cells under Hugo (no black background)
+        #sed 's/^  *//' README.md > ${NAME}.md
+        #rm README.md
         mv README.md ${NAME}.md
 
         # FILTER_OK_CHECK:
@@ -855,7 +945,8 @@ EXCL_FN_CLEANUP_TRAEFIK() {
 
 EXCL_FN_CLEANUP() {
     SET_NAMESPACE "$1"
-    echo; echo "== CLEANUP namespace($NS) ==========================="
+    echo
+    echo "======== CLEANUP namespace($NS) ==========================="
     #kubectl get ns
     #kubectl delete ns frontend
     echo -n "Deployments: "
@@ -867,7 +958,8 @@ EXCL_FN_CLEANUP() {
     kubectl -n $NS delete pods --all
 
     #kubectl taint node master node-role.kubernetes.io/master:NoSchedule
-    echo; echo "== Remaining pods across all namespaces ==========================="
+    echo
+    echo "======== Remaining pods across all namespaces ==========================="
     kubectl get pods -A
     WAIT_NO_PODS
 }
