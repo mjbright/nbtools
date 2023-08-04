@@ -490,7 +490,7 @@ def filter_nb(json_data, DEBUG=False):
 
           # Pragma | EXCL_FN_NEW_FILE | EXCL_FN_MOD_FILE | EXCL_FN_APPEND_FILE
           if cell_type == 'code' and not EXCLUDED_CODE_CELL:
-              print(f'len(source_lines)={len(source_lines)} source_lines="{source_lines}"')
+              #print(f'len(source_lines)={len(source_lines)} source_lines="{source_lines}"')
               source_line0 = source_lines[0]
               if source_line0.find("EXCL_FN_NEW_FILE") == 0:
                   replace_code_cell_by_markdown( json_data['cells'][cell_no], 
