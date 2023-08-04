@@ -13,7 +13,7 @@ MAX_LEN_MD=74
 
 ENVIRONMENT="** NO ~/.environment **"
 [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
-echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"
+#echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"
 
 which banner >/dev/null && sudo apt install -y sysvbanner
 
@@ -285,6 +285,7 @@ EXCL_FN_LAB_ENV() {
                   
     echo "$(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
     [ ! -z "$REPO" ] && echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
+    return 0
 }
 
 EXCL_FN_k8s_SETUP() {
@@ -578,14 +579,17 @@ EXEC()                    { $*;                                 return $?; }
 # Terraform-specific:
 TF_INIT() {
     terraform init $*
+    RETURN
 }
 
 TF_PLAN() {
     terraform plan $*
+    RETURN
 }
 
 TF_APPLY() {
-    terraform apply -auto-approve $*
+    time terraform apply -auto-approve $*
+    RETURN
 }
 
 EXCL_FN_TF_DESTROY() {
@@ -593,7 +597,8 @@ EXCL_FN_TF_DESTROY() {
 }
 
 TF_DESTROY() {
-    terraform destroy -auto-approve $*
+    time terraform destroy -auto-approve $*
+    RETURN
 }
 
 # Kubernetes-specific:
