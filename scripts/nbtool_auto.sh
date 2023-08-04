@@ -2,6 +2,8 @@
 
 mkdir -p ~/tmp
 
+die() { echo "$0: die - $*" >&2; exit 1; }
+
 echo "---- Sourcing ~/scripts/nbtool.rc:"
 source ~/scripts/nbtool.rc
 touch ~/tmp/.nbtool.rc.read
@@ -17,6 +19,10 @@ set | grep ^LAB_.*=
 echo
 echo "---- Waiting for README.ipynb updates:"
 while true; do
+    python -m py_compile ~/scripts/nbtool.py || {
+        die "ERROR: ~/scripts/nbtool.py"
+    }
+
     [ ~/scripts/nbtool.rc -nt ~/tmp/.nbtool.rc.read ] &&
         source ~/scripts/nbtool.rc
 
