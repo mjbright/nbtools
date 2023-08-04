@@ -11,7 +11,7 @@ touch ~/tmp/.nbtool.rc.read
 # Variables already saved from notebook:
 ls -al ~/tmp/LAB_vars.env
 source ~/tmp/LAB_vars.env
-set | grep ^LAB_.*=
+set | grep -E "^(LAB_|NB_DIR)"
 
 [ ! -f README.ipynb ] && DIE "[$PWD] No such file as README.ipynb"
 [ ! -f .converting  ] && touch .converting
@@ -30,7 +30,9 @@ while true; do
     [ README.ipynb -nt .converting ] && {
         echo; echo "---- EXCL_FN_LAB_ENV [$PWD]:"
         touch .converting
-        EXCL_FN_LAB_ENV
+        #EXCL_FN_LAB_ENV
+        #EXCL_FN_FILTER_NOTEBOOK README.ipynb
+        EXCL_FN_INIT_NOTEBOOK
         ls -altr
     }
 
