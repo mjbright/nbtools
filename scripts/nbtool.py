@@ -368,12 +368,45 @@ def show_long_line( label, source_line, MAX_LINE_LEN, cell_no, cell_type, sectio
     calling_line=caller_info[2]
     calling_function=caller_info[3]
     print()
-    print(f'{label} func {calling_function} line {calling_line} {RED}[{cell_type} cell {cell_no}] LONG LINE length={len(source_line)} > {MAX_LINE_LEN}{NORMAL} in section "{section_title}"')
-    print(f'  line="{source_line.rstrip()}"')
+    print(f'{RED}{label}[cell {cell_no}] fn {calling_function} line {calling_line} LONG LINE length={len(source_line)} > {MAX_LINE_LEN}{NORMAL} in section "{section_title}"')
+    print(f'  "{source_line.rstrip()}"')
     if EXCLUDED_CODE_CELL:
         print(f'  excluded_code_cell={EXCLUDED_CODE_CELL}')
-    if len(source_line) != 1+len(source_line.rstrip()):
+    if len(source_line) != len(source_line.rstrip()):
         print(f'  len(line)={len(source_line)} != {len(source_line.rstrip())}')
+
+def replace_code_cell_by_markdown(cell, format_string):
+    source_lines=cell['source']
+    source_line0=source_lines[0]
+    file_content="".join(source_lines[1:-1])
+
+    file_name = source_line0[ source_line0.find(" ") : ]
+    file_name =    file_name[ 1 : file_name.rfind("<<")-1 ]
+
+    file_type=''
+    if file_name.rfind('.tf') == -1: file_type='hcl'
+    if file_name.rfind('.yaml') == -1 or file_name.rfind('.yml') == -1: file_type='yaml'
+
+    format_string = format_string.replace("__FILE__", f"**{file_name}**")
+    output_cell_content=f"""{format_string}
+```{file_type}
+{file_content}```
+"""
+
+    print(f"cell type/keys BEFORE: { cell['cell_type'] }, { cell.keys() }")
+    cell['cell_type']='markdown'
+
+    # Remove keys from cell:
+    cell.pop('outputs')
+    cell.pop('execution_count')
+
+    cell['source'] = [ output_cell_content ]
+    print(f"cell type/keys AFTER: { cell['cell_type'] }, { cell.keys() }")
+    print(f"cell output_cell: { cell['source'] }")
+
+def PRESS(label):
+    print(f'DEBUG[{label} - press enter to continue')
+    input()
 
 def filter_nb(json_data, DEBUG=False):
     global VARS_SEEN
@@ -454,19 +487,49 @@ def filter_nb(json_data, DEBUG=False):
           if cell_type == 'code' and not EXCLUDED_CODE_CELL:
               incl_code_cells.append(cell_no)
 
+          # Pragma | EXCL_FN_NEW_FILE | EXCL_FN_MOD_FILE | EXCL_FN_APPEND_FILE
+          if cell_type == 'code' and not EXCLUDED_CODE_CELL:
+              print(f'len(source_lines)={len(source_lines)} source_lines="{source_lines}"')
+              source_line0 = source_lines[0]
+              if source_line0.find("EXCL_FN_NEW_FILE") == 0:
+                  replace_code_cell_by_markdown( json_data['cells'][cell_no], 
+                      "Create a new file __FILE__ with the following content:")
+                  #PRESS(f'-- {source_line0}\n    ')
+                  #die("LOOK")
+
+              if source_line0.find("EXCL_FN_MOD_FILE") == 0:
+                  replace_code_cell_by_markdown( json_data['cells'][cell_no], 
+                      "Modify the file __FILE__ replacing with the following content:")
+                  #PRESS(f'-- {source_line0}\n    ')
+                  #die("LOOK")
+
+              if source_line0.find("EXCL_FN_APPEND_FILE") == 0:
+                  replace_code_cell_by_markdown( json_data['cells'][cell_no], 
+                      "Append the following content to file __FILE__:")
+                  #PRESS(f'-- {source_line0}\n    ')
+                  #die("LOOK")
+
           include_cell=True
           for slno in range(len(source_lines)):
               source_line=source_lines[slno]
+              s_line=source_line.rstrip()
               if DEBUG_LINES:
-                  s_line=source_line.rstrip()
                   print(f'[{cell_type}][{cell_no} l{slno}] "{s_line}"')
+
+              if cell_type == 'markdown':
+                  if len(s_line) > MAX_LINE_LEN:
+                      show_long_line( 'MARKDOWN', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+
+              if cell_type == 'output':
+                  if len(s_line) > MAX_LINE_LEN:
+                      show_long_line( 'CODE', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               if cell_type == 'code' and not EXCLUDED_CODE_CELL:
                   inc_source_line = source_line
                   if '| EXCL_FN' in source_line:
                       inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
                   if len(inc_source_line) > MAX_LINE_LEN:
-                      show_long_line( 'inc_code', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+                      show_long_line( 'CODE', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               insert_line_image=''
               if source_line.find("# STRETCH-GOALS") == 0 and cell_type == "markdown":
@@ -594,7 +657,7 @@ def filter_nb(json_data, DEBUG=False):
                       json_data['cells'][cell_no]['source'][slno]=new_line
 
                       # TODO: generalize line length checking after all replacements (how to hook i on 'continue' ??
-                      show_long_line('vars_replaced', new_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+                      show_long_line('CODE_vars', new_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
                       #if not findInSource(source_lines, "SET_VAR_"):
 
@@ -761,6 +824,15 @@ def split_nb(json_data, DEBUG=False):
 
           for slno in range(len(source_lines)):
               source_line=source_lines[slno]
+
+              if cell_type == 'markdown':
+                  if len(source_line) > MAX_LINE_LEN:
+                      show_long_line( 'SPLIT_MARKDOWN', source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+
+              if cell_type == 'output':
+                  if len(source_line) > MAX_LINE_LEN:
+                      show_long_line( 'SPLIT_OUTPUT', source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+
               if cell_type == 'code' and not EXCLUDED_CODE_CELL:
                   inc_source_line = source_line
                   if '| EXCL_FN' in source_line:
@@ -768,7 +840,8 @@ def split_nb(json_data, DEBUG=False):
                   #if len(inc_source_line) > MAX_LINE_LEN:
                       #print(f'[split_nb]: long {inc_source_line} > {MAX_LINE_LEN} {EXCLUDED_CODE_CELL}' )
 
-                  show_long_line( 'slno', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+                  if len(inc_source_line) > MAX_LINE_LEN:
+                      show_long_line( 'SPLIT', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
                   #if len(source_line) > MAX_LINE_LEN:
                       #print(f"[split_nb]: len={len(inc_source_line)} > {MAX_LINE_LEN} in cell {sec_cell_no} of section {section_title} in line '{source_line}'")
 
