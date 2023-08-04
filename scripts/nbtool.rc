@@ -53,6 +53,27 @@ SHOW_LONG_LINES() {
         grep -v "^ *[0-9]*"$'\t'"$"
 }
 
+EXCL_FN_NEW_FILE() {
+    # NOTE: nbtool.py to replace this code_cell with markdown cell to say create a file with these contents
+    FILE="$1"; shift
+
+    cat >$FILE
+}
+
+EXCL_FN_MOD_FILE() {
+    # NOTE: nbtool.py to replace this code_cell with markdown cell to say modify a file with these contents
+    FILE="$1"; shift
+
+    cat >$FILE
+}
+
+EXCL_FN_APPEND_FILE() {
+    # NOTE: nbtool.py to replace this code_cell with markdown cell to say append file with these contents
+    FILE="$1"; shift
+
+    cat >>$FILE
+}
+
 #EXCL_FN_COLOUR() { grep --color always ''; }
 #EXCL_FN_COLOUR() { sed -e 's/^/\\01b[1;34m/' -e 's/$/\\01b[0m/'; }
 
@@ -374,10 +395,19 @@ EXCL_FN_FILTER_NOTEBOOK() {
     CMD="$PYTHON3 $NBTOOL_PY -f $NOTEBOOK"
     echo; echo "-- $CMD" | REPLACE_HOME_STDIN
     $CMD
-    echo "======== DONE =================================================================="; echo
+    echo "======== FILTERING DONE ========================================================"; echo
+    [ -z "$NB_DIR" ] && DIE "NB_DIR is unset"
+    echo "NB_DIR='$NB_DIR'"
+    #set -x
 
     #OP_NOTEBOOK=$(ls -1tr $NB_DIR/README*.ipynb | grep filtered | tail -1)
     OP_NOTEBOOK=$(ls -1tr $NB_DIR/ | grep filtered.ipynb$ | tail -1)
+    [ -z "$OP_NOTEBOOK" ] && {
+        which python3
+        echo "[$PWD] Error: failed to find filtered README*.ipynb in directory '$NB_DIR'"
+        ls -1tr $NB_DIR/ | grep .ipynb$ | REPLACE_HOME_STDIN | sed 's/^/::/'
+        exit 1
+    }
 
     # Attempt line-wrapped cells:
     #   based on https://medium.com/znippet/adding-word-wrap-to-jupyter-notebooks-97040d131784
@@ -389,15 +419,11 @@ EXCL_FN_FILTER_NOTEBOOK() {
     # echo "==============="; # ls -1tr $NB_DIR/ | grep filtered | sed 's/^/>> /'
     # echo "==============="
 
-    [ -z "$OP_NOTEBOOK" ] && {
-        which python3
-        echo "[$PWD] Error: failed to find filtered README*.ipynb in directory '$NB_DIR'"
-        ls -1tr $NB_DIR/ | grep .ipynb$ | REPLACE_HOME_STDIN | sed 's/^/::/'
-        exit 1
-    }
+    ls -altr $OP_NOTEBOOK
     ls -altr $OP_NOTEBOOK| REPLACE_HOME_STDIN
 
     # Detect visibility of EXCLUDE/FN_EXCL in output (even if "# EXCLUDE" rather than "#EXCLUDE"):
+    echo "Checking for 'EXCLUDE|FN_EXCL' in filtered notebook"
     grep -qE "EXCLUDE|FN_EXCL" $OP_NOTEBOOK && {
         echo; echo "---- Error: EXCLUDE/FN_EXCL seen in $OP_NOTEBOOK:"
         echo "Occurrences of EXCLUDE in $OP_NOTEBOOK:" $( grep -o EXCLUDE $OP_NOTEBOOK | wc -l )
@@ -418,6 +444,7 @@ EXCL_FN_FILTER_NOTEBOOK() {
         echo "-------------------------------------------------"
     }
 
+    echo "Checks specific to TF/K8S:"
     TF_OK="TF_DATA_DIR|TF_VAR_|TF_INPUT|TF_CLI|TF_CLI_ARG|TF_LOG"
     grep "TF_"  $OP_NOTEBOOK | grep -vE $TF_OK | EXCL_FN_HIGHLIGHT_MATCH TF_
     grep "K_"  $OP_NOTEBOOK | EXCL_FN_HIGHLIGHT_MATCH K_
@@ -453,6 +480,7 @@ EXCL_FN_FILTER_NOTEBOOK() {
         #DIE "Can't continue"
     }
 
+    echo "Performing EXCL_FN_NBCONVERT"
     [ "$NOTEBOOK" = "${NOTEBOOK##*TEST}" ] && EXCL_FN_NBCONVERT
 
     return 0
@@ -495,7 +523,7 @@ EXCL_FN_NBCONVERT() {
         if [ "$NUM_LONG_LINES" != "0" ]; then
             echo
             echo "---- $NUM_LONG_LINES long lines (> $MAX_LEN_MD) in README.md:"
-            SHOW_LONG_LINES -m $MAX_LEN_MD README.md | EXCL_FN_COLOUR red
+            #SHOW_LONG_LINES -m $MAX_LEN_MD README.md | EXCL_FN_COLOUR red
         fi
 
         #cp /dev/null README.md
