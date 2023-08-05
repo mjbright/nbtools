@@ -23,10 +23,21 @@ read DUMMY
 [ "$DUMMY" = "Q" ] && exit
 
 [ ! -f README.ipynb ] && DIE "[$PWD] No such file as README.ipynb"
-[ ! -f .converting  ] && touch .converting
+
+LANG=$( jq -r '.metadata.kernelspec.language' README.ipynb )
+case $LANG in
+    bash)
+        [ ! -f README.sh ] && { echo "Setting up pairing to bash";
+            echo "Configuring README.ipynb for pairing:"
+            CMD="jupytext --set-formats ipynb,sh:percent README.ipynb"
+            echo "-- $CMD"; $CMD
+        } ;;
+esac
 
 echo
 echo "---- Waiting for README.ipynb updates:"
+[ ! -f .converting  ] && touch .converting
+
 while true; do
     python -m py_compile ~/scripts/nbtool.py || {
         die "ERROR: ~/scripts/nbtool.py"
