@@ -365,6 +365,9 @@ def show_long_line( label, source_line, MAX_LINE_LEN, cell_no, cell_type, sectio
     RED='\x1B[00;31m'
     NORMAL='\x1B[00m'
 
+    if cell_type == 'markdown':
+        return
+
     caller_info=stack()[1]
     calling_line=caller_info[2]
     calling_function=caller_info[3]
