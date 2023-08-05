@@ -54,24 +54,34 @@ SHOW_LONG_LINES() {
 }
 
 EXCL_FN_NEW_FILE() {
+    #set -x
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say create a file with these contents
     FILE="$1"; shift
+    local LOG=/tmp/EXCL_FN_NEW_FILE
 
+    echo "[$PWD] Writing to new file '$FILE'" >$LOG
     cat >$FILE
+    ls -al $FILE >> $LOG
 }
 
 EXCL_FN_MOD_FILE() {
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say modify a file with these contents
     FILE="$1"; shift
+    local LOG=/tmp/EXCL_FN_MOD_FILE
 
+    echo "[$PWD] Writing to file '$FILE'" >$LOG
     cat >$FILE
+    ls -al $FILE >> $LOG
 }
 
 EXCL_FN_APPEND_FILE() {
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say append file with these contents
     FILE="$1"; shift
+    local LOG=/tmp/EXCL_FN_APPEND_FILE
 
+    echo "[$PWD] Appending to file '$FILE'" >$LOG
     cat >>$FILE
+    ls -al $FILE >> $LOG
 }
 
 #EXCL_FN_COLOUR() { grep --color always ''; }
@@ -571,6 +581,12 @@ EXCL_FN_NBCONVERT() {
 # TODO: implement this in nbtool.py (just remove NO_EXEC)_
 # e.g. use as
 #     NO_EXEC . ~/.bashrc
+# CODE: nbtool.py will replace source_line by first line of output text (which is then removed from output_text)
+# - useful when command is a variable
+# e.g. code cell contents are:  (output set to actual value of $__CMD)
+#    CODE $__CMD # Must be first line in code cell
+#    EXEC $__CMD
+CODE()                    { echo $*;                            return 0;  }
 NO_EXEC()                 {                                     return 0;  }
 EXEC()                    { $*;                                 return $?; }
 

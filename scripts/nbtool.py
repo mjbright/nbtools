@@ -25,6 +25,16 @@ INSERT_MED_BAR='![]('+f'{THIN_BAR})\n'
 #INSERT_THICK_BAR==f'<img align="left" src="{THICK_BAR}" height="200" /><br/>'
 #INSERT_THIN_BAR==f'<img align="left" src="{THICK_BAR}" height="200" /><br/>'
 
+BLACK='\x1B[00;30m'
+#RED='\x1B[00;31m'
+#BLUE='\x1B[00;32m'
+#NORMAL='\x1B[00m'
+
+RED='\x1B[00;31m';      B_RED='\x1B[01;31m';      BG_RED='\x1B[07;31m'
+GREEN='\x1B[00;32m';    B_GREEN='\x1B[01;32m';    BG_GREEN='\x1B[07;32m'
+YELLOW='\x1B[00;33m';   B_YELLOW='\x1B[01;33m';   BG_YELLOW='\x1B[07;33m'
+NORMAL='\x1B[00m'
+
 #frameinfo = getframeinfo(currentframe())
 #print(frameinfo.filename, frameinfo.lineno)
 #currentframe().f_back
@@ -62,6 +72,7 @@ REPLACE_COMMANDS={
     'TF_DESTROY': 'terraform destroy',
     'K_GET':      'kubectl get',
     'K_CREATE':   'kubectl create',
+    'CODE':       '',
 }
 
 def raw_ansi2text(ansi):
@@ -176,7 +187,7 @@ def nb_info(ip_or_op, ipfile):
     return f"{ipfile}:\n\t#cells={nb_cells(json_data)}"
           
 def die(msg):
-    sys.stdout.write(f"die: {msg}\n")
+    sys.stdout.write(f"die: {RED}{msg}{NORMAL}\n")
     sys.exit(1)
 
 def main():
@@ -362,9 +373,6 @@ def get_var_defs_in_cell_output_lines(output_lines):
     return vars_seen
 
 def show_long_line( label, source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL ):
-    RED='\x1B[00;31m'
-    NORMAL='\x1B[00m'
-
     if cell_type == 'markdown':
         return
 
@@ -514,6 +522,28 @@ def filter_nb(json_data, DEBUG=False):
                   #die("LOOK")
 
           include_cell=True
+          # Pragma | CODE(command)
+          source_line_0=source_lines[0]
+          if source_line_0.find("CODE") == 0:
+              nl='\n'
+              print('---- BEFORE ------------------')
+              print(f"{YELLOW}No source_lines={len(json_data['cells'][cell_no]['source'])}")
+              print(f"   source_lines={''.join( json_data['cells'][cell_no]['source'])}")
+              print(f"No outputs={len(json_data['cells'][cell_no]['outputs'][0]['text'])}")
+              print(f"   outputs     ={ json_data['cells'][cell_no]['outputs'][0]['text']}")
+
+              #json_data['cells'][cell_no]['source']  = [ json_data['cells'][cell_no]['outputs'][0]['text'][0], '' ]
+              json_data['cells'][cell_no]['source']  = [ json_data['cells'][cell_no]['outputs'][0]['text'][0] ]
+              source_lines = json_data['cells'][cell_no]['source']
+              json_data['cells'][cell_no]['outputs'][0]['text'] = json_data['cells'][cell_no]['outputs'][0]['text'][1:]
+
+              print('---- AFTER  ------------------')
+              print(f"No source_lines={len(json_data['cells'][cell_no]['source'])}")
+              print(f"   source_lines={''.join( json_data['cells'][cell_no]['source'])}")
+              print(f"No outputs={len(json_data['cells'][cell_no]['outputs'][0]['text'])}")
+              print(f"   outputs     ={ json_data['cells'][cell_no]['outputs'][0]['text']}")
+              print(f"{NORMAL}")
+
           for slno in range(len(source_lines)):
               source_line=source_lines[slno]
               s_line=source_line.rstrip()
@@ -645,6 +675,20 @@ def filter_nb(json_data, DEBUG=False):
                   #replace_vars_in_cell_output_lines(json_data, cell_no, VARS_SEEN)
                   #UNUSED_CONVERT_ANSI_CODES2HTML(json_data, cell_no)
                       
+              ## # CODE: nbtool.py will replace source_line by first line of output text (which is then removed from output_text)
+              ## # - useful when command is a variable
+              ## # e.g. code cell contents are:  (output set to actual value of $__CMD)
+              ## #    CODE $__CMD # Must be first line in code cell
+              ## #    EXEC $__CMD
+              ## CODE()                    { echo $*;                            return 0;  }
+              ## NO_EXEC()                 {                                     return 0;  }
+              ## EXEC()                    { $*;                                 return $?; }
+
+              # Pragma | NO_EXEC(command)
+              if source_line.find("NO_EXEC") == 0:
+                  pos=json_data['cells'][cell_no]['source'][slno].find("NO_EXEC")+len("NO_EXEC")
+                  json_data['cells'][cell_no]['source'][slno] = json_data['cells'][cell_no]['source'][slno][pos:]
+
               # Pragma $__ variables ...
               # If $__variables seen in source then we modify the source to replace $_var by it's value
               for var in VARS_SEEN:
@@ -664,11 +708,6 @@ def filter_nb(json_data, DEBUG=False):
                       show_long_line('CODE_vars', new_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
                       #if not findInSource(source_lines, "SET_VAR_"):
-
-              # Pragma | NO_EXEC(command)
-              if "NO_EXEC" in source_line:
-                  pos=json_data['cells'][cell_no]['source'][slno].find("NO_EXEC")+len("NO_EXEC")
-                  json_data['cells'][cell_no]['source'][slno] = json_data['cells'][cell_no]['source'][slno][pos:]
 
               for REPLACE_CMD in REPLACE_COMMANDS:
                   if REPLACE_CMD in source_line:
