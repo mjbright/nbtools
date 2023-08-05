@@ -16,11 +16,11 @@ echo "==========================="
 set | grep -E "^(LAB_|NB_DIR)"
 echo "==========================="
 
-echo "Is this the correct directory       ?? [${PWD##*/}]
-echo "Do the above variables look correct ??
+echo "Is this the correct directory       ?? [${PWD##*/}]"
+echo "Do the above variables look correct ??"
+echo -n "Enter y/n> "
 read DUMMY
-[ "$DUMMY" = "q" ] && exit
-[ "$DUMMY" = "Q" ] && exit
+[ "$DUMMY" != "y" ] && exit
 
 [ ! -f README.ipynb ] && DIE "[$PWD] No such file as README.ipynb"
 
