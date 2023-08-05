@@ -11,7 +11,16 @@ touch ~/tmp/.nbtool.rc.read
 # Variables already saved from notebook:
 ls -al ~/tmp/LAB_vars.env
 source ~/tmp/LAB_vars.env
+
+echo "==========================="
 set | grep -E "^(LAB_|NB_DIR)"
+echo "==========================="
+
+echo "Is this the correct directory       ?? [${PWD##*/}]
+echo "Do the above variables look correct ??
+read DUMMY
+[ "$DUMMY" = "q" ] && exit
+[ "$DUMMY" = "Q" ] && exit
 
 [ ! -f README.ipynb ] && DIE "[$PWD] No such file as README.ipynb"
 [ ! -f .converting  ] && touch .converting
