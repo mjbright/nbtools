@@ -375,6 +375,9 @@ def get_var_defs_in_cell_output_lines(output_lines):
 def show_long_line( label, source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL ):
     if cell_type == 'markdown':
         return
+    
+    if cell_type == 'code' and label == 'CODE-op':
+        return
 
     caller_info=stack()[1]
     calling_line=caller_info[2]
@@ -524,7 +527,7 @@ def filter_nb(json_data, DEBUG=False):
           include_cell=True
           # Pragma | CODE(command)
           source_line_0=source_lines[0]
-          if source_line_0.find("CODE") == 0:
+          if source_line_0.find("CODE") == 0 and len(json_data['cells'][cell_no]['outputs']) != 0:
               nl='\n'
               print('---- BEFORE ------------------')
               print(f"{YELLOW}No source_lines={len(json_data['cells'][cell_no]['source'])}")
@@ -556,14 +559,14 @@ def filter_nb(json_data, DEBUG=False):
 
               if cell_type == 'output':
                   if len(s_line) > MAX_LINE_LEN:
-                      show_long_line( 'CODE', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+                      show_long_line( 'CODE-op', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               if cell_type == 'code' and not EXCLUDED_CODE_CELL:
                   inc_source_line = source_line
                   if '| EXCL_FN' in source_line:
                       inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
                   if len(inc_source_line) > MAX_LINE_LEN:
-                      show_long_line( 'CODE', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+                      show_long_line( 'CODE-src', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               insert_line_image=''
               if source_line.find("# STRETCH-GOALS") == 0 and cell_type == "markdown":
@@ -705,7 +708,7 @@ def filter_nb(json_data, DEBUG=False):
                       json_data['cells'][cell_no]['source'][slno]=new_line
 
                       # TODO: generalize line length checking after all replacements (how to hook i on 'continue' ??
-                      show_long_line('CODE_vars', new_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+                      show_long_line('CODE-src-vars', new_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
                       #if not findInSource(source_lines, "SET_VAR_"):
 
