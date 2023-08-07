@@ -450,6 +450,8 @@ def filter_nb(json_data, DEBUG=False):
           if cell_type == 'code':
               In_cell_no=json_data['cells'][cell_no]['execution_count']
 
+              json_data['cells'][cell_no]['source'].append(f'\n\n# Code-Cell[{cell_no}]\n')
+
           source_lines=json_data['cells'][cell_no]['source']
           if len(source_lines) == 0:
               if DEBUG: print("empty")
