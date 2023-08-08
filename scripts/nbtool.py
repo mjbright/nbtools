@@ -577,8 +577,14 @@ def filter_nb(json_data, DEBUG=False):
                   #die("LOOK")
 
           include_cell=True
-          # Pragma | CODE(command)
+
+          # Pragma | DOCKER(command)
+          for l in range( len( source_lines ) ):
+              if source_lines[l].find("DOCKER") != -1:
+                  source_lines[l] = source_lines[l].replace("DOCKER", "ssh vm-linux-docker docker")
+
           source_line_0=source_lines[0]
+          # Pragma | CODE(command)
           if source_line_0.find("CODE") == 0 and len(json_data['cells'][cell_no]['outputs']) != 0:
               nl='\n'
               print('---- BEFORE ------------------')
