@@ -496,7 +496,8 @@ def filter_nb(json_data, DEBUG=False):
               In_cell_no=json_data['cells'][cell_no]['execution_count']
 
               #json_data['cells'][cell_no]['source'].append(f'\n\n# Code-Cell[{cell_no}]\n')
-              source_lines.append(f'\n\n# Code-Cell[{cell_no}]\n')
+              source_lines.append(f'\n# Code-Cell[{cell_no}]\n')
+              #source_lines.append(f'\n\n# Code-Cell[{cell_no}]\n')
 
               # CHECK for empty code cells:
               if len(source_lines) == 0:
@@ -505,8 +506,9 @@ def filter_nb(json_data, DEBUG=False):
                   #die("no source_lines")
                   continue
 
-          if DEBUG_CELLNOS:
-              source_lines.append( f'\n\n#### Cell[{cell_no}]\n')
+          #if DEBUG_CELLNOS:
+          #    source_lines.append( f'\n\n#### Cell[{cell_no}]\n')
+          if len(source_lines) == 0: source_lines = ['']
 
           # Pragma --INCLUDE--SECTION--
           if '--INCLUDE--SECTION--' in source_lines[0]: 
@@ -589,6 +591,8 @@ def filter_nb(json_data, DEBUG=False):
               json_data['cells'][cell_no]['source']  = [ json_data['cells'][cell_no]['outputs'][0]['text'][0] ]
               source_lines = json_data['cells'][cell_no]['source']
               json_data['cells'][cell_no]['outputs'][0]['text'] = json_data['cells'][cell_no]['outputs'][0]['text'][1:]
+              #source_lines.append(f'\n# Code-Cell[{cell_no}]\n')
+              source_lines.append(f'# Code-Cell[{cell_no}]\n')
 
               print('---- AFTER  ------------------')
               print(f"No source_lines={len(json_data['cells'][cell_no]['source'])}")
