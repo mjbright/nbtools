@@ -293,7 +293,8 @@ EXCL_FN_LAB_ENV() {
             ;;
     esac
                   
-    echo "$(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
+    echo "# Notebook initial generation:"
+    echo "# - $(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
     [ ! -z "$REPO" ] && echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
     return 0
 }
