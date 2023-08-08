@@ -50,6 +50,9 @@ def getenvBOOLEAN(NAME, DEFAULT):
     if value == '0': return False
     return True
 
+DEBUG_SHORT   = getenvBOOLEAN('DEBUG_SHORT', False)
+#DEBUG_SHORT   = True
+
 DEBUG         = getenvBOOLEAN('DEBUG', False)
 DEBUG_LINES   = getenvBOOLEAN('DEBUG_LINES', False)
 DEBUG_CELLNOS = getenvBOOLEAN('DEBUG_CELLNOS', False)
@@ -454,9 +457,37 @@ def filter_nb(json_data, DEBUG=False):
               json_data['cells'][cell_no]['source'].append(f'\n\n# Code-Cell[{cell_no}]\n')
 
           source_lines=json_data['cells'][cell_no]['source']
-          if len(source_lines) == 0:
-              if DEBUG: print("empty")
-              continue
+          # THIS NEEDS TO BE DONE after removal of excluded stuff !!
+          # - only when include==True
+          # - after removal of EXCL_FN_*
+          # - after removal of REPLACE_COMMANDS, EXEC, ...
+          if cell_type == 'code':
+              if cell_no == 3:
+              #if cell_no < 99999:
+                  if include:
+                      source_content="".join( json_data['cells'][cell_no]['source'] ).replace("\n","")
+                      print(f'TEST/CODE[{cell_no}] len={len(source_lines)} source_lines="{source_lines}"')
+                      print(f'TEST/CODE[{cell_no}] len={len(source_content)} source_content="{source_content}"')
+
+              # CHECK for empty code cells:
+              if len(source_lines) == 0:
+                  if DEBUG_SHORT:
+                      print("empty source_lines")
+                      die("no source_lines")
+                  continue
+
+              if DEBUG_SHORT:
+                  source_content="".join( json_data['cells'][cell_no]['source'] ).replace("\n","")
+                  if len(source_content) <= 10:
+                      print(f'SHORT LINE/CODE "{source_content}"')
+                  if len(source_content) <= 4:
+                      if len(source_content) == 0:
+                          print("empty source_content")
+                          die("no source_content")
+                      else:
+                          print(f"NEARLY empty source_content '{source_content}' across {len(source_lines)} lines")
+                          die("no source_content")
+                  continue
 
           if DEBUG_CELLNOS:
               source_lines.append( f'\n\n#### Cell[{cell_no}]\n')
@@ -556,13 +587,11 @@ def filter_nb(json_data, DEBUG=False):
               if DEBUG_LINES:
                   print(f'[{cell_type}][{cell_no} l{slno}] "{s_line}"')
 
-              if cell_type == 'markdown':
-                  if len(s_line) > MAX_LINE_LEN:
-                      show_long_line( 'MARKDOWN', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+              if cell_type == 'markdown' and len(s_line) > MAX_LINE_LEN:
+                  show_long_line( 'MARKDOWN', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
-              if cell_type == 'output':
-                  if len(s_line) > MAX_LINE_LEN:
-                      show_long_line( 'CODE-op', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+              if cell_type == 'output' and len(s_line) > MAX_LINE_LEN:
+                  show_long_line( 'CODE-op', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               if cell_type == 'code' and not EXCLUDED_CODE_CELL:
                   inc_source_line = source_line
