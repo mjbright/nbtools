@@ -39,16 +39,20 @@ echo "---- Waiting for README.ipynb updates:"
 [ ! -f .converting  ] && touch .converting
 
 while true; do
+    DIR=$( dirname pwd )
+
     python -m py_compile ~/scripts/nbtool.py || {
         die "ERROR: ~/scripts/nbtool.py"
     }
 
-    [ ~/scripts/nbtool.rc -nt ~/tmp/.nbtool.rc.read ] &&
+    [ ~/scripts/nbtool.rc -nt ~/tmp/.nbtool.rc.read ] && {
         source ~/scripts/nbtool.rc
+        echo "[$DIR] NOT touching README.ipynb - but please save notebook"
+    }
 
     #[ $( find README.ipynb -newer .converting | wc -l ) != 0 ] && {
     [ README.ipynb -nt .converting ] && {
-        echo; echo "---- EXCL_FN_LAB_ENV [$PWD]:"
+        echo; echo "---- [$DIR] EXCL_FN_LAB_ENV:"
         touch .converting
         #EXCL_FN_LAB_ENV
         #EXCL_FN_FILTER_NOTEBOOK README.ipynb
