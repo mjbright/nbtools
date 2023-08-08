@@ -4,9 +4,12 @@ mkdir -p ~/tmp
 
 die() { echo "$0: die - $*" >&2; exit 1; }
 
-echo "---- Sourcing ~/scripts/nbtool.rc:"
+DIR=$( basename $PWD )
+
+echo "----[$DIR] Sourcing ~/scripts/nbtool.rc:"
 source ~/scripts/nbtool.rc
 touch ~/tmp/.nbtool.rc.read
+touch ~/tmp/.nbtool.py.read
 
 # Variables already saved from notebook:
 ls -al ~/tmp/LAB_vars.env
@@ -16,13 +19,16 @@ echo "==========================="
 set | grep -E "^(LAB_|NB_DIR)"
 echo "==========================="
 
-echo "Is this the correct directory       ?? [${PWD##*/}]"
-echo "Do the above variables look correct ??"
-echo -n "Enter y/n> "
-read DUMMY
-[ "$DUMMY" != "y" ] && exit
+DIR_NUM=${DIR%.*}
+if [ "$DIR_NUM" != "$LAB_NUM" ]; then
+    echo "Is this the correct directory       ?? [${PWD##*/}]"
+    echo "Do the above variables look correct ??"
+    echo -n "Enter y/n> "
+    read DUMMY
+    [ "$DUMMY" != "y" ] && exit
+fi
 
-[ ! -f README.ipynb ] && DIE "[$PWD] No such file as README.ipynb"
+[ ! -f README.ipynb ] && DIE "[$DIR] No such file as README.ipynb"
 
 LANG=$( jq -r '.metadata.kernelspec.language' README.ipynb )
 case $LANG in
@@ -39,8 +45,6 @@ echo "---- Waiting for README.ipynb updates:"
 [ ! -f .converting  ] && touch .converting
 
 while true; do
-    DIR=$( dirname pwd )
-
     python -m py_compile ~/scripts/nbtool.py || {
         die "ERROR: ~/scripts/nbtool.py"
     }
@@ -62,6 +66,9 @@ while true; do
         #EXCL_FN_FILTER_NOTEBOOK README.ipynb
         EXCL_FN_INIT_NOTEBOOK
         ls -altr
+        echo "-- <$DIR_NUM/$LAB_NUM> [$DIR]"
+        touch ~/tmp/.nbtool.rc.read
+        touch ~/tmp/.nbtool.py.read
     }
 
     sleep 1
