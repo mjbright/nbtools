@@ -8,8 +8,7 @@ DIR=$( basename $PWD )
 
 echo "----[$DIR] Sourcing ~/scripts/nbtool.rc:"
 source ~/scripts/nbtool.rc
-touch ~/tmp/.nbtool.rc.read
-touch ~/tmp/.nbtool.py.read
+touch ~/tmp/.nbtool.rc.read ~/tmp/.nbtool.py.read
 
 # Variables already saved from notebook:
 ls -al ~/tmp/LAB_vars.env
@@ -42,6 +41,8 @@ esac
 
 echo
 echo "---- Waiting for README.ipynb updates:"
+FIRST_LOOP=1
+echo "Forcing conversion on first loop"
 [ ! -f .converting  ] && touch .converting
 
 while true; do
@@ -59,16 +60,18 @@ while true; do
     }
 
     #[ $( find README.ipynb -newer .converting | wc -l ) != 0 ] && {
-    [ README.ipynb -nt .converting ] && {
+    CONVERT=0
+    [ $FIRST_LOOP  -eq 1           ] && { CONVERT=1; FIRST_LOOP=0; }
+    [ README.ipynb -nt .converting ] && { CONVERT=1; }
+
+    [ $CONVERT -eq 1 ] && {
         echo; echo "---- [$DIR] EXCL_FN_LAB_ENV:"
         touch .converting
-        #EXCL_FN_LAB_ENV
-        #EXCL_FN_FILTER_NOTEBOOK README.ipynb
+        #EXCL_FN_LAB_ENV; #EXCL_FN_FILTER_NOTEBOOK README.ipynb
         EXCL_FN_INIT_NOTEBOOK
         ls -altr
         echo "-- <$DIR_NUM/$LAB_NUM> [$DIR]"
-        touch ~/tmp/.nbtool.rc.read
-        touch ~/tmp/.nbtool.py.read
+        touch ~/tmp/.nbtool.rc.read ~/tmp/.nbtool.py.read
     }
 
     sleep 1
