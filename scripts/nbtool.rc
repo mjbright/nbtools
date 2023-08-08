@@ -2,6 +2,8 @@
 set +x
 
 SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
+echo "--- \${BASH_SOURCE[0]}='${BASH_SOURCE[0]}'"
+echo "--- \${BASH_SOURCE[1]}='${BASH_SOURCE[1]}'"
 # This file:
 NBTOOL_RC=$SCRIPT_DIR/nbtool.rc
 NBTOOL_FN=$SCRIPT_DIR/nbtool.fn
@@ -9,12 +11,11 @@ NBTOOL_PY=$SCRIPT_DIR/nbtool.py
 
 [ "$1" = "-x" ] && { shift; set -x; }
 
-echo "==== Reading nbtool functions from '$NBTOOL_FN' ====";
-. $NBTOOL_FN
-
+NBTOOL_INIT=0
 if [ ! -z "$1" ]; then
     echo "[$NBTOOL_RC] Got args '$*'"
-    
+    NBTOOL_INIT=1
+
     # -- CONFIG ------------------------------------
     export LAB_TAG=${PWD##*/} 
     export LAB_WEIGHT="$1"; shift
@@ -22,10 +23,15 @@ if [ ! -z "$1" ]; then
     export LAB_NAME="$1"; shift
     export LAB_TAG="${PWD##*/}"; shift
     # ----------------------------------------------
-    # Now use MAX_LEN_MD in nbtool.rc (instead of "export MAX_LINE_LEN=80" here)
-
     set | grep ^LAB_ > ~/tmp/LAB_vars.env
     cat ~/tmp/LAB_vars.env
+fi
+
+echo "==== Reading nbtool functions from '$NBTOOL_FN' ====";
+. $NBTOOL_FN
+
+if [ $NBTOOL_INIT -ne 0 ]; then
+    # Now use MAX_LEN_MD in nbtool.rc (instead of "export MAX_LINE_LEN=80" here)
 
     EXCL_FN_INIT_NOTEBOOK
 fi
