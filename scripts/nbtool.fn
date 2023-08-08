@@ -172,11 +172,6 @@ EXCL_FN_INIT_NOTEBOOK() {
         echo "NB_DIR=$NB_DIR" | EXCL_FN_HIGHLIGHT
     fi
 
-    # echo
-    # echo "======== Reading nbtool functions from '$NBTOOL_RC' ========"
-    #[ ! -f $NBTOOL_RC ] && DIE "No such file '$NBTOOL_RC'"
-    #. $NBTOOL_RC
-
     # To be used in markdown front-matter, picked up by Hugo/Printing to give PDF filename ...
     TITLE_MODE=""
     case $LAB_MODE in
@@ -379,8 +374,8 @@ EXCL_FN_FILTER_NOTEBOOK() {
     ARCHIVE_SOLUTIONS $LAB_NAME
 
     # Re-source latest version:
-    echo "-- . $NBTOOL_RC" | REPLACE_HOME_STDIN
-    . $NBTOOL_RC
+    echo "-- . $NBTOOL_FN" | REPLACE_HOME_STDIN
+    . $NBTOOL_FN
 
     # In kubelab:
     # Jupyter on Ubuntu, or in kubelab:
