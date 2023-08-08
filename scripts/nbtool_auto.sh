@@ -20,6 +20,7 @@ echo "==========================="
 
 DIR_NUM=${DIR%.*}
 if [ "$DIR_NUM" != "$LAB_NUM" ]; then
+    echo "DIR_NUM:'$DIR_NUM' != LAB_NUM:'$LAB_NUM'"
     echo "Is this the correct directory       ?? [${PWD##*/}]"
     echo "Do the above variables look correct ??"
     echo -n "Enter y/n> "
