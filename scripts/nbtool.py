@@ -12,6 +12,9 @@ ansi2html_conv = Ansi2HTMLConverter()
 from inspect import currentframe, getframeinfo
 from inspect import stack
 
+# For copy.deepcopy:
+import copy
+
 #IDIR="../images"
 IDIR="/images"
 
@@ -50,8 +53,8 @@ def getenvBOOLEAN(NAME, DEFAULT):
     if value == '0': return False
     return True
 
-DEBUG_SHORT   = getenvBOOLEAN('DEBUG_SHORT', False)
-#DEBUG_SHORT   = True
+REMOVE_SHORT   = getenvBOOLEAN('REMOVE_SHORT', False)
+REMOVE_SHORT   = True
 
 DEBUG         = getenvBOOLEAN('DEBUG', False)
 DEBUG_LINES   = getenvBOOLEAN('DEBUG_LINES', False)
@@ -402,6 +405,7 @@ def replace_code_cell_by_markdown(cell, format_string):
     file_name =    file_name[ 1 : file_name.rfind("<<")-1 ]
 
     file_type=''
+    file_type='txt'
     #### Disable syntax colour highlighting
     ## if file_name.rfind('.tf') != -1: file_type='hcl'
     ## if file_name.rfind('.yaml') != -1 or file_name.rfind('.yml') != -1: file_type='yaml'
@@ -427,6 +431,42 @@ def PRESS(label):
     print(f'DEBUG[{label} - press enter to continue')
     input()
 
+def FINAL_CELL_CHECK(cell, cell_no, cell_type):
+    # If not code cell, allow cell to be included
+    if cell_type != 'code':
+        return True
+
+    # FOR NOW ACCEPT ALL - just in case ...
+    ## return True
+
+    copy_cell = copy.deepcopy( cell )
+
+    # Remove: "# Code-Cell[*]" lines:
+    source_lines=copy_cell['source']
+    for i in range( len( source_lines ) ):
+        if '# Code-Cell[' in source_lines[i]:
+            source_lines[i]=''
+
+    # Remove: newlines:
+    source_content="".join( source_lines ).replace("\n","")
+    #print(f'TEST/CODE[{cell_no}] len={len(source_lines)} source_lines="{source_lines}"')
+    #print(f'TEST/CODE[{cell_no}] len={len(source_content)} source_content="{source_content}"')
+
+    if REMOVE_SHORT:
+        if len(source_content) <= 10:
+            print(f'SHORT LINE/CODE[{cell_no}] "{source_content}"')
+            if len(source_content) <= 4:
+                if len(source_content) == 0:
+                    print("empty source_content")
+                    ## BUT WANT TO JUST REMOVE source_lines (# Code-Cell) , leaving output
+                    cell['source']=[]
+                    #return False
+
+                print(f"NEARLY empty source_content '{source_content}' across {len(source_lines)} lines")
+
+    # ACCEPT line
+    return True
+
 def filter_nb(json_data, DEBUG=False):
     global VARS_SEEN
 
@@ -451,42 +491,18 @@ def filter_nb(json_data, DEBUG=False):
           #print(cell_no)
           cell_type=json_data['cells'][cell_no]['cell_type']
           In_cell_no='unknown'
+          source_lines = json_data['cells'][cell_no]['source']
           if cell_type == 'code':
               In_cell_no=json_data['cells'][cell_no]['execution_count']
 
-              json_data['cells'][cell_no]['source'].append(f'\n\n# Code-Cell[{cell_no}]\n')
-
-          source_lines=json_data['cells'][cell_no]['source']
-          # THIS NEEDS TO BE DONE after removal of excluded stuff !!
-          # - only when include==True
-          # - after removal of EXCL_FN_*
-          # - after removal of REPLACE_COMMANDS, EXEC, ...
-          if cell_type == 'code':
-              if cell_no == 3:
-              #if cell_no < 99999:
-                  if include:
-                      source_content="".join( json_data['cells'][cell_no]['source'] ).replace("\n","")
-                      print(f'TEST/CODE[{cell_no}] len={len(source_lines)} source_lines="{source_lines}"')
-                      print(f'TEST/CODE[{cell_no}] len={len(source_content)} source_content="{source_content}"')
+              #json_data['cells'][cell_no]['source'].append(f'\n\n# Code-Cell[{cell_no}]\n')
+              source_lines.append(f'\n\n# Code-Cell[{cell_no}]\n')
 
               # CHECK for empty code cells:
               if len(source_lines) == 0:
-                  if DEBUG_SHORT:
-                      print("empty source_lines")
-                      die("no source_lines")
-                  continue
-
-              if DEBUG_SHORT:
-                  source_content="".join( json_data['cells'][cell_no]['source'] ).replace("\n","")
-                  if len(source_content) <= 10:
-                      print(f'SHORT LINE/CODE "{source_content}"')
-                  if len(source_content) <= 4:
-                      if len(source_content) == 0:
-                          print("empty source_content")
-                          die("no source_content")
-                      else:
-                          print(f"NEARLY empty source_content '{source_content}' across {len(source_lines)} lines")
-                          die("no source_content")
+                  #if DEBUG_SHORT:
+                  print("empty source_lines")
+                  #die("no source_lines")
                   continue
 
           if DEBUG_CELLNOS:
@@ -814,8 +830,9 @@ def filter_nb(json_data, DEBUG=False):
                   replace_vars_in_cell_output_lines(json_data, cell_no, VARS_SEEN)
 
           if include_cell:
-              cells.append(cell_no)
-          
+              #if FINAL_CELL_CHECK(copy.deepcopy( json_data['cells'][cell_no]), cell_no, cell_type):
+              if FINAL_CELL_CHECK( json_data['cells'][cell_no], cell_no, cell_type):
+                  cells.append(cell_no)
     #            #if source_lines[0].find("SET_VAR_") == -1:
     #             if not findInSource(source_lines, "SET_VAR_"):
     #                 cells.append(cell_no)
