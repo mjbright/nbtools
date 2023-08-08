@@ -399,8 +399,9 @@ def replace_code_cell_by_markdown(cell, format_string):
     file_name =    file_name[ 1 : file_name.rfind("<<")-1 ]
 
     file_type=''
-    if file_name.rfind('.tf') == -1: file_type='hcl'
-    if file_name.rfind('.yaml') == -1 or file_name.rfind('.yml') == -1: file_type='yaml'
+    #### Disable syntax colour highlighting
+    ## if file_name.rfind('.tf') != -1: file_type='hcl'
+    ## if file_name.rfind('.yaml') != -1 or file_name.rfind('.yml') != -1: file_type='yaml'
 
     format_string = format_string.replace("__FILE__", f"**{file_name}**")
     output_cell_content=f"""{format_string}
