@@ -45,9 +45,13 @@ while true; do
         die "ERROR: ~/scripts/nbtool.py"
     }
 
+    [ ~/scripts/nbtool.py -nt ~/tmp/.nbtool.py.read ] && {
+        echo "[$DIR] nbtool.py updated - NOT touching README.ipynb - but please save notebook"
+    }
+
     [ ~/scripts/nbtool.rc -nt ~/tmp/.nbtool.rc.read ] && {
         source ~/scripts/nbtool.rc
-        echo "[$DIR] NOT touching README.ipynb - but please save notebook"
+        echo "[$DIR] nbtool.rc updated - NOT touching README.ipynb - but please save notebook"
     }
 
     #[ $( find README.ipynb -newer .converting | wc -l ) != 0 ] && {
