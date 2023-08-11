@@ -1,4 +1,9 @@
 
+if [ -d "$1" ]; then
+    cd "$1"
+    pwd
+fi
+
 echo "converting README.ipynb to README.sh (percent format):"
 CMD="jupytext --to sh:percent README.ipynb"
 echo "-- $CMD"; $CMD
