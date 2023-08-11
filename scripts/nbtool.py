@@ -72,13 +72,17 @@ MAX_LINE_LEN=int(os.getenv('MAX_LINE_LEN', DEFAULT_MAX_LINE_LEN))
 VARS_SEEN={}
 
 REPLACE_COMMANDS={
-    'TF_INIT':    'terraform init',
-    'TF_PLAN':    'terraform plan',
-    'TF_APPLY':   'terraform apply',
-    'TF_DESTROY': 'terraform destroy',
-    'K_GET':      'kubectl get',
-    'K_CREATE':   'kubectl create',
-    'CODE':       '',
+    '__TF_INIT':    'terraform init',
+    '__TF_PLAN':    'terraform plan',
+    '__TF_APPLY':   'terraform apply',
+    '__TF_APPLY -t -q':   'terraform apply',
+    '__TF_APPLY -q':   'terraform apply',
+    '__TF_DESTROY -t -q': 'terraform destroy',
+    '__TF_DESTROY -q': 'terraform destroy',
+    '__TF_DESTROY': 'terraform destroy',
+    '__K_GET':      'kubectl get',
+    '__K_CREATE':   'kubectl create',
+    '__CODE':       '',
 }
 
 def raw_ansi2text(ansi):
@@ -470,7 +474,7 @@ def FINAL_CELL_CHECK(cell, cell_no, cell_type):
 def filter_nb(json_data, DEBUG=False):
     global VARS_SEEN
 
-    EXCL_FN_regex = re.compile(r"\|?\&?\s*EXCL_FN_.*$") #, re.IGNORECASE)
+    __regex = re.compile(r"\|?\&?\s*__.*$") #, re.IGNORECASE)
     include=False
     cells=[]
 
@@ -554,23 +558,23 @@ def filter_nb(json_data, DEBUG=False):
           if cell_type == 'code' and not EXCLUDED_CODE_CELL:
               incl_code_cells.append(cell_no)
 
-          # Pragma | EXCL_FN_NEW_FILE | EXCL_FN_MOD_FILE | EXCL_FN_APPEND_FILE
+          # Pragma | __NEW_FILE | __MOD_FILE | __APPEND_FILE
           if cell_type == 'code' and not EXCLUDED_CODE_CELL:
               #print(f'len(source_lines)={len(source_lines)} source_lines="{source_lines}"')
               source_line0 = source_lines[0]
-              if source_line0.find("EXCL_FN_NEW_FILE") == 0:
+              if source_line0.find("__NEW_FILE") == 0:
                   replace_code_cell_by_markdown( json_data['cells'][cell_no], 
                       "Create a new file __FILE__ with the following content:")
                   #PRESS(f'-- {source_line0}\n    ')
                   #die("LOOK")
 
-              if source_line0.find("EXCL_FN_MOD_FILE") == 0:
+              if source_line0.find("__MOD_FILE") == 0:
                   replace_code_cell_by_markdown( json_data['cells'][cell_no], 
                       "Modify the file __FILE__ replacing with the following content:")
                   #PRESS(f'-- {source_line0}\n    ')
                   #die("LOOK")
 
-              if source_line0.find("EXCL_FN_APPEND_FILE") == 0:
+              if source_line0.find("__APPEND_FILE") == 0:
                   replace_code_cell_by_markdown( json_data['cells'][cell_no], 
                       "Append the following content to file __FILE__:")
                   #PRESS(f'-- {source_line0}\n    ')
@@ -578,14 +582,19 @@ def filter_nb(json_data, DEBUG=False):
 
           include_cell=True
 
-          # Pragma | DOCKER(command)
+          # Pragma | __DOCKER(command)
           for l in range( len( source_lines ) ):
-              if source_lines[l].find("DOCKER") != -1:
-                  source_lines[l] = source_lines[l].replace("DOCKER", "ssh vm-linux-docker docker")
+              if source_lines[l].find("__DOCKER") != -1:
+                  source_lines[l] = source_lines[l].replace("__DOCKER", "ssh vm-linux-docker docker")
+
+          # Pragma | __CURL(command)
+          for l in range( len( source_lines ) ):
+              if source_lines[l].find("__CURL") != -1:
+                  source_lines[l] = source_lines[l].replace("__CURL", "ssh vm-linux-docker curl")
 
           source_line_0=source_lines[0]
           # Pragma | CODE(command)
-          if source_line_0.find("CODE") == 0 and len(json_data['cells'][cell_no]['outputs']) != 0:
+          if source_line_0.find("__CODE") == 0 and len(json_data['cells'][cell_no]['outputs']) != 0:
               nl='\n'
               print('---- BEFORE ------------------')
               print(f"{YELLOW}No source_lines={len(json_data['cells'][cell_no]['source'])}")
@@ -785,12 +794,12 @@ def filter_nb(json_data, DEBUG=False):
                   include_cell=False
                   continue
 
-              # Pragma | EXCL_FN_(HIDE_|HIGHLIGHT*)
-              if "EXCL_FN_" in source_line:
+              # Pragma | __(HIDE_|HIGHLIGHT*)
+              if "__HI" in source_line:
                   if DEBUG:
                       orig=json_data['cells'][cell_no]['source'][slno]
                   json_data['cells'][cell_no]['source'][slno] = \
-                      EXCL_FN_regex.sub("", json_data['cells'][cell_no]['source'][slno])
+                      __regex.sub("", json_data['cells'][cell_no]['source'][slno])
                   if DEBUG:
                       new=json_data['cells'][cell_no]['source'][slno]
                       if new != orig:
@@ -812,7 +821,7 @@ def filter_nb(json_data, DEBUG=False):
               #if source_line.find("K_GET_") == -1: continue
               #if source_line.find("SET_VAR") != -1: print(f'======== {source_line} ========')
               #if source_line.find("SET_VAR_") == -1 and source_line.find("K_GET_") == -1: continue
-              if source_line.find("SET_VAR") == -1 and source_line.find("K_GET_") == -1: continue
+              if source_line.find("SET_VAR") == -1 and source_line.find("__K_GET_") == -1: continue
 
               #print(f"EXCLUDING var setting cell - SEEN {source_line}")
               # Pragma SET_VAR:

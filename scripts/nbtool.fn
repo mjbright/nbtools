@@ -45,41 +45,41 @@ SHOW_LONG_LINES() {
         grep -v "^ *[0-9]*"$'\t'"$"
 }
 
-EXCL_FN_NEW_FILE() {
+__NEW_FILE() {
     #set -x
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say create a file with these contents
     FILE="$1"; shift
-    local LOG=/tmp/EXCL_FN_NEW_FILE
+    local LOG=/tmp/__NEW_FILE
 
     echo "[$PWD] Writing to new file '$FILE'" >$LOG
     cat >$FILE
     ls -al $FILE >> $LOG
 }
 
-EXCL_FN_MOD_FILE() {
+__MOD_FILE() {
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say modify a file with these contents
     FILE="$1"; shift
-    local LOG=/tmp/EXCL_FN_MOD_FILE
+    local LOG=/tmp/__MOD_FILE
 
     echo "[$PWD] Writing to file '$FILE'" >$LOG
     cat >$FILE
     ls -al $FILE >> $LOG
 }
 
-EXCL_FN_APPEND_FILE() {
+__APPEND_FILE() {
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say append file with these contents
     FILE="$1"; shift
-    local LOG=/tmp/EXCL_FN_APPEND_FILE
+    local LOG=/tmp/__APPEND_FILE
 
     echo "[$PWD] Appending to file '$FILE'" >$LOG
     cat >>$FILE
     ls -al $FILE >> $LOG
 }
 
-#EXCL_FN_COLOUR() { grep --color always ''; }
-#EXCL_FN_COLOUR() { sed -e 's/^/\\01b[1;34m/' -e 's/$/\\01b[0m/'; }
+#__COLOUR() { grep --color always ''; }
+#__COLOUR() { sed -e 's/^/\\01b[1;34m/' -e 's/$/\\01b[0m/'; }
 
-EXCL_FN_COLOUR() {
+__COLOUR() {
     # #  NORMAL;           BOLD;                 INVERSE;
     # _black='\e[00;30m';  _L_black='\e[01;30m';  _I_black='\e[07;30m'
     # _white='\e[00;37m';  _L_white='\e[01;37m';  _I_white='\e[07;37m'
@@ -123,7 +123,7 @@ typeset -f > $FN_0_LIST
 # Source .jupyer.profile, then demonstrate kubectl working:
 
 DIE() {
-    echo "die - $*" | EXCL_FN_HIGHLIGHT
+    echo "die - $*" | __HIGHLIGHT
     exit 1
 }
 
@@ -141,7 +141,7 @@ CHECK_FILE_SIZE() {
     return 0
 }
 
-EXCL_FN_INIT_NOTEBOOK() {
+__INIT_NOTEBOOK() {
     #set -x
     NB=""
     if [ -z "$1" ]; then
@@ -169,7 +169,7 @@ EXCL_FN_INIT_NOTEBOOK() {
 
         NB_DIR=$(cat .dir)
         NB=$NB_DIR/$NB
-        echo "NB_DIR=$NB_DIR" | EXCL_FN_HIGHLIGHT
+        echo "NB_DIR=$NB_DIR" | __HIGHLIGHT
     fi
 
     # To be used in markdown front-matter, picked up by Hugo/Printing to give PDF filename ...
@@ -178,24 +178,24 @@ EXCL_FN_INIT_NOTEBOOK() {
         Terraform)
             TITLE_MODE="TF"
             rm -rf ~/tmp/terraform*
-            echo; echo "==== Setting TF_DATA_DIR ===="
-            export TF_DATA_DIR=~/dot.terraform
-            echo "TF_DATA_DIR=$TF_DATA_DIR" | EXCL_FN_HIGHLIGHT_EOL =
+            echo; echo "==== Setting __TF_DATA_DIR ===="
+            export __TF_DATA_DIR=~/dot.terraform
+            echo "__TF_DATA_DIR=$__TF_DATA_DIR" | __HIGHLIGHT_EOL =
             if [ -f ~/.aws/linked/student20.rc ]; then
-                env | grep MYAWS_ACCOUNT_NAME= | EXCL_FN_HIGHLIGHT_EOL =
+                env | grep MYAWS_ACCOUNT_NAME= | __HIGHLIGHT_EOL =
                 echo; echo "==== Setting AWS vars for student20 account ===="
-                . ~/.aws/linked/student20.rc; env | grep MYAWS_ACCOUNT_NAME= | EXCL_FN_HIGHLIGHT_EOL =
-                #env | grep AWS_LINKED_ACCOUNT= | EXCL_FN_HIGHLIGHT_EOL =
+                . ~/.aws/linked/student20.rc; env | grep MYAWS_ACCOUNT_NAME= | __HIGHLIGHT_EOL =
+                #env | grep AWS_LINKED_ACCOUNT= | __HIGHLIGHT_EOL =
                 TITLE_MODE="TF-AWS"
             else
                 echo; echo "==== No AWS vars ( ~/.aws/linked/student20.rc )"
             fi
             if [ -f ~/.student.rc ]; then
-                env | grep MYAWS_ACCOUNT_NAME= | EXCL_FN_HIGHLIGHT_EOL =
+                env | grep MYAWS_ACCOUNT_NAME= | __HIGHLIGHT_EOL =
                 echo; echo "==== Setting AZURE vars for student account ===="
                 . ~/.student.rc;
-                env | grep AZURE_CONFIG_DIR= | EXCL_FN_HIGHLIGHT_EOL =
-                env | grep ^ARM_.*=          | EXCL_FN_HIGHLIGHT_EOL =
+                env | grep AZURE_CONFIG_DIR= | __HIGHLIGHT_EOL =
+                env | grep ^ARM_.*=          | __HIGHLIGHT_EOL =
                 TITLE_MODE="TF-AZ"
             else
                 echo; echo "==== No AZURE vars ( ~/.student.rc )"
@@ -214,33 +214,33 @@ EXCL_FN_INIT_NOTEBOOK() {
             grep server: $KUBECONFIG
             kubectl get nodes
             kubectl config get-contexts
-            #DEBUG_WAIT=1; EXCL_FN_CLEANUP; DEBUG_WAIT=0
+            #DEBUG_WAIT=1; __CLEANUP; DEBUG_WAIT=0
             #kubectl delete pods -lapp=web-student0
             ;;
 
         *)
-            echo "Error: Unknown LAB_MODE '$LAB_MODE' - should be one of Terraform or Kubernetes" | EXCL_FN_HIGHLIGHT
+            echo "Error: Unknown LAB_MODE '$LAB_MODE' - should be one of Terraform or Kubernetes" | __HIGHLIGHT
             banner ERR
             return
             ;;
     esac
 
     #rm -rf ~/labs
-    #NO_EXEC echo SHOULD NOT BE SEEN | EXCL_FN_HIGHLIGHT_SOL SHOULD
-    #EXEC    echo SHOULD BE SEEN     | EXCL_FN_HIGHLIGHT_SOL SHOULD
+    #NO_EXEC echo SHOULD NOT BE SEEN | __HIGHLIGHT_SOL SHOULD
+    #EXEC    echo SHOULD BE SEEN     | __HIGHLIGHT_SOL SHOULD
 
-    #echo "LABTAG=$LAB_TAG" | EXCL_FN_HIGHLIGHT_EOL =
+    #echo "LABTAG=$LAB_TAG" | __HIGHLIGHT_EOL =
     echo
-    echo "======== $LAB_MODE Lab weight[$LAB_WEIGHT] / tag[$LAB_TAG] / name[$LAB_NAME] ========" | EXCL_FN_HIGHLIGHT_EOL weight
+    echo "======== $LAB_MODE Lab weight[$LAB_WEIGHT] / tag[$LAB_TAG] / name[$LAB_NAME] ========" | __HIGHLIGHT_EOL weight
     PDF_NAME=$( echo "$LAB_NAME" | sed -e 's/  */_/g' -e "s/^/${TITLE_MODE}_/" -e 's/_-_/-/g' )
     SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
 
     echo "NB_DIR=$NB_DIR"
     echo "NB=$NB"
-    EXCL_FN_FILTER_NOTEBOOK $NB
+    __FILTER_NOTEBOOK $NB
 }
 
-EXCL_FN_LAB_ENV() {
+__LAB_ENV() {
     #set -x
     local REPO=""
     local SHA=""
@@ -254,10 +254,10 @@ EXCL_FN_LAB_ENV() {
     INFO="Unknown LAB_MODE"
     case $LAB_MODE in
         Terraform)
-            #TF_VERSION=$( which terraform >/dev/null && terraform --version || echo No terraform )
-            TF_VERSION=$( which terraform >/dev/null && terraform version -json | jq -rc '.terraform_version' || echo missing )
-            INFO="terraform $TF_VERSION"
-            TITLE_MODE+="_$TF_VERSION"
+            #__TF_VERSION=$( which terraform >/dev/null && terraform --version || echo No terraform )
+            __TF_VERSION=$( which terraform >/dev/null && terraform version -json | jq -rc '.terraform_version' || echo missing )
+            INFO="terraform $__TF_VERSION"
+            TITLE_MODE+="_$__TF_VERSION"
             ;;
         Docker)
             if which docker >/dev/null; then
@@ -286,7 +286,7 @@ EXCL_FN_LAB_ENV() {
     return 0
 }
 
-EXCL_FN_k8s_SETUP() {
+__k8s_SETUP() {
     [ ! -z "$_SETUP_RUN" ] && return 0
     export _SETUP_RUN=$(date)
 
@@ -344,7 +344,9 @@ REPLACE_HOME_STDIN() {
 ARCHIVE_SOLUTIONS() {
     LAB_NAME="$*"
 
+set -x
     LAB_NUM=$( echo $LAB_NAME | sed -e 's/^lab//i' -e 's/ .*//' -e 's/\..*//' )
+set +x
     #echo "LAB_NUM='$LAB_NUM'"
 
     mkdir -p ~/Solutions/BAK
@@ -363,7 +365,7 @@ ARCHIVE_SOLUTIONS() {
 # - TODO: Create ToC (Table of Contents) and links to Next section
 # - TODO: Autonumber sections/subsections
 #
-EXCL_FN_FILTER_NOTEBOOK() {
+__FILTER_NOTEBOOK() {
     NOTEBOOK="$1"
     [ -z "$NOTEBOOK" ] && NOTEBOOK=README.ipynb
     
@@ -426,9 +428,9 @@ EXCL_FN_FILTER_NOTEBOOK() {
     grep -qE "EXCLUDE|FN_EXCL" $OP_NOTEBOOK && {
         echo; echo "---- Error: EXCLUDE/FN_EXCL seen in $OP_NOTEBOOK:"
         echo "Occurrences of EXCLUDE in $OP_NOTEBOOK:" $( grep -o EXCLUDE $OP_NOTEBOOK | wc -l )
-        #grep EXCLUDE $OP_NOTEBOOK | EXCL_FN_HIGHLIGHT_MATCH EXCLUDE
+        #grep EXCLUDE $OP_NOTEBOOK | __HIGHLIGHT_MATCH EXCLUDE
         echo "Occurrences of FN_EXCL in $OP_NOTEBOOK:" $( grep -o FN_EXCL $OP_NOTEBOOK | wc -l )
-        #grep FN_EXCL $OP_NOTEBOOK | EXCL_FN_HIGHLIGHT_MATCH FN_EXCL
+        #grep FN_EXCL $OP_NOTEBOOK | __HIGHLIGHT_MATCH FN_EXCL
 
         #grep -n -A 5 "EXCLUDE|FN_EXCL" ${OP_NOTEBOOK%.ipynb}.md
         JUPYTEXT=$( which jupytext )
@@ -444,9 +446,9 @@ EXCL_FN_FILTER_NOTEBOOK() {
     }
 
     echo "Checks specific to TF/K8S:"
-    TF_OK="TF_DATA_DIR|TF_VAR_|TF_INPUT|TF_CLI|TF_CLI_ARG|TF_LOG"
-    grep "TF_"  $OP_NOTEBOOK | grep -vE $TF_OK | EXCL_FN_HIGHLIGHT_MATCH TF_
-    grep "K_"  $OP_NOTEBOOK | EXCL_FN_HIGHLIGHT_MATCH K_
+    __TF_OK="__TF_DATA_DIR|__TF_VAR_|__TF_INPUT|__TF_CLI|__TF_CLI_ARG|__TF_LOG"
+    grep "__TF_"  $OP_NOTEBOOK | grep -vE $__TF_OK | __HIGHLIGHT_MATCH __TF_
+    grep "K_"  $OP_NOTEBOOK | __HIGHLIGHT_MATCH K_
 
     S_NB=$( echo $NOTEBOOK | REPLACE_HOME_STDIN )
     __EXCLUDE="__start_kubectl"
@@ -467,7 +469,7 @@ EXCL_FN_FILTER_NOTEBOOK() {
     } || {
         echo; echo "Error: $NUM VAR defs/usages in o/p file: $S_OP_NB"
         #echo; echo "VARS in output file: $S_OP_NB"
-        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __ | EXCL_FN_HIGHLIGHT
+        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __ | __HIGHLIGHT
         #DIE "Can't continue"
     }
 
@@ -475,17 +477,17 @@ EXCL_FN_FILTER_NOTEBOOK() {
     [ "$NUM" != "0" ] && {
         echo; echo "Error: $NUM \${__XX} defs/usages in o/p file: $S_OP_NB"
         #echo; echo "VARS in output file: $S_OP_NB"
-        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n '${__' | EXCL_FN_HIGHLIGHT
+        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n '${__' | __HIGHLIGHT
         #DIE "Can't continue"
     }
 
-    echo "Performing EXCL_FN_NBCONVERT"
-    [ "$NOTEBOOK" = "${NOTEBOOK##*TEST}" ] && EXCL_FN_NBCONVERT
+    echo "Performing __NBCONVERT"
+    [ "$NOTEBOOK" = "${NOTEBOOK##*TEST}" ] && __NBCONVERT
 
     return 0
 }
 
-EXCL_FN_NBCONVERT() {
+__NBCONVERT() {
    (
         cd $NB_DIR;
 
@@ -509,7 +511,7 @@ EXCL_FN_NBCONVERT() {
         mv     $OP_NOTEBOOK_MD ${OP_NOTEBOOK_MD}.bak
         cp -a  $OP_NOTEBOOK ${OP_NOTEBOOK}.bak
 
-        #echo; ls -altr *.md | EXCL_FN_COLOUR green
+        #echo; ls -altr *.md | __COLOUR green
 
         #TEST: cp /dev/null $OP_NOTEBOOK
         #echo
@@ -522,7 +524,7 @@ EXCL_FN_NBCONVERT() {
         if [ "$NUM_LONG_LINES" != "0" ]; then
             echo
             echo "---- $NUM_LONG_LINES long lines (> $MAX_LEN_MD) in README.md:"
-            #SHOW_LONG_LINES -m $MAX_LEN_MD README.md | EXCL_FN_COLOUR red
+            #SHOW_LONG_LINES -m $MAX_LEN_MD README.md | __COLOUR red
         fi
 
         #cp /dev/null README.md
@@ -543,8 +545,8 @@ EXCL_FN_NBCONVERT() {
         mv README.md ${NAME}.md
 
         # FILTER_OK_CHECK:
-        #echo; ls -altr $NB_DIR/README.md | EXCL_FN_COLOUR green
-        echo; ls -altr ${NAME}.*  | EXCL_FN_COLOUR green
+        #echo; ls -altr $NB_DIR/README.md | __COLOUR green
+        echo; ls -altr ${NAME}.*  | __COLOUR green
         #ls -altr *.md
     )
 }
@@ -578,46 +580,91 @@ CODE()                    { echo $*;                            return 0;  }
 NO_EXEC()                 {                                     return 0;  }
 EXEC()                    { $*;                                 return $?; }
 
-# EXCL_FN_* FUNCTIONS: ------------------------------------------------
+# __* FUNCTIONS: ------------------------------------------------
 
 # Terraform-specific:
-TF_INIT() {
+__TF_INIT() {
     terraform init $*
     RETURN
 }
 
-TF_PLAN() {
-    terraform plan $*
+__TF_PLAN() {
+    RETURN
+    TIME=""
+    local QUIET=0
+
+    [ -z "$1"     ] && TIME="time "
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-q" ] && { QUIET=1; shift; }
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+
+    if [ $QUIET -ne 0 ]; then
+        ${TIME}terraform plan $* |
+            tee /tmp/PLAN.op |& grep -iE "complet|fail|error| to add"
+    else
+        ${TIME}terraform plan $*
+    fi
     RETURN
 }
 
-TF_APPLY() {
-    time terraform apply -auto-approve $*
+__TF_APPLY() {
+    TIME=""
+    local QUIET=0
+
+    [ -z "$1"     ] && TIME="time "
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-q" ] && { QUIET=1; shift; }
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+
+    if [ $QUIET -ne 0 ]; then
+        ${TIME}terraform apply -auto-approve $* |
+            tee /tmp/APPLY.op |& grep -iE "complet|fail|error| to add"
+    else
+        ${TIME}terraform apply -auto-approve $*
+    fi
     RETURN
 }
 
-EXCL_FN_TF_DESTROY() {
-    TF_DESTROY $*
+____TF_DESTROY() {
+    __TF_DESTROY $*
 }
 
-TF_DESTROY() {
-    time terraform destroy -auto-approve $*
+__TF_DESTROY() {
+    TIME=""
+    local QUIET=0
+
+    [ -z "$1"     ] && TIME="time "
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-q" ] && { QUIET=1; shift; }
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+
+    if [ $QUIET -ne 0 ]; then
+        ${TIME}terraform destroy -auto-approve $* |
+            tee /tmp/DESTROY.op |& grep -iE "complet|fail|error| to add"
+    else
+        ${TIME}terraform destroy -auto-approve $*
+    fi
     RETURN
 }
 
-DOCKER() {
+__R_DOCKER() {
     # In nbtools.py replace by "ssh vm-linux-docker docker $*"
     docker $*
 }
 
+__R_CURL() {
+    # In nbtools.py replace by "ssh vm-linux-docker docker $*"
+    curl $*
+}
+
 # Kubernetes-specific:
-K_GET() {
+__K_GET() {
     kubectl get $*
     # TODO: If kubectl get svc, get service => recuperate IP, PORT info
     # TODO: If kubectl get po, get pod      => recuperate IP, PORT info
 }
 
-K_CREATE() {
+__K_CREATE() {
     kubectl create $*
     # TODO: If kubectl create svc, create service => recuperate IP, PORT info
     # TODO: If kubectl create dep, create deploy  => recuperate IP, PORT info
@@ -630,21 +677,20 @@ K_CREATE() {
     # Create deploy - wait for Pods ready? ==> NO use WAIT_PODS function
 }
 
-
 # Hide stdin elements matching arguments,
 # e.g. use as
-#      ls | EXCL_FN_HIDE hidden_files
+#      ls | __HIDE hidden_files
 
-EXCL_FN_HIDE()            { grep -v $* ;                        return 0; }
+__HIDE()            { grep -v $* ;                        return 0; }
 
-EXCL_FN_HIGHLIGHT()       { grep --color=always -E "|.*${*}.*"; return 0; }
-EXCL_FN_HIGHLIGHT_EOL()   { grep --color=always -E "|${*}.*";   return 0; }
-EXCL_FN_HIGHLIGHT_SOL()   { grep --color=always -E "|.*${*}";   return 0; }
-EXCL_FN_HIGHLIGHT_MATCH() { grep --color=always -E "${*}";    return 0; }
+__HIGHLIGHT()       { grep --color=always -E "|.*${*}.*"; return 0; }
+__HIGHLIGHT_EOL()   { grep --color=always -E "|${*}.*";   return 0; }
+__HIGHLIGHT_SOL()   { grep --color=always -E "|.*${*}";   return 0; }
+__HIGHLIGHT_MATCH() { grep --color=always -E "${*}";    return 0; }
 
-#echo HELLO WORLD from Jupyter | EXCL_FN_HIGHLIGHT WORLD
-#echo HELLO WORLD from Jupyter | EXCL_FN_HIGHLIGHT_EOL WORLD
-#echo HELLO WORLD from Jupyter | EXCL_FN_HIGHLIGHT_SOL WORLD
+#echo HELLO WORLD from Jupyter | __HIGHLIGHT WORLD
+#echo HELLO WORLD from Jupyter | __HIGHLIGHT_EOL WORLD
+#echo HELLO WORLD from Jupyter | __HIGHLIGHT_SOL WORLD
 
 # VARIABLE  FUNCTIONS: ------------------------------------------------
 
@@ -846,7 +892,7 @@ SET_VAR_POD_NAME() {
 
 # WAIT ON EXEC FUNCTIONS: ---------------------------------------------
 
-EXCL_FN_WAIT() { sleep $1; cat; return 0; }
+__WAIT() { sleep $1; cat; return 0; }
 
 # Sleep and cell will be excluded
 WAIT() {
@@ -974,9 +1020,9 @@ WAIT_NO_PODS() {
 
 # EXCLUDE CELL FUNCTIONS: ---------------------------------------------
 
-# EXCL_FN_CLEANUP      FUNCTIONS: ---------------------------------------------
+# __CLEANUP      FUNCTIONS: ---------------------------------------------
 
-EXCL_FN_CLEANUP_TRAEFIK() {
+__CLEANUP_TRAEFIK() {
     kubectl -n kube-system delete deploy/traefik-ingress-controller
     kubectl -n kube-system delete svc traefik-ingress-service
     kubectl -n kube-system delete sa/traefik-ingress-controller
@@ -985,7 +1031,7 @@ EXCL_FN_CLEANUP_TRAEFIK() {
     kubectl -n kube-system delete sa/traefik-ingress-controller
 }
 
-EXCL_FN_CLEANUP() {
+__CLEANUP() {
     SET_NAMESPACE "$1"
     echo
     echo "======== CLEANUP namespace($NS) ==========================="
@@ -1025,7 +1071,7 @@ RETURN() {
 
 # SETUP SECTION -------------------------------------------------------
 
-#### EXCL_FN_k8s_SETUP
+#### __k8s_SETUP
 
 # OTHER NOTES   -------------------------------------------------------
 

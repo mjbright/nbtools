@@ -1,9 +1,12 @@
 
 set +x
 
+NB_DIR=$PWD
+echo "setting NB_DIR=$NB_DIR"
+
 SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
-echo "--- \${BASH_SOURCE[0]}='${BASH_SOURCE[0]}'"
-echo "--- \${BASH_SOURCE[1]}='${BASH_SOURCE[1]}'"
+#echo "--- \${BASH_SOURCE[0]}='${BASH_SOURCE[0]}'"
+#echo "--- \${BASH_SOURCE[1]}='${BASH_SOURCE[1]}'"
 # This file:
 NBTOOL_RC=$SCRIPT_DIR/nbtool.rc
 NBTOOL_FN=$SCRIPT_DIR/nbtool.fn
@@ -33,6 +36,6 @@ echo "==== Reading nbtool functions from '$NBTOOL_FN' ====";
 if [ $NBTOOL_INIT -ne 0 ]; then
     # Now use MAX_LEN_MD in nbtool.rc (instead of "export MAX_LINE_LEN=80" here)
 
-    EXCL_FN_INIT_NOTEBOOK
+    __INIT_NOTEBOOK
 fi
 
