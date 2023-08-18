@@ -256,6 +256,7 @@ __LAB_ENV() {
         Terraform)
             #__TF_VERSION=$( which terraform >/dev/null && terraform --version || echo No terraform )
             __TF_VERSION=$( which terraform >/dev/null && terraform version -json | jq -rc '.terraform_version' || echo missing )
+            # terraform version | awk '/^Terraform / { print $2; }'
             INFO="terraform $__TF_VERSION"
             TITLE_MODE+="_$__TF_VERSION"
             ;;
@@ -365,6 +366,8 @@ set +x
 # - TODO: Create ToC (Table of Contents) and links to Next section
 # - TODO: Autonumber sections/subsections
 #
+# TODO: EXCL_FN tests are no longer appropriate, replace with "__" tests ??
+#
 __FILTER_NOTEBOOK() {
     NOTEBOOK="$1"
     [ -z "$NOTEBOOK" ] && NOTEBOOK=README.ipynb
@@ -383,15 +386,8 @@ __FILTER_NOTEBOOK() {
     # Jupyter on Ubuntu, or in kubelab:
     export PATH=~/.venv/jupyter_bash/bin:$PATH
     which python3
-    #exit 1
     PYTHON3=$(which python3 || echo /opt/conda/bin/python3)
-    #CMD="/opt/conda/bin/python3 ./nbtool.py -f $NOTEBOOK"
-    #CMD="$PYTHON3 ./nbtool.py -f $NOTEBOOK"
 
-    #if [ "$NOTEBOOK" = "${NOTEBOOK##*TEST}" ]; then
-    #else
-        ## TEST notebook:
-    #fi
     echo; echo "======== FILTERING NOTEBOOK ===================================================="
     CMD="$PYTHON3 $NBTOOL_PY -f $NOTEBOOK"
     echo; echo "-- $CMD" | REPLACE_HOME_STDIN
@@ -399,9 +395,7 @@ __FILTER_NOTEBOOK() {
     echo "======== FILTERING DONE ========================================================"; echo
     [ -z "$NB_DIR" ] && DIE "NB_DIR is unset"
     echo "NB_DIR='$NB_DIR'"
-    #set -x
 
-    #OP_NOTEBOOK=$(ls -1tr $NB_DIR/README*.ipynb | grep filtered | tail -1)
     OP_NOTEBOOK=$(ls -1tr $NB_DIR/ | grep filtered.ipynb$ | tail -1)
     [ -z "$OP_NOTEBOOK" ] && {
         which python3
@@ -416,10 +410,6 @@ __FILTER_NOTEBOOK() {
     jq '. + { "MarkdownCell": { "cm_config": { "lineWrapping": true } }, "CodeCell": { "cm_config": { "lineWrapping": true } } }' \
         ${OP_NOTEBOOK} > ${OP_NOTEBOOK_LINEWRAPPED}
 
-    # echo "==============="; # ls -1tr $NB_DIR/ 
-    # echo "==============="; # ls -1tr $NB_DIR/ | grep filtered | sed 's/^/>> /'
-    # echo "==============="
-
     ls -altr $OP_NOTEBOOK
     ls -altr $OP_NOTEBOOK| REPLACE_HOME_STDIN
 
@@ -432,7 +422,6 @@ __FILTER_NOTEBOOK() {
         echo "Occurrences of FN_EXCL in $OP_NOTEBOOK:" $( grep -o FN_EXCL $OP_NOTEBOOK | wc -l )
         #grep FN_EXCL $OP_NOTEBOOK | __HIGHLIGHT_MATCH FN_EXCL
 
-        #grep -n -A 5 "EXCLUDE|FN_EXCL" ${OP_NOTEBOOK%.ipynb}.md
         JUPYTEXT=$( which jupytext )
         echo "JUPYTEXT='$JUPYTEXT'"
         if [ -x "$JUPYTEXT" ]; then
