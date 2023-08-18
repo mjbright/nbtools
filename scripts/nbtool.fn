@@ -647,12 +647,12 @@ __TF_DESTROY() {
     RETURN
 }
 
-__R_DOCKER() {
+__DOCKER() {
     # In nbtools.py replace by "ssh vm-linux-docker docker $*"
     docker $*
 }
 
-__R_CURL() {
+__CURL() {
     # In nbtools.py replace by "ssh vm-linux-docker docker $*"
     curl $*
 }
