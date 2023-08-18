@@ -606,19 +606,19 @@ def filter_nb(json_data, DEBUG=False):
           if cell_type == 'code' and not EXCLUDED_CODE_CELL:
               #print(f'len(source_lines)={len(source_lines)} source_lines="{source_lines}"')
               source_line0 = source_lines[0]
-              if source_line0.find("__NEW_FILE") == 0:
+              if source_line0.find("__FN_NEW_FILE") == 0:
                   replace_code_cell_by_markdown( json_data['cells'][cell_no], 
                       "Create a new file __FILE__ with the following content:")
                   #PRESS(f'-- {source_line0}\n    ')
                   #die("LOOK")
 
-              if source_line0.find("__MOD_FILE") == 0:
+              if source_line0.find("__FN_MOD_FILE") == 0:
                   replace_code_cell_by_markdown( json_data['cells'][cell_no], 
                       "Modify the file __FILE__ replacing with the following content:")
                   #PRESS(f'-- {source_line0}\n    ')
                   #die("LOOK")
 
-              if source_line0.find("__APPEND_FILE") == 0:
+              if source_line0.find("__FN_APPEND_FILE") == 0:
                   replace_code_cell_by_markdown( json_data['cells'][cell_no], 
                       "Append the following content to file __FILE__:")
                   #PRESS(f'-- {source_line0}\n    ')
@@ -674,8 +674,10 @@ def filter_nb(json_data, DEBUG=False):
 
               if cell_type == 'code' and not EXCLUDED_CODE_CELL:
                   inc_source_line = source_line
-                  if '| EXCL_FN' in source_line:
-                      inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
+                  if '| __FN' in source_line:
+                      inc_source_line = source_line[ : source_line.find('| __FN') ]
+                  #if '| EXCL_FN' in source_line:
+                      #inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
                   if len(inc_source_line) > MAX_LINE_LEN:
                       show_long_line( 'CODE-src', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
@@ -839,7 +841,7 @@ def filter_nb(json_data, DEBUG=False):
                   continue
 
               # Pragma | __(HIDE_|HIGHLIGHT*)
-              if "__HI" in source_line:
+              if "__FN_HI" in source_line:
                   if DEBUG:
                       orig=json_data['cells'][cell_no]['source'][slno]
                   json_data['cells'][cell_no]['source'][slno] = \
@@ -850,12 +852,12 @@ def filter_nb(json_data, DEBUG=False):
                           print(f"{orig.rstrip()} => {new.rstrip()}")
            
               # Pragma WAIT:
-              if source_line.find("WAIT")     == 0:
+              if source_line.find("__FN_WAIT")     == 0:
                   include_cell=False
                   continue
 
               # Pragma RETURN:
-              if source_line.find("RETURN")     == 0:
+              if source_line.find("__RETURN")     == 0:
                   json_data['cells'][cell_no]['source'][slno]=''
                   continue
 
