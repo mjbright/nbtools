@@ -14,6 +14,12 @@ NBTOOL_PY=$SCRIPT_DIR/nbtool.py
 
 [ "$1" = "-x" ] && { shift; set -x; }
 
+if [ -z "$STUDENT" ]; then
+    echo "STUDENT must be set before starting Jupyter - even is set to unknown"
+    exit 1
+fi
+echo "STUDENT='$STUDENT'"
+
 NBTOOL_INIT=0
 if [ ! -z "$1" ]; then
     echo "[$NBTOOL_RC] Got args '$*'"
