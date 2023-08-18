@@ -18,6 +18,9 @@ import copy
 #IDIR="../images"
 IDIR="/images"
 
+QUESTIONS=[]
+NUM_QUESTIONS=0
+
 THICK_BAR=f"{IDIR}/ThickPurpleBar.png"
 THIN_BAR=f"{IDIR}/ThinPurpleBar.png"
 
@@ -471,8 +474,29 @@ def FINAL_CELL_CHECK(cell, cell_no, cell_type):
     # ACCEPT line
     return True
 
+def details_box(summary, details, box_colour, tag):
+    global QUESTIONS, NUM_QUESTIONS
+    style = 'style="border-width:6px; border-style:solid; border-color:{box_colour}; padding: 1em;"'
+
+    source_line = f'<details {style} ><summary>Question {NUM_QUESTIONS+1}: {summary}</summary>{details}</details>'
+    return source_line
+
+def info_box(source_line, box_colour, tag):
+    source_line=f'<p style="border-width:6px; border-style:solid; border-color:{box_colour}; padding: 1em;"><b>{tag}</b>' \
+       + source_line + '</p>'
+    return source_line
+
+def markdown_cell(id, lines):
+    return {
+        "cell_type": "markdown",
+        "id": id,
+        "metadata": {},
+        "source": lines # array
+    }
+
 def filter_nb(json_data, DEBUG=False):
     global VARS_SEEN
+    global QUESTIONS, NUM_QUESTIONS
 
     __regex = re.compile(r"\|?\&?\s*__.*$") #, re.IGNORECASE)
     include=False
@@ -551,6 +575,26 @@ def filter_nb(json_data, DEBUG=False):
               EXCLUDED_CODE_CELL=True
               exclude_cells.append(cell_no)
               # NOTE: Code will be excluded but continue to parse/search for variables settings
+
+          if cell_type == 'markdown' and not EXCLUDED_CODE_CELL:
+              #for source_line in source_lines:
+              for s in range(len(source_lines)):
+                  TAG='# __INFO:'; O_TAG='Info: '
+                  if source_lines[s].find(TAG) == 0:
+                       source_lines[s]=info_box(source_lines[s][len(TAG):], '#00AA00', O_TAG)
+                  TAG='# __WARN:'; O_TAG='Warning: '
+                  if source_lines[s].find(TAG) == 0:
+                       source_lines[s]=info_box(source_lines[s][len(TAG):], '#AA0000', O_TAG)
+                  TAG='# __ERROR:'; O_TAG='Error: '
+                  if source_lines[s].find(TAG) == 0:
+                       source_lines[s]=info_box(source_lines[s][len(TAG):], '#FF0000', O_TAG)
+                  #TAG='# __DETAIL('; O_TAG='Error: '
+                  if source_lines[s].find('# __DETAIL(') == 0:
+                       summary=source_lines[s][ 9+source_lines[s].find('__DETAIL(') : source_lines[s].find('):') ]
+                       details=source_lines[s][ source_lines[s].find('):') + 2 : ]
+                       source_lines[s]=details_box(summary, details, '#0000AA', 'QUESTION: ')
+                       QUESTIONS.append([summary, details])
+                       NUM_QUESTIONS+=1
 
           if cell_type == 'markdown' and not EXCLUDED_CODE_CELL:
               incl_md_cells.append(cell_no)
@@ -873,6 +917,18 @@ def filter_nb(json_data, DEBUG=False):
         if not cell_no in cells:
             #print(f"del(cells[{cell_no}])")
             del(json_data['cells'][cell_no])
+
+    if NUM_QUESTIONS > 0:
+        questions_text = '<hr><h1> Answers to Questions:</h1>'
+        id = 'eof-questions'
+        q=0
+        for question_entry in QUESTIONS:
+            q+=1
+            summary = question_entry[0]
+            detail = question_entry[1]
+            questions_text += f'\n<b>{q}. {summary}</b>\n\n{detail}\n\n'
+
+        json_data['cells'].append( markdown_cell( id, [ questions_text ] ) )
 
     print(f"cells to include[#{len(cells)}]=[{cells}]")
     print(f"included markdown cells={incl_md_cells}")
