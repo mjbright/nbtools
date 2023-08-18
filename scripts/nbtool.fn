@@ -531,7 +531,7 @@ __NBCONVERT() {
         #  Disabled - messes up output cells under Hugo (no black background)
         #sed 's/^  *//' README.md > ${NAME}.md
         #rm README.md
-        mv README.md ${NAME}.md
+        #mv README.md ${NAME}.md
 
         # FILTER_OK_CHECK:
         #echo; ls -altr $NB_DIR/README.md | __COLOUR green
