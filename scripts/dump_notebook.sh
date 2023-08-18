@@ -98,6 +98,7 @@ fi
     jq -rc '.cells[]? | {
         keys:     keys,
         type:     .cell_type,
+        id:     .id,
         source0:  .source[0]? | .[0:40],
         #".cell_type": .outputs[0].text[0]? |.[0:40],
         outputs0: .outputs[0].text[0]? |.[0:40]
