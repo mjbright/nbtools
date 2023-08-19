@@ -124,7 +124,13 @@ REPLACE_COMMANDS={
     #'EOF```':      'EOF\n```\n',
 }
 
+'''
 def raw_ansi2text(ansi):
+    return ansi
+'''
+
+def raw_ansi2text(ansi):
+    #return "ANSI: " + ansi.replace('\u001b[0m', ''). \
     return ansi.replace('\u001b[0m', ''). \
                 replace('\u001b[1m', ''). \
                 replace('\u001b[2m', ''). \
@@ -135,7 +141,13 @@ def raw_ansi2text(ansi):
                 replace('\u001b[34m', ''). \
                 replace('\u001b[35m', ''). \
                 replace('\u001b[36m', ''). \
-                replace('\u001b[37m', '')
+                replace('\u001b[37m', ''). \
+                replace('\u001b[0;0m', ''). \
+                replace('\u001b[0;33m', ''). \
+                replace('\u001b[0;34m', ''). \
+                replace('\u001b[1;34m', ''). \
+                replace('NEVER_REPLACE_OK', '')
+
 
 def writefile(path, mode='w', text='hello world\n'):
     ofd = open(path, mode)
