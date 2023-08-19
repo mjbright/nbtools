@@ -53,7 +53,7 @@ __FN_NEW_FILE() {
 
     echo "[$PWD] Writing to new file '$FILE'" >$LOG
     #cat >$FILE
-    # Replace $STUDENT by it's value:
+    # Replace $STUDENT by it's value: also needs to be done in nbtool.py
     sed "s/\$STUDENT/$STUDENT/g" >$FILE
     ls -al $FILE >> $LOG
 }
@@ -65,7 +65,7 @@ __FN_MOD_FILE() {
 
     echo "[$PWD] Writing to file '$FILE'" >$LOG
     #cat >$FILE
-    # Replace $STUDENT by it's value:
+    # Replace $STUDENT by it's value: also needs to be done in nbtool.py
     sed "s/\$STUDENT/$STUDENT/g" >$FILE
     ls -al $FILE >> $LOG
 }
@@ -77,7 +77,7 @@ __FN_APPEND_FILE() {
 
     echo "[$PWD] Appending to file '$FILE'" >$LOG
     #cat >>$FILE
-    # Replace $STUDENT by it's value:
+    # Replace $STUDENT by it's value: also needs to be done in nbtool.py
     sed "s/\$STUDENT/$STUDENT/g" >>$FILE
     ls -al $FILE >> $LOG
 }
@@ -358,7 +358,7 @@ set +x
 
     mkdir -p ~/Solutions/BAK
     SOLUTION_DIR=~/Solutions/Lab${LAB_NUM}
-    [ -d $SOLUTION_DIR ] && mv $SOLUTION_DIR ~/Solutions/BAK
+    [ -d $SOLUTION_DIR ] && mv $SOLUTION_DIR ~/Solutions/BAK 2>/dev/null
 
     mkdir -p $SOLUTION_DIR
     cp -a *.yml *.yaml *.tf *.tfvars *.json $SOLUTION_DIR/ 2>/dev/null
@@ -372,6 +372,43 @@ set +x
 # - TODO: Create ToC (Table of Contents) and links to Next section
 # - TODO: Autonumber sections/subsections
 #
+__QUIET() {
+    # Quiet except on failure --> __FILTER
+    __FN_QUIET_FILTER_NOTEBOOK $* || __FILTER
+}
+__FILTER() {
+    __FN_FILTER_NOTEBOOK $*
+}
+
+__FN_QUIET_FILTER_NOTEBOOK() {
+    __FN_FILTER_NOTEBOOK $* > ~/tmp/quiet.filter.notebook.op 2>&1
+    #ls -altrd $NB_DIR/README.md $NB_DIR/${NAME}.ipynb  | __FN_COLOUR green
+    #( cd $NB_DIR; ls -altrd README.md ${NAME}.ipynb  | __FN_COLOUR green; )
+    #( cd $NB_DIR; ls -altrd README.md *.ipynb  | __FN_COLOUR green; )
+    ( cd $NB_DIR;
+      ls -altrd README.md *.ipynb | tail -2 | __FN_COLOUR green;
+
+      R_NB=README.ipynb
+      TOTAL_CELLS=$(jq -rc '.cells    | length' $R_NB )
+      CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $R_NB)
+      MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $R_NB)
+      printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${R_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
+
+      R_NB=$( ls -1tr *.ipynb | grep -v README | tail -1)
+      TOTAL_CELLS=$(jq -rc '.cells    | length' $R_NB )
+      CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $R_NB)
+      MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $R_NB)
+      printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${R_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
+    )
+    __RETURN 0
+}
+
+__CHECK_NB_DIR() {
+    [ -z "$NB_DIR" ] && NB_DIR=$(cat .dir)
+    [ -z "$NB_DIR" ] && DIE "NB_DIR is unset"
+    echo "NB_DIR='$NB_DIR'"
+}
+
 __FN_FILTER_NOTEBOOK() {
     NOTEBOOK="$1"
     [ -z "$NOTEBOOK" ] && NOTEBOOK=README.ipynb
@@ -383,8 +420,9 @@ __FN_FILTER_NOTEBOOK() {
     ARCHIVE_SOLUTIONS $LAB_NAME
 
     # Re-source latest version:
-    echo "-- . $NBTOOL_FN" | REPLACE_HOME_STDIN
-    . $NBTOOL_FN
+    echo "-- source $NBTOOL_FN" | REPLACE_HOME_STDIN
+    [ -z "$NBTOOL_FN" ] && DIE "NBTOOL_FN is unset"
+    source $NBTOOL_FN
 
     # In kubelab:
     # Jupyter on Ubuntu, or in kubelab:
@@ -397,8 +435,7 @@ __FN_FILTER_NOTEBOOK() {
     echo; echo "-- $CMD" | REPLACE_HOME_STDIN
     $CMD
     echo "======== FILTERING DONE ========================================================"; echo
-    [ -z "$NB_DIR" ] && DIE "NB_DIR is unset"
-    echo "NB_DIR='$NB_DIR'"
+    __CHECK_NB_DIR
 
     OP_NOTEBOOK=$(ls -1tr $NB_DIR/ | grep filtered.ipynb$ | tail -1)
     [ -z "$OP_NOTEBOOK" ] && {
@@ -538,8 +575,9 @@ __FN_NBCONVERT() {
         #mv README.md ${NAME}.md
 
         # FILTER_OK_CHECK:
-        #echo; ls -altr $NB_DIR/README.md | __FN_COLOUR green
-        echo; ls -altr ${NAME}.*  | __FN_COLOUR green
+        #echo; ls -altr README.md  | __FN_COLOUR green
+        #echo; ls -altr ${NAME}.*  | __FN_COLOUR green
+        echo; ls -altr README.md ${NAME}.*  | __FN_COLOUR green
         #ls -altr *.md
     )
 }
@@ -693,7 +731,7 @@ SET_VAR() {
     local VARNAME=$1; shift
 
     [ "${VARNAME#*=}" != "$VARNAME" ] && {
-        echo "Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
+        echo "SET_VAR: Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
         local ARGS="${VARNAME#*=}"
         VARNAME=${VARNAME%%=*}
         #set -- ${VARNAME#*=}
@@ -703,7 +741,7 @@ SET_VAR() {
     }
 
     [ "${VARNAME#__}" = "$VARNAME" ] && {
-        echo "Correcting var name '$VARNAME' to '__$VARNAME'"
+        echo "SET_VAR: Correcting var name '$VARNAME' to '__$VARNAME'"
         VARNAME=__$VARNAME
     }
 
