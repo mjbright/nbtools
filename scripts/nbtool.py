@@ -940,10 +940,20 @@ def filter_nb(json_data, DEBUG=False):
               ## NO_EXEC()                 {                                     return 0;  }
               ## EXEC()                    { $*;                                 return $?; }
 
+              # Pragma | EXEC(command)
+              if source_line.find("EXEC ") == 0:
+                  json_data['cells'][cell_no]['source'][slno]=''
+                  source_line= json_data['cells'][cell_no]['source'][slno]
+
               # Pragma | NO_EXEC(command)
               if source_line.find("NO_EXEC") == 0:
-                  pos=json_data['cells'][cell_no]['source'][slno].find("NO_EXEC")+len("NO_EXEC")
-                  json_data['cells'][cell_no]['source'][slno] = json_data['cells'][cell_no]['source'][slno][pos:]
+                  #pos=json_data['cells'][cell_no]['source'][slno].find("NO_EXEC")+len("NO_EXEC")
+                  #json_data['cells'][cell_no]['source'][slno] = json_data['cells'][cell_no]['source'][slno][pos:]
+                  #print(f"WAS: {source_line}")
+                  #print(f"WAS: { json_data['cells'][cell_no]['source'][slno] }")
+                  json_data['cells'][cell_no]['source'][slno] = json_data['cells'][cell_no]['source'][slno][1+len("NO_EXEC"):]
+                  source_line= json_data['cells'][cell_no]['source'][slno]
+                  #print(f"NOW: {source_line}")
 
               # Pragma $__ variables ...
               # If $__variables seen in source then we modify the source to replace $__var by it's value
@@ -970,10 +980,6 @@ def filter_nb(json_data, DEBUG=False):
                           REPLACE_COMMANDS[REPLACE_CMD] + ' ' + json_data['cells'][cell_no]['source'][slno][pos:]
 
               replace_words_in_cell_output_lines(json_data, cell_no, REPLACE_OP_WORDS)
-
-              # Pragma | EXEC(command)
-              if source_line.find("EXEC ") == 0:
-                  json_data['cells'][cell_no]['source'][slno]=''
 
               # Pragma #EXCLUDE (cell):
               if EXCLUDED_CODE_CELL:
