@@ -56,7 +56,7 @@ __FN_FILE_COMMON() {
     [ "$1" = "-a" ] && { APPEND=1; shift; }
     FILE=$1; shift
     # Assume no '/' in FILE:
-    MD_FILE=".md.${FILE}"
+    ## MD_FILE=".md.${FILE}"
 
     #cat >$FILE
     # Replace $STUDENT by it's value: also needs to be done in nbtool.py
@@ -72,12 +72,12 @@ __FN_FILE_COMMON() {
           cat >>$FILE
        fi
 
-    grep -v ">>tofile:" ~/tmp/file.$$ | sed 's/>>tomark://g' |
-       if [ $APPEND -eq 0 ]; then
-          cat >$MD_FILE
-       else
-          cat >>$MD_FILE
-       fi
+    ## grep -v ">>tofile:" ~/tmp/file.$$ | sed 's/>>tomark://g' |
+       ## if [ $APPEND -eq 0 ]; then
+          ## cat >$MD_FILE
+       ## else
+          ## cat >>$MD_FILE
+       ## fi
 
     rm ~/tmp/file.$$
 
