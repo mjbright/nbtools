@@ -142,6 +142,7 @@ def raw_ansi2text(ansi):
                 replace('\u001b[35m', ''). \
                 replace('\u001b[36m', ''). \
                 replace('\u001b[37m', ''). \
+                replace('\u001b[90m', ''). \
                 replace('\u001b[0;0m', ''). \
                 replace('\u001b[0;33m', ''). \
                 replace('\u001b[0;34m', ''). \
