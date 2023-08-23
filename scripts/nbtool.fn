@@ -252,9 +252,9 @@ __FN_INIT_NOTEBOOK() {
         Terraform)
             TITLE_MODE="TF"
             rm -rf ~/tmp/terraform*
-            echo; echo "==== Setting __TF_DATA_DIR ===="
-            export __TF_DATA_DIR=~/dot.terraform
-            echo "__TF_DATA_DIR=$__TF_DATA_DIR" | __FN_HIGHLIGHT_EOL =
+            echo; echo "==== Setting TF_DATA_DIR ===="
+            export TF_DATA_DIR=~/dot.terraform
+            echo "TF_DATA_DIR=$TF_DATA_DIR" | __FN_HIGHLIGHT_EOL =
             if [ -f ~/.aws/linked/student20.rc ]; then
                 env | grep MYAWS_ACCOUNT_NAME= | __FN_HIGHLIGHT_EOL =
                 echo; echo "==== Setting AWS vars for student20 account ===="
@@ -553,7 +553,7 @@ __FN_FILTER_NOTEBOOK() {
     }
 
     echo "Checks specific to TF/K8S:"
-    __TF_OK="__TF_DATA_DIR|__TF_VAR_|__TF_INPUT|__TF_CLI|__TF_CLI_ARG|__TF_LOG"
+    __TF_OK="TF_DATA_DIR|__TF_VAR_|__TF_INPUT|__TF_CLI|__TF_CLI_ARG|__TF_LOG"
     grep "__TF_"  $OP_NOTEBOOK | grep -vE $__TF_OK | __FN_HIGHLIGHT_MATCH __TF_
     grep "K_"  $OP_NOTEBOOK | __FN_HIGHLIGHT_MATCH K_
 
