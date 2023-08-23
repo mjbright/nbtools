@@ -117,7 +117,9 @@ REPLACE_COMMANDS={
     '__TF_APPLY -q':   'terraform apply',
     '__TF_DESTROY -t -q': 'terraform destroy',
     '__TF_DESTROY -q': 'terraform destroy',
-    '__TF_DESTROY': 'terraform destroy',
+    '__TF_DESTROY':  'terraform destroy',
+    '__TIMER_START': '',
+    '__TIMER_STOP':  '',
     '__K_GET':      'kubectl get',
     '__K_CREATE':   'kubectl create',
     '__CODE':       '',
@@ -134,6 +136,8 @@ def raw_ansi2text(ansi):
     return ansi.replace('\u001b[0m', ''). \
                 replace('\u001b[1m', ''). \
                 replace('\u001b[2m', ''). \
+                replace('\u001b[3m', ''). \
+                replace('\u001b[4m', ''). \
                 replace('\u001b[30m', ''). \
                 replace('\u001b[31m', ''). \
                 replace('\u001b[32m', ''). \
@@ -144,6 +148,8 @@ def raw_ansi2text(ansi):
                 replace('\u001b[37m', ''). \
                 replace('\u001b[90m', ''). \
                 replace('\u001b[0;0m', ''). \
+                replace('\u001b[0;31m', ''). \
+                replace('\u001b[0;32m', ''). \
                 replace('\u001b[0;33m', ''). \
                 replace('\u001b[0;34m', ''). \
                 replace('\u001b[1;34m', ''). \
