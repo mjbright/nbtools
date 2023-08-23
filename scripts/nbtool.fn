@@ -178,6 +178,40 @@ CHECK_FILE_SIZE() {
     return 0
 }
 
+# START: TIMER FUNCTIONS ================================================
+
+__TIMER_START() { START_S=`date +%s`; }
+
+__TIMER_STOP() {
+    LABEL=""
+    [ ! -z "$1" ] && LABEL="[$*]: "
+
+    END_S=`date +%s`
+    let TOOK=END_S-START_S
+
+    __TIMER_hhmmss $TOOK
+    __TIMER_STOP="${LABEL}Took $TOOK secs [${HRS}h${MINS}m${SECS}]"
+    echo $__TIMER_STOP
+}
+
+__TIMER_hhmmss() {
+    _REM_SECS=$1; shift
+
+    let SECS=_REM_SECS%60
+    let _REM_SECS=_REM_SECS-SECS
+    let MINS=_REM_SECS/60%60
+    let _REM_SECS=_REM_SECS-60*MINS
+    let HRS=_REM_SECS/3600
+
+    [ $SECS -lt 10 ] && SECS="0$SECS"
+    [ $MINS -lt 10 ] && MINS="0$MINS"
+}
+
+# __TIMER_START
+# __TIMER_STOP "Sleep test"
+
+# END: TIMER FUNCTIONS ================================================
+
 __FN_INIT_NOTEBOOK() {
     #set -x
     NB=""
@@ -660,11 +694,13 @@ EXEC()                    { $*;                                 return $?; }
 
 # Terraform-specific:
 __TF_INIT() {
+    __NB_DEBUG terraform init $*
     terraform init $*
     __RETURN
 }
 
 __TF_PLAN() {
+    __NB_DEBUG terraform plan $*
     #__RETURN
     TIME=""
     local QUIET=0
@@ -673,6 +709,7 @@ __TF_PLAN() {
     [ "$1" = "-t" ] && { TIME="time "; shift; }
     [ "$1" = "-q" ] && { QUIET=1; shift; }
     [ "$1" = "-t" ] && { TIME="time "; shift; }
+    TIME=""; __TIMER_START
 
     if [ $QUIET -ne 0 ]; then
         ${TIME}terraform plan $* |
@@ -680,17 +717,20 @@ __TF_PLAN() {
     else
         ${TIME}terraform plan $*
     fi
+    __NB_DEBUG $( __TIMER_STOP 'terraform plan' )
     __RETURN
 }
 
 __TF_APPLY() {
     TIME=""
     local QUIET=0
+    __NB_DEBUG terraform apply $*
 
     [ -z "$1"     ] && TIME="time "
     [ "$1" = "-t" ] && { TIME="time "; shift; }
     [ "$1" = "-q" ] && { QUIET=1; shift; }
     [ "$1" = "-t" ] && { TIME="time "; shift; }
+    TIME=""; __TIMER_START
 
     if [ $QUIET -ne 0 ]; then
         ${TIME}terraform apply -auto-approve $* |
@@ -698,6 +738,7 @@ __TF_APPLY() {
     else
         ${TIME}terraform apply -auto-approve $*
     fi
+    __NB_DEBUG $( __TIMER_STOP 'terraform apply' )
     __RETURN
 }
 
@@ -708,11 +749,13 @@ ____TF_DESTROY() {
 __TF_DESTROY() {
     TIME=""
     local QUIET=0
+    __NB_DEBUG terraform destroy $*
 
     [ -z "$1"     ] && TIME="time "
     [ "$1" = "-t" ] && { TIME="time "; shift; }
     [ "$1" = "-q" ] && { QUIET=1; shift; }
     [ "$1" = "-t" ] && { TIME="time "; shift; }
+    TIME=""; __TIMER_START
 
     if [ $QUIET -ne 0 ]; then
         ${TIME}terraform destroy -auto-approve $* |
@@ -720,17 +763,20 @@ __TF_DESTROY() {
     else
         ${TIME}terraform destroy -auto-approve $*
     fi
+    __NB_DEBUG $( __TIMER_STOP 'terraform destroy' )
     __RETURN
 }
 
 __DOCKER() {
     # In nbtools.py replace by "ssh vm-linux-docker docker $*"
+    __NB_DEBUG docker $*
     docker $*
     __RETURN
 }
 
 __CURL() {
     # In nbtools.py replace by "ssh vm-linux-docker docker $*"
+    __NB_DEBUG curl $*
     curl $*
     __RETURN
 }
