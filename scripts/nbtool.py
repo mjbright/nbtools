@@ -452,6 +452,18 @@ def replace_code_cell_by_markdown(cell, format_string):
 
     source_lines=cell['source']
     source_line0=source_lines[0]
+
+    slno_to_delete=0
+    for slno in range(len(source_lines)):
+        if '>>tofile:' in source_lines[slno]:
+            source_lines[slno]='____TO_REMOVE____'
+            slno_to_delete+=1
+    for i in range(slno_to_delete):
+        source_lines.remove('____TO_REMOVE____')
+
+    for slno in range(len(source_lines)):
+        if '>>tomark:' in source_lines[slno]:
+            source_lines[slno]=source_lines[slno].replace('>>tomark:','')
     file_content="".join(source_lines[1:-1])
 
     for REPLACE_OP_WORD in REPLACE_OP_WORDS:
@@ -460,6 +472,7 @@ def replace_code_cell_by_markdown(cell, format_string):
 
     file_name = source_line0[ source_line0.find(" ") : ]
     file_name =    file_name[ 1 : file_name.rfind("<<")-1 ]
+    #file_name = f'.md.{file_name}'
 
     file_type=''
     file_type='txt'
