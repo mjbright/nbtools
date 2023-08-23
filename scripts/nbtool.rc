@@ -1,16 +1,23 @@
 
 set +x
 
+SCRIPT=${BASH_SOURCE[0]}
+SCRIPT_DIR=$(dirname $SCRIPT)
+
+[ ! -f README.ipynb ] && {
+    echo "[$PWD] $SCRIPT: No README.ipynb in workiing directory"
+    exit 1
+}
+
 NB_DIR=$PWD
 echo "setting NB_DIR=$NB_DIR"
 
-SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
 #echo "--- \${BASH_SOURCE[0]}='${BASH_SOURCE[0]}'"
 #echo "--- \${BASH_SOURCE[1]}='${BASH_SOURCE[1]}'"
 # This file:
-NBTOOL_RC=$SCRIPT_DIR/nbtool.rc
-NBTOOL_FN=$SCRIPT_DIR/nbtool.fn
-NBTOOL_PY=$SCRIPT_DIR/nbtool.py
+export NBTOOL_RC=$SCRIPT_DIR/nbtool.rc
+export NBTOOL_FN=$SCRIPT_DIR/nbtool.fn
+export NBTOOL_PY=$SCRIPT_DIR/nbtool.py
 
 [ "$1" = "-x" ] && { shift; set -x; }
 
