@@ -51,6 +51,39 @@ SHOW_LONG_LINES() {
         grep -v "^ *[0-9]*"$'\t'"$"
 }
 
+__FN_FILE_COMMON() {
+    APPEND=0
+    [ "$1" = "-a" ] && { APPEND=1; shift; }
+    FILE=$1; shift
+    # Assume no '/' in FILE:
+    MD_FILE=".md.${FILE}"
+
+    #cat >$FILE
+    # Replace $STUDENT by it's value: also needs to be done in nbtool.py
+
+    [ ! -d ~/tmp ] && mkdir -p ~/tmp
+
+    sed -e "s/\$STUDENT/$STUDENT/g" > ~/tmp/file.$$
+
+    grep -v ">>tomark:" ~/tmp/file.$$ | sed 's/>>tofile://g' |
+       if [ $APPEND -eq 0 ]; then
+          cat >$FILE
+       else
+          cat >>$FILE
+       fi
+
+    grep -v ">>tofile:" ~/tmp/file.$$ | sed 's/>>tomark://g' |
+       if [ $APPEND -eq 0 ]; then
+          cat >$MD_FILE
+       else
+          cat >>$MD_FILE
+       fi
+
+    rm ~/tmp/file.$$
+
+    ls -al $FILE >> $LOG
+}
+
 __FN_NEW_FILE() {
     #set -x
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say create a file with these contents
@@ -58,10 +91,7 @@ __FN_NEW_FILE() {
     local LOG=/tmp/__NEW_FILE
 
     echo "[$PWD] Writing to new file '$FILE'" >$LOG
-    #cat >$FILE
-    # Replace $STUDENT by it's value: also needs to be done in nbtool.py
-    sed "s/\$STUDENT/$STUDENT/g" >$FILE
-    ls -al $FILE >> $LOG
+    __FN_FILE_COMMON $FILE
 }
 
 __FN_MOD_FILE() {
@@ -70,10 +100,7 @@ __FN_MOD_FILE() {
     local LOG=/tmp/__MOD_FILE
 
     echo "[$PWD] Writing to file '$FILE'" >$LOG
-    #cat >$FILE
-    # Replace $STUDENT by it's value: also needs to be done in nbtool.py
-    sed "s/\$STUDENT/$STUDENT/g" >$FILE
-    ls -al $FILE >> $LOG
+    __FN_FILE_COMMON $FILE
 }
 
 __FN_APPEND_FILE() {
@@ -82,10 +109,7 @@ __FN_APPEND_FILE() {
     local LOG=/tmp/__APPEND_FILE
 
     echo "[$PWD] Appending to file '$FILE'" >$LOG
-    #cat >>$FILE
-    # Replace $STUDENT by it's value: also needs to be done in nbtool.py
-    sed "s/\$STUDENT/$STUDENT/g" >>$FILE
-    ls -al $FILE >> $LOG
+    __FN_FILE_COMMON -a $FILE
 }
 
 #__FN_COLOUR() { grep --color always ''; }
