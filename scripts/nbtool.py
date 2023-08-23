@@ -839,8 +839,9 @@ def filter_nb(json_data, DEBUG=False):
                       source_lines[slno] = inc_source_line
                   #if '| EXCL_FN' in source_line:
                       #inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
-                  if len(inc_source_line) > MAX_LINE_LEN:
-                      show_long_line( 'CODE-src', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+                  if len(inc_source_line) > MAX_LINE_LEN and \
+                      source_line0.find("__FN_NEW_FILE") == -1 and source_line0.find("__FN_MOD_FILE") == -1 and source_line0.find("__FN_APPEND_FILE") == -1:
+                          show_long_line( 'CODE-src', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               insert_line_image=''
               if source_line.find("# STRETCH-GOALS") == 0 and cell_type == "markdown":
@@ -971,7 +972,8 @@ def filter_nb(json_data, DEBUG=False):
                       DEBUG(f" => { json_data['cells'][cell_no]['source'][slno]}")
 
                       # TODO: generalize line length checking after all replacements (how to hook i on 'continue' ??
-                      show_long_line('CODE-src-vars', new_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+                      if len(new_line) > MAX_LINE_LEN:
+                          show_long_line('CODE-src-vars', new_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               for REPLACE_CMD in REPLACE_COMMANDS:
                   if REPLACE_CMD in source_line:
