@@ -159,7 +159,8 @@ typeset -f > $FN_0_LIST
 # Source .jupyer.profile, then demonstrate kubectl working:
 
 DIE() {
-    echo "die - $*" | __FN_HIGHLIGHT
+    echo "[$PWD] die - $*" | __FN_HIGHLIGHT
+    env | grep -E "NBTOOL|LAB"
     exit 1
 }
 
@@ -198,12 +199,15 @@ __FN_INIT_NOTEBOOK() {
         if [ -f .dir ]; then
             # Detect moved dir with out of date ~/.dir
             [ "$PWD" != "$(cat .dir)" ] && DIE ".dir out of date";
+            echo "Setting NB_DIR=$PWD"
             NB_DIR=$PWD
         else
             echo $PWD > .dir
         fi
 
-        NB_DIR=$(cat .dir)
+        #echo "Setting NB_DIR=\$( cat $PWD/.dir )"
+        #NB_DIR=$(cat .dir)
+        export NB_DIR
         NB=$NB_DIR/$NB
         echo "NB_DIR=$NB_DIR" | __FN_HIGHLIGHT
     fi
@@ -404,17 +408,21 @@ set +x
 #
 __QUIET() {
     # Quiet except on failure --> __FILTER
+    pwd
     __FN_QUIET_FILTER_NOTEBOOK $* || __FILTER
 }
 __FILTER() {
+    pwd
     __FN_FILTER_NOTEBOOK $*
 }
 
 __FN_QUIET_FILTER_NOTEBOOK() {
-    __FN_FILTER_NOTEBOOK $* > ~/tmp/quiet.filter.notebook.op 2>&1
     #ls -altrd $NB_DIR/README.md $NB_DIR/${NAME}.ipynb  | __FN_COLOUR green
     #( cd $NB_DIR; ls -altrd README.md ${NAME}.ipynb  | __FN_COLOUR green; )
     #( cd $NB_DIR; ls -altrd README.md *.ipynb  | __FN_COLOUR green; )
+    pwd
+    __FN_FILTER_NOTEBOOK $* > ~/tmp/quiet.filter.notebook.op 2>&1
+    __CHECK_NB_DIR
     ( cd $NB_DIR;
       ls -altrd README.md *.ipynb | tail -2 | __FN_COLOUR green;
 
@@ -436,12 +444,17 @@ __FN_QUIET_FILTER_NOTEBOOK() {
 __CHECK_NB_DIR() {
     [ -z "$NB_DIR" ] && NB_DIR=$(cat .dir)
     [ -z "$NB_DIR" ] && DIE "NB_DIR is unset"
+    env | grep ^NB_DIR= || DIE "NB_DIR is not exported"
     echo "NB_DIR='$NB_DIR'"
 }
 
 __FN_FILTER_NOTEBOOK() {
     NOTEBOOK="$1"
     [ -z "$NOTEBOOK" ] && NOTEBOOK=README.ipynb
+    export NOTEBOOK
+
+    __CHECK_NB_DIR
+    ( cd $NB_DIR;
     
     echo
     echo "======== Filtering current notebook [$NOTEBOOK] ========"
@@ -543,11 +556,13 @@ __FN_FILTER_NOTEBOOK() {
 
     echo "Performing __FN_NBCONVERT"
     [ "$NOTEBOOK" = "${NOTEBOOK##*TEST}" ] && __FN_NBCONVERT
+    )
 
     return 0
 }
 
 __FN_NBCONVERT() {
+    __CHECK_NB_DIR
    (
         cd $NB_DIR;
 
