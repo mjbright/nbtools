@@ -315,6 +315,15 @@ def next_section(current_sections, level, source_line):
           
 # TODO: convert output to be separate markdown cells
 #print(f'DEBUG: cell_no:{cell_no}')
+def REMOVE_NB_DEBUG(json_data, cell_no):
+    op=json_data['cells'][cell_no]['outputs']
+
+    for opno in range(len(json_data['cells'][cell_no]['outputs'])):
+        if 'text' in json_data['cells'][cell_no]['outputs'][opno]:
+            for textno in range(len(json_data['cells'][cell_no]['outputs'][opno]['text'])):
+                if "__NB_DEBUG" in json_data['cells'][cell_no]['outputs'][opno]['text'][textno]:
+                    json_data['cells'][cell_no]['outputs'][opno]['text'][textno] = ''
+             
 def CONVERT_ANSI_CODES2TXT(json_data, cell_no):
     op=json_data['cells'][cell_no]['outputs']
 
@@ -872,6 +881,7 @@ def filter_nb(json_data, DEBUG=False):
                   continue
 
               if 'outputs' in json_data['cells'][cell_no]:
+                  REMOVE_NB_DEBUG(json_data, cell_no)
                   CONVERT_ANSI_CODES2TXT(json_data, cell_no)
                   #replace_vars_in_cell_output_lines(json_data, cell_no, VARS_SEEN)
                   #UNUSED_CONVERT_ANSI_CODES2HTML(json_data, cell_no)

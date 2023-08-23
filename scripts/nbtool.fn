@@ -14,6 +14,12 @@ HOSTNAME=$(hostname)
 DEBUG_WAIT=0
 WAIT_SLEEP=1
 
+__NB_DEBUG() {
+    local INFO="${PWD##*/} $(date +'%Y-%b-%d %0Hh%0Mm')"
+    echo "__NB_DEBUG: $INFO"
+    echo "__NB_DEBUG: -- $*"
+}
+
 SHOW_LONG_LINES() {
     local IPFILE=""
     local MAX_LINE_LEN=80
