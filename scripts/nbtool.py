@@ -536,27 +536,59 @@ def FINAL_CELL_CHECK(cell, cell_no, cell_type):
     # ACCEPT line
     return True
 
+def replace_asterisks_backticks(str):
+    str0=str
+    split_str = str.split('**')
+    if len(split_str) == 3:
+        str=split_str[0] + '<b>' + split_str[1] + '</b>' + split_str[2]
+    if len(split_str) == 5:
+        str=split_str[0] + '<b>' + split_str[1] + '</b>' + split_str[2] + '<b>' + split_str[3] + '</b>' + split_str[4]
+
+    split_str = str.split('*')
+    if len(split_str) == 3:
+        str=split_str[0] + '<em>' + split_str[1] + '</em>' + split_str[2]
+    if len(split_str) == 5:
+        str=split_str[0] + '<em>' + split_str[1] + '</em>' + split_str[2] + '<em>' + split_str[3] + '</em>' + split_str[4]
+
+    split_str = str.split('```')
+    if len(split_str) == 3:
+        str=split_str[0] + '<i>' + split_str[1] + '</i>' + split_str[2]
+    if len(split_str) == 5:
+        str=split_str[0] + '<i>' + split_str[1] + '</i>' + split_str[2] + '<i>' + split_str[3] + '</i>' + split_str[4]
+
+    #if str != str0:
+        #print(f'STRING CHANGED FROM:\n\t{str0}\nTO\n\t{str}\n')
+        #sys.exit(1)
+    return str
+
 def question_box(summary, details, box_colour, tag):
     global QUESTIONS, NUM_QUESTIONS
     style = 'style="border-width:6px; border-style:solid; border-color:{box_colour}; padding: 1em;"'
 
+    summary = replace_asterisks_backticks(summary)
+    details = replace_asterisks_backticks(details)
+
     source_line = f'<details {style} ><summary>Question {NUM_QUESTIONS+1}: {summary}</summary>{details}</details>\n'
     return source_line
 
-def details_box(summary, details, box_colour, tag):
+def details_box(summary, details, box_colour, bg_colour, tag):
     global QUESTIONS, NUM_QUESTIONS
-    style = 'style="border-width:6px; border-style:solid; border-color:{box_colour}; padding: 1em;"'
+    style = 'style="border-width:6px; border-style:solid; border-color:{box_colour}; background-color: {bg_colour}; border-radius: 15px; padding: 1em;"'
+
+    summary = replace_asterisks_backticks(summary)
+    details = replace_asterisks_backticks(details)
 
     source_line = f'<details {style} ><summary>Question {NUM_QUESTIONS+1}: {summary}</summary>{details}</details>\n'
     return source_line
 
-def info_box(source_line, box_colour, tag, full_page_width=True):
+def info_box(source_line, box_colour, bg_colour, tag, full_page_width=True):
     extra_style=''
     if not full_page_width:
         # display: inline-block => don't expand to full page width:
         extra_style='display: inline-block; '
 
-    source_line=f'<p style="{extra_style}border-width:3px; border-style:solid; border-color:{box_colour}; padding: 1em;"><b>{tag}</b>' \
+    source_line = replace_asterisks_backticks(source_line)
+    source_line=f'<p style="{extra_style}border-width:3px; border-style:solid; border-color:{box_colour}; background-color: {bg_colour}; border-radius: 15px; padding: 1em;"><b>{tag}</b>' \
         + source_line + '</p>\n\n'
     return source_line
 
@@ -681,23 +713,23 @@ def filter_nb(json_data, DEBUG=False):
               for slno in range(len(source_lines)):
                   TAG='Note:'; O_TAG='Note: '
                   if source_lines[slno].find(TAG) == 0:
-                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', O_TAG, full_page_width=False)
+                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', '#ffffff', O_TAG, full_page_width=False)
                   TAG='**Note:**'; O_TAG='Note: '
                   if source_lines[slno].find(TAG) == 0:
-                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', O_TAG, full_page_width=False)
+                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', '#ffffff', O_TAG, full_page_width=False)
                   TAG='# __INFO:'; O_TAG='Info: '
                   if source_lines[slno].find(TAG) == 0:
-                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#00AA00', O_TAG)
+                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#00AA00', '#eeffee', O_TAG)
                   TAG='# __WARN:'; O_TAG='Warning: '
                   if source_lines[slno].find(TAG) == 0:
-                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#AA0000', O_TAG)
+                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#AA0000', '#ffeeee', O_TAG)
                   TAG='# __ERROR:'; O_TAG='Error: '
                   if source_lines[slno].find(TAG) == 0:
-                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#FF0000', O_TAG)
+                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#FF0000', '#ffeeee', O_TAG)
                   if source_lines[slno].find('# __DETAIL(') == 0:
                        summary=source_lines[slno][ 9+source_lines[slno].find('__DETAIL(') : source_lines[slno].find('):') ]
                        details=source_lines[slno][ source_lines[slno].find('):') + 2 : ]
-                       source_lines[slno]=details_box(summary, details, '#0000FF', 'Info: ')
+                       source_lines[slno]=details_box(summary, details, '#0000FF', '#ffffff', 'Info: ')
                   if source_lines[slno].find('# __Q(') == 0:
                        summary=source_lines[slno][ 9+source_lines[slno].find('__Q(') : source_lines[slno].find('):') ]
                        details=source_lines[slno][ source_lines[slno].find('):') + 2 : ]
