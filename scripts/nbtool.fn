@@ -17,6 +17,7 @@ WAIT_SLEEP=1
 __NB_DEBUG() {
     local INFO="${PWD##*/} $(date +'%Y-%b-%d %0Hh%0Mm')"
     echo "__NB_DEBUG: $INFO"
+    echo "__NB_DEBUG: $(id -un)@$(hostname):$PWD"
     echo "__NB_DEBUG: -- $*"
 }
 
@@ -63,7 +64,7 @@ __FN_FILE_COMMON() {
 
     [ ! -d ~/tmp ] && mkdir -p ~/tmp
 
-    sed -e "s/\$STUDENT/$STUDENT/g" > ~/tmp/file.$$
+    sed -e "s/\$STUDENT/$STUDENT/g" -e "s/\${STUDENT}/${STUDENT}/g" > ~/tmp/file.$$
 
     grep -v ">>tomark:" ~/tmp/file.$$ | sed 's/>>tofile://g' |
        if [ $APPEND -eq 0 ]; then
