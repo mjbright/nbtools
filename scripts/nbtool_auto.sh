@@ -4,6 +4,9 @@ mkdir -p ~/tmp
 
 DIR=$( basename $PWD )
 
+ROOT=/home/student/src/mjbright.tf-scenarios-private/ServeUpLabs/content
+LABS=azure
+
 die() { echo "$0: die - $*" >&2; exit 1; }
 
 CHECK_FILE_SIZE() {
@@ -20,6 +23,12 @@ CHECK_FILE_SIZE() {
     return 0
 }
 
+SOURCE_NBTOOL_RC() {
+    echo "----[$DIR] Sourcing ~/scripts/nbtool.rc:"
+    source ~/scripts/nbtool.rc $*
+    touch ~/tmp/.nbtool.rc.read ~/tmp/.nbtool.py.read
+}
+
 SOURCE_VARIABLES() {
     echo "----[$DIR] Sourcing ~/scripts/nbtool.rc:"
     source ~/scripts/nbtool.rc
@@ -32,6 +41,11 @@ SOURCE_VARIABLES() {
     echo "==========================="
     set | grep -E "^(LAB_|NB_DIR)"
     echo "==========================="
+
+    [ -z "$LAB_NUM" ] && {
+        LAB_NUM=${LAB_NAME%%.*}
+        LAB_NUM=${LAB_NUM#Lab}
+    }
 
     DIR_NUM=${DIR%.*}
     if [ "$DIR_NUM" != "$LAB_NUM" ]; then
@@ -56,7 +70,46 @@ SOURCE_VARIABLES() {
     esac
 }
 
+CONVERT_1() {
+    LAB_DIR=$1; shift
+
+    NB="$LAB_DIR/README.ipynb"
+
+    [ ! -d "$LAB_DIR" ] && die "No such directory as '$LAB_DIR'"
+    [ ! -f "$NB"      ] && die "No such notebook '$NB'"
+    cd $LAB_DIR
+        ARGS=$( grep nbtool.rc README.ipynb | grep "Got args" | sed -e "s/.*Got args '//" -e "s/'.*//" )
+        SOURCE_NBTOOL_RC $ARGS
+        #SOURCE_VARIABLES
+        #__FN_INIT_NOTEBOOK
+    cd -
+}
+
+CONVERT_ALL() {
+    NBS=$( ls -1 $LABS_ROOT/README.ipynb )
+
+    for NB in $NBS; do
+        LAB_DIR=$( dirname $NB )
+        CONVERT_1 $LAB_DIR
+    done
+}
+
+while [ ! -z "$1" ]; do
+    case $1 in
+        -A) DO ALL sub-dirs
+            LABS_ROOT=$ROOT/$LABS
+            CONVERT_ALL $LABS_ROOT
+            exit
+            ;;
+         *) CONVERT_1 $1
+            exit
+            ;;
+    esac
+done
+
+SOURCE_NBTOOL_RC
 SOURCE_VARIABLES
+
 echo
 echo "---- Waiting for README.ipynb updates:"
 FIRST_LOOP=1
