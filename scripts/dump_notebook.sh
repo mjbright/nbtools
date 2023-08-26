@@ -9,6 +9,22 @@
 # Show 1st source line of each cell:
 # jq -rc '.cells[].source[0]' $1
 
+# Dump all paths to all attributes:
+if [ "$1" = "-P" ]; then
+    # e.g. dump_notebook.sh -P ~/labs/lab9/terraform.tfstate
+    shift
+    jq -c 'paths' $1
+    exit $?
+fi
+
+# Dump all paths to specified attribute:
+if [ "$1" = "-p" ]; then
+    # e.g. dump_notebook.sh -p kubernetes_version ~/labs/lab9/terraform.tfstate
+    shift
+    jq -c 'paths | select(.[-1] == "'$1'")' $2
+    exit $?
+fi
+
 # Brutal dump of all outputs/source lines:
 if [ "$1" = "-a" ]; then
     shift
