@@ -147,11 +147,17 @@ def raw_ansi2text(ansi):
                 replace('\u001b[36m', ''). \
                 replace('\u001b[37m', ''). \
                 replace('\u001b[90m', ''). \
+                replace('\u001b[91m', ''). \
+                replace('\u001b[92m', ''). \
+                replace('\u001b[93m', ''). \
                 replace('\u001b[0;0m', ''). \
                 replace('\u001b[0;31m', ''). \
                 replace('\u001b[0;32m', ''). \
                 replace('\u001b[0;33m', ''). \
                 replace('\u001b[0;34m', ''). \
+                replace('\u001b[0;35m', ''). \
+                replace('\u001b[0;36m', ''). \
+                replace('\u001b[0;37m', ''). \
                 replace('\u001b[1;34m', ''). \
                 replace('NEVER_REPLACE_OK', '')
 
