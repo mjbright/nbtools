@@ -174,7 +174,10 @@ CHECK_FILE_SIZE() {
     [[ $SIZE -lt $MIN_BYTES ]] && {
         echo "File looks suspiciously small"
         ls -al $FILE 
-        return 1
+        # Ignore if ALLOW_SMALL (needed for LFS458 Lab2):
+        #grep ALLOW_SMALL $FILE ||
+        grep ALLOW_SMALL README.ipynb ||
+            return 1
     }
     return 0
 }
