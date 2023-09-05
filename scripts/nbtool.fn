@@ -351,9 +351,9 @@ __FN_LAB_ENV() {
             ;;
         Kubernetes)
             # Short term as --short will be deprecated:
-            K8S_VERSION=$( which kubectl >/dev/null && kubectl version --short 2>/dev/null || echo No kubectl )
-            # Later:
+            # K8S_VERSION=$( which kubectl >/dev/null && kubectl version --short 2>/dev/null || echo No kubectl )
             # K8S_VERSION=$( which kubectl >/dev/null && kubectl version 2>/dev/null || echo No kubectl )
+            K8S_VERSION=$( which kubectl >/dev/null && kubectl version 2>/dev/null | sed -e 's/.*Client Version: //' -e 's/ .*//' -e 's/Kustomize.*//'|| echo No kubectl )
             INFO=$K8S_VERSION
             TITLE_MODE+="_$K8S_VERSION"
             ;;
