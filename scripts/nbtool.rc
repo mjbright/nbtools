@@ -9,7 +9,9 @@ SCRIPT_DIR=$(dirname $SCRIPT)
     exit 1
 }
 
-[ -f ~/.venv/TRAINING/bin/activate ] && source ~/.venv/TRAINING/bin/activate
+[ -f ~/.venv/TRAINING/bin/activate ] && {
+    source ~/.venv/TRAINING/bin/activate >/dev/null 2>&1
+}
 
 NB_DIR=$PWD
 echo "setting NB_DIR=$NB_DIR"
