@@ -7,7 +7,10 @@ ENVIRONMENT="** NO ~/.environment **"
 [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
 #echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"
 
-which banner >/dev/null && sudo apt install -y sysvbanner
+which banner >/dev/null && {
+    #sudo apt install -y sysvbanner
+    banner() { echo "BANNER: $*"; }
+}
 
 HOSTNAME=$(hostname)
 
@@ -296,8 +299,12 @@ __FN_INIT_NOTEBOOK() {
             #kubectl delete pods -lapp=web-student0
             ;;
 
+        Rego)
+            TITLE_MODE="REGO"
+            ;;
+
         *)
-            echo "Error: Unknown LAB_MODE '$LAB_MODE' - should be one of Terraform or Kubernetes" | __FN_HIGHLIGHT
+            echo "Error: Unknown LAB_MODE '$LAB_MODE' - should be one of 'Terraform|Kubernetes|Rego'" | __FN_HIGHLIGHT
             banner ERR
             return
             ;;
@@ -340,13 +347,20 @@ __FN_LAB_ENV() {
             ;;
         Docker)
             if which docker >/dev/null; then
-                #INFO=$( echo "docker"; docker version --format '{{.Server.Version}}' | grep -A 1 Engine | awk '/ Version:/ { print $2; }' )
-                #set -x; docker version --format '{{.Server.Version}}'; set +x
                 INFO=$( docker version --format '{{.Server.Version}}' | grep -A 1 Engine | awk '/ Version:/ { print $2; }' )
                 TITLE_MODE+="_$INFO"
             else
                 echo "************ NO DOCKER ***************"
                 INFO="No-Docker"
+            fi
+            ;;
+        Rego)
+            if which opa >/dev/null; then
+                INFO=$( opa version | awk '/^Version: / { print $2; exit(0); }' )
+                TITLE_MODE+="_opa_$INFO"
+            else
+                echo "************ NO OPA ***************"
+                INFO="No-OPA"
             fi
             ;;
         Kubernetes)
