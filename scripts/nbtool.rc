@@ -9,8 +9,10 @@ SCRIPT_DIR=$(dirname $SCRIPT)
     exit 1
 }
 
+## TODO: If need to reactivate
 [ -f ~/.venv/TRAINING/bin/activate ] && {
-    source ~/.venv/TRAINING/bin/activate >/dev/null 2>&1
+    OLD_PS1=$PS1; source ~/.venv/TRAINING/bin/activate >/dev/null 2>&1; export PS1=$OLD_PS1
+    ## source ~/.venv/TRAINING/bin/activate >/dev/null 2>&1
 }
 
 NB_DIR=$PWD
