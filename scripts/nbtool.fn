@@ -55,6 +55,31 @@ SHOW_LONG_LINES() {
         grep -v "^ *[0-9]*"$'\t'"$"
 }
 
+RUN() {
+    echo "+ $@" >&2
+    if [ "$1" = "opa" ]; then
+        eval "$@" | __FN_OPA_OP
+    else
+        eval "$@"
+    fi
+    #$@
+}
+
+__FN_OPA_OP() {
+    local OPFILE=~/tmp/opa.$$
+
+    mkdir -p ~/tmp
+    cat > $OPFILE
+
+    # There's probably a jq idiomatic way of doing this !!
+    cat $OPFILE | if $( grep -q result $OPFILE ); then
+        jq '.result[].expressions[].value'
+    else
+        jq '.errors[].code'
+    fi
+    rm $OPFILE
+}
+
 __FN_FILE_COMMON() {
     APPEND=0
     [ "$1" = "-a" ] && { APPEND=1; shift; }
