@@ -393,7 +393,8 @@ __FN_LAB_ENV() {
             # K8S_VERSION=$( which kubectl >/dev/null && kubectl version --short 2>/dev/null || echo No kubectl )
             # K8S_VERSION=$( which kubectl >/dev/null && kubectl version 2>/dev/null || echo No kubectl )
             # K8S_VERSION=$( which kubectl >/dev/null && kubectl version 2>/dev/null | sed -e 's/.*Client Version: //' -e 's/ .*//' -e 's/Kustomize.*//'|| echo No kubectl )
-            K8S_VERSION=$( kubectl version -o json |& jq -rc '{ client: .clientVersion.gitVersion, server: .serverVersion.gitVersion } | values[]' |& sed -e '1s/^/Client /' -e '2s/^/Server /' )
+            K8S_VERSION=$( which kubectl >/dev/null && 
+ kubectl version -o json |& jq -rc '{ client: .clientVersion.gitVersion, server: .serverVersion.gitVersion } | values[]' |& sed -e '1s/^/Client /' -e '2s/^/Server /' )
             INFO=$K8S_VERSION
             TITLE_MODE+="_$K8S_VERSION"
             ;;
