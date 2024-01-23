@@ -15,8 +15,8 @@ from inspect import stack
 # For copy.deepcopy:
 import copy
 
-#IDIR="../images"
-IDIR="/images"
+IDIR="../images"
+#IDIR="/images"
 
 QUESTIONS=[]
 NUM_QUESTIONS=0
@@ -111,10 +111,11 @@ REPLACE_OP_WORDS={
 
 REPLACE_COMMANDS={
     '__TF_INIT':    'terraform init',
+    '__TF_PLAN -q':    'terraform plan',
     '__TF_PLAN':    'terraform plan',
-    '__TF_APPLY':   'terraform apply',
     '__TF_APPLY -t -q':   'terraform apply',
     '__TF_APPLY -q':   'terraform apply',
+    '__TF_APPLY':   'terraform apply',
     '__TF_DESTROY -t -q': 'terraform destroy',
     '__TF_DESTROY -q': 'terraform destroy',
     '__TF_DESTROY':  'terraform destroy',
@@ -125,6 +126,19 @@ REPLACE_COMMANDS={
     '__CODE':       '',
     #'EOF```':      'EOF\n```\n',
 }
+
+def get_longest_matching_key(mydict, search):
+    found_len=0
+    found=None
+
+    for key in mydict:
+        if key in search:
+            if len(key) > found_len:
+                found=key
+                found_len=len(key)
+    return found
+           
+
 
 '''
 def raw_ansi2text(ansi):
@@ -987,11 +1001,14 @@ def filter_nb(json_data, DEBUG=False):
                       if len(new_line) > MAX_LINE_LEN:
                           show_long_line('CODE-src-vars', new_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
-              for REPLACE_CMD in REPLACE_COMMANDS:
-                  if REPLACE_CMD in source_line:
-                      pos=json_data['cells'][cell_no]['source'][slno].find(REPLACE_CMD)+len(REPLACE_CMD)
-                      json_data['cells'][cell_no]['source'][slno] = \
-                          REPLACE_COMMANDS[REPLACE_CMD] + ' ' + json_data['cells'][cell_no]['source'][slno][pos:]
+              # TODO: extend for multiple replacements (will never happen ? :)
+              REPLACE_CMD = get_longest_matching_key(REPLACE_COMMANDS, source_line)
+              if REPLACE_CMD:
+              #for REPLACE_CMD in REPLACE_COMMANDS:
+              #if REPLACE_CMD in source_line:
+                  pos=json_data['cells'][cell_no]['source'][slno].find(REPLACE_CMD)+len(REPLACE_CMD)
+                  json_data['cells'][cell_no]['source'][slno] = \
+                      REPLACE_COMMANDS[REPLACE_CMD] + ' ' + json_data['cells'][cell_no]['source'][slno][pos:]
 
               replace_words_in_cell_output_lines(json_data, cell_no, REPLACE_OP_WORDS)
 
