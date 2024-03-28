@@ -255,6 +255,8 @@ __FN_INIT_NOTEBOOK() {
 
     [ ! -f "$NB" ] && DIE "[$PWD] No such notebook as '$NB'"
 
+    dpkg -l | grep -q "^ii jq " || sudo apt-get install -y jq
+
     echo
     echo "**** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"; echo
     
