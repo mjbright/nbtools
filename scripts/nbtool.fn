@@ -3,6 +3,18 @@
 # In practice 74 seems to be a good limit for the PDF output (tested using Safari/macOS):
 MAX_LEN_MD=74
 
+# Default for SSH functions
+SSH_NODE=worker
+
+SSH_SET() {
+    SSH_NODE=$1
+}
+
+SSH() {
+    #ssh -qt $SSH_NODE $*
+    ssh -q $SSH_NODE $*
+}
+
 ENVIRONMENT="** NO ~/.environment **"
 [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
 #echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"

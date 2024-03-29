@@ -12,6 +12,8 @@ ansi2html_conv = Ansi2HTMLConverter()
 from inspect import currentframe, getframeinfo
 from inspect import stack
 
+SSH_NODE="worker"
+
 # For copy.deepcopy:
 import copy
 
@@ -756,6 +758,14 @@ def filter_nb(json_data, DEBUG=False):
                        summary=source_lines[slno][ 9+source_lines[slno].find('__DETAIL(') : source_lines[slno].find('):') ]
                        details=source_lines[slno][ source_lines[slno].find('):') + 2 : ]
                        source_lines[slno]=details_box(summary, details, '#0000FF', '#ffffff', 'Info: ')
+
+                  if source_lines[slno].find('SSH_SET ') == 0:
+                       SSH_NODE=source_lines[slno][8:]
+                       source_lines[slno] = ''
+                  elif source_lines[slno].find('SSH ') == 0:
+                       #source_lines[slno] = 'ssh ' + SSH_NODE + source_lines[slno][3:]
+                       source_lines[slno] = source_lines[slno][4:]
+
                   if source_lines[slno].find('# __Q(') == 0:
                        summary=source_lines[slno][ 9+source_lines[slno].find('__Q(') : source_lines[slno].find('):') ]
                        details=source_lines[slno][ source_lines[slno].find('):') + 2 : ]
