@@ -16,7 +16,11 @@ SSH() {
 }
 
 ENVIRONMENT="** NO ~/.environment **"
-[ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
+
+SET_ENVIRONMENT() {
+    [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
+}
+
 #echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"
 
 which banner >/dev/null && {
@@ -267,9 +271,13 @@ __FN_INIT_NOTEBOOK() {
 
     [ ! -f "$NB" ] && DIE "[$PWD] No such notebook as '$NB'"
 
-    dpkg -l | grep -q "^ii jq " || sudo apt-get install -y jq
+    dpkg -l | grep -q "^ii jq " || {
+       echo "==== sudo apt-get install -y jq"
+       sudo apt-get install -y jq >/dev/null 2>&1
+    }
 
     echo
+    SET_ENVIRONMENT
     echo "**** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"; echo
     
     #set -x
@@ -330,12 +338,18 @@ __FN_INIT_NOTEBOOK() {
             TITLE_MODE="K8S"
             [ -z "$KUBECONFIG" ] && export KUBECONFIG=~/.kube/config
             echo "KUBECONFIG='$KUBECONFIG'"
-            grep current-context "$KUBECONFIG" | grep -q kubernetes-admin && echo "## ASSUMING full cluster admin rights"
-            grep server: $KUBECONFIG
-            kubectl get nodes
-            kubectl config get-contexts
-            #DEBUG_WAIT=1; __CLEANUP; DEBUG_WAIT=0
-            #kubectl delete pods -lapp=web-student0
+            KUBEOK=1
+            [   -z "$KUBECONFIG" ] && KUBEOK=0
+            [ ! -f "$KUBECONFIG" ] && KUBEOK=0
+            which kubectl >/dev/null 2>&1 && KUBEOK=0
+            if [ $KUBEOK -ne 0 ]; then
+                grep current-context "$KUBECONFIG" | grep -q kubernetes-admin && echo "## ASSUMING full cluster admin rights"
+                grep server: $KUBECONFIG
+                kubectl get nodes
+                kubectl config get-contexts
+                #DEBUG_WAIT=1; __CLEANUP; DEBUG_WAIT=0
+                #kubectl delete pods -lapp=web-student0
+            fi
             ;;
 
         Rego)
@@ -414,6 +428,7 @@ __FN_LAB_ENV() {
             ;;
     esac
                   
+    SET_ENVIRONMENT
     echo "# Notebook initial generation:"
     echo "# - $(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
     [ ! -z "$REPO" ] && echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
@@ -478,9 +493,9 @@ REPLACE_HOME_STDIN() {
 ARCHIVE_SOLUTIONS() {
     LAB_NAME="$*"
 
-set -x
+    # set -x
     LAB_NUM=$( echo $LAB_NAME | sed -e 's/^lab//i' -e 's/ .*//' -e 's/\..*//' )
-set +x
+    # set +x
     #echo "LAB_NUM='$LAB_NUM'"
 
     mkdir -p ~/Solutions/BAK

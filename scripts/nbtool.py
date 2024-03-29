@@ -862,11 +862,11 @@ def filter_nb(json_data, DEBUG=False):
               s_line=source_line.rstrip()
               DEBUG(f'[{cell_type}][{cell_no} line{slno}] "{s_line}"')
 
-              if cell_type == 'markdown' and len(s_line) > MAX_LINE_LEN:
-                  show_long_line( 'MARKDOWN', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
-
-              if cell_type == 'output' and len(s_line) > MAX_LINE_LEN:
-                  show_long_line( 'CODE-op', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+              #if cell_type == 'markdown' and len(s_line) > MAX_LINE_LEN:
+              #    show_long_line( 'MARKDOWN', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+              #
+              #if cell_type == 'output' and len(s_line) > MAX_LINE_LEN:
+              #    show_long_line( 'CODE-op', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               if cell_type == 'code' and not EXCLUDED_CODE_CELL:
                   inc_source_line = source_line
@@ -879,7 +879,10 @@ def filter_nb(json_data, DEBUG=False):
                   #if '| EXCL_FN' in source_line:
                       #inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
                   if len(inc_source_line) > MAX_LINE_LEN and \
-                      source_line0.find("__FN_NEW_FILE") == -1 and source_line0.find("__FN_MOD_FILE") == -1 and source_line0.find("__FN_APPEND_FILE") == -1:
+                      source_lines[slno][0] != '#' and \
+                      source_line0.find("__FN_NEW_FILE") == -1 and \
+                      source_line0.find("__FN_MOD_FILE") == -1 and \
+                      source_line0.find("__FN_APPEND_FILE") == -1:
                           show_long_line( 'CODE-src', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               insert_line_image=''
