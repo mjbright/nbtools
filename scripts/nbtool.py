@@ -745,6 +745,9 @@ def filter_nb(json_data, DEBUG=False):
                   TAG='**Note:**'; O_TAG='Note: '
                   if source_lines[slno].find(TAG) == 0:
                        source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', '#ffffff', O_TAG, full_page_width=False)
+                  TAG='**Stretch:**'; O_TAG='Stretch Goal: '
+                  if source_lines[slno].find(TAG) == 0:
+                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', '#00aaaa', O_TAG, full_page_width=False)
                   TAG='# __INFO:'; O_TAG='Info: '
                   if source_lines[slno].find(TAG) == 0:
                        source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#00AA00', '#eeffee', O_TAG)
