@@ -954,13 +954,13 @@ K_GET_SVC() {
 
 K_GET_PODS() {
     [ "$1" = "-n" ] && { NS=$2; shift; shift; }
-    #SET_NAMESPACE
-    POD_NAME=$1;
+    SET_NAMESPACE
+    POD_NAME="$1"; # specify pod name / or not
 
     #kubectl get pod $*
-    kubectl -n $NS get pod | grep " $POD_NAME"
-    SET_VAR_POD_IPS  $POD_NAME   $NS
-    SET_VAR_POD_NAME $POD_NAME 1 $NS
+    kubectl -n $NS get pod | grep "^$POD_NAME"
+    SET_VAR_POD_IPS  "$POD_NAME"   $NS
+    SET_VAR_POD_NAME "$POD_NAME" 1 $NS
 }
 
 # Usage: SET_VAR_POD_IPS -n <ns> podname
@@ -970,15 +970,21 @@ SET_VAR_POD_IPS() {
     POD_NAME="$1"
     SET_NAMESPACE "$2"
     
+    #set -x
     #POD_IP=$(kubectl -n $NS get pods "$POD_NAME" -o custom-columns=NAME:.status.podIP --no-headers)
-    __POD_IPS=$(kubectl -n "$NS" get pods -o wide | awk "/^$POD_NAME/ { print \$6; }")
+    kubectl -n "$NS" get --no-headers pods -o wide
+    kubectl -n "$NS" get --no-headers pods -o wide | awk "/^$POD_NAME/ { print \$6; }"
+    __POD_IPS=$(kubectl -n "$NS" get --no-headers pods -o wide | awk "/^$POD_NAME/ { print \$6; }")
     # WHY FAILING??
     #   __POD_IP=${__POD_IPS%% *}
     #   __POD_IP=$( echo "${__POD_IPS}" | awk '{ print $1; }')
     #   __POD_IP=$( echo "${__POD_IPS}" | sed 's/\([0-9,.]*\).*/X\1/' )
-    __POD_IP=$(kubectl -n "$NS" get pods -o wide | awk "/^$POD_NAME/ { print \$6; exit(0); }")
+    __POD_IP=${__POD_IPS%% *}
+    #__POD_IP=$(kubectl -n "$NS" get pods -o wide | awk "/^$POD_NAME/ { print \$6; exit(0); }")
     echo VAR __POD_IP=$__POD_IP
     echo VAR __POD_IPS=$__POD_IPS
+    echo [NS=$NS] POD_NAME=$POD_NAME
+    #set +x
     return 0
 }
 
@@ -1115,6 +1121,18 @@ __FN_WAIT_CMD() {
 # 
 # See - https://mrkaran.dev/posts/kubectl-wait/
 
+__FN_WAIT_DEPLOY() {
+    if [ "$1" = "-n" ]; then
+        shift; SET_NAMESPACE $1; shift
+    else
+        SET_NAMESPACE
+    fi
+
+    DEPLOY=$1; shift
+
+    set -x; kubectl wait --for=jsonpath='{.status.readyReplicas}'=1 deploy/$DEPLOY; set +x;
+}
+
 # Waits for at least 1 Pod to be in state (default: Running)
 
 __FN_WAIT_PODS() {
@@ -1125,13 +1143,18 @@ __FN_WAIT_PODS() {
     fi
 
     POD_MATCH=$1; shift
-    STATE=""
-        
+
+    STATE="Ready"
     [ ! -z "$1" ] && STATE=$1
+
+    set -x; kubectl wait --for=condition=$STATE pod/$POD_MATCH; set +x;
+    return
+
+    # UNUSED: =====================
     if [ -z "$STATE" ];then
         #echo WAIT_PODS -n $NS $POD_MATCH "(ContainerCreating|Running)"
         #WAIT_PODS -n $NS $POD_MATCH "(ContainerCreating|Running)"
-        WAIT_PODS -n $NS $POD_MATCH "Running"
+        __FN_WAIT_PODS -n $NS $POD_MATCH "Running"
         return 0
     fi
 
@@ -1183,8 +1206,9 @@ __FN_WAIT_NO_PODS() {
     else
         SET_NAMESPACE
     fi
+    POD_MATCH=$1; shift
 
-    if [ -z "$1" ]; then
+    if [ -z "$POD_MATCH" ]; then
         while ! kubectl -n $NS get pods |& grep -q "No resources"; do
             [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods
             [ $DEBUG_WAIT -ne 0 ] && echo .
@@ -1192,12 +1216,13 @@ __FN_WAIT_NO_PODS() {
         done
         [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods
         [ $DEBUG_WAIT -ne 0 ] && echo
-        return
+    else
+        set -x; kubectl -n $NS wait --for=delete pod/$POD_MATCH; set +x
     fi
+    return
 
-    POD_MATCH=$1; shift
+    # UNUSED: =====================
     STATE=""
-    
     [ $DEBUG_WAIT -ne 0 ] && echo "---- Waiting for '$POD_MATCH' Pods to terminate ..."
     while kubectl -n $NS get pods |& grep -q $POD_MATCH; do
         [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods |& grep $POD_MATCH
@@ -1247,7 +1272,7 @@ __FN_CLEANUP() {
     echo
     echo "======== Remaining pods across all namespaces ==========================="
     kubectl get pods -A
-    WAIT_NO_PODS
+    __FN_WAIT_NO_PODS
 }
 
 __FN_CLEANUP_TRAEFIK() {

@@ -971,7 +971,7 @@ def filter_nb(json_data, DEBUG=False):
               if 'outputs' in json_data['cells'][cell_no]:
                   REMOVE_NB_DEBUG(json_data, cell_no)
                   CONVERT_ANSI_CODES2TXT(json_data, cell_no)
-                  #replace_vars_in_cell_output_lines(json_data, cell_no, VARS_SEEN)
+                  replace_vars_in_cell_output_lines(json_data, cell_no, VARS_SEEN)
                   #UNUSED_CONVERT_ANSI_CODES2HTML(json_data, cell_no)
                       
               ## # CODE: nbtool.py will replace source_line by first line of output text (which is then removed from output_text)
