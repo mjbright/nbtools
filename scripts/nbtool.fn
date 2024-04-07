@@ -895,8 +895,9 @@ __FN_HIGHLIGHT_MATCH() { grep --color=always -E "${*}";    return 0; }
 SET_VAR() {
     local VARNAME=$1; shift
 
+    # DETECT A=B form:
     [ "${VARNAME#*=}" != "$VARNAME" ] && {
-        echo "SET_VAR: Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
+        echo "SET_VAR: [A=B] Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
         local ARGS="${VARNAME#*=}"
         VARNAME=${VARNAME%%=*}
         #set -- ${VARNAME#*=}
@@ -905,9 +906,11 @@ SET_VAR() {
         #echo "Leaving args as $*"
     }
 
+    # DETECT VARNAME not preceded by __
     [ "${VARNAME#__}" = "$VARNAME" ] && {
-        echo "SET_VAR: Correcting var name '$VARNAME' to '__$VARNAME'"
-        export $VARNAME 
+        echo "SET_VAR: [not __A] Correcting var name '$VARNAME' to '__$VARNAME'"
+        echo "export $VARNAME=$*"
+        export $VARNAME=$*
         VARNAME=__$VARNAME
     }
 
@@ -918,8 +921,9 @@ SET_VAR() {
     }
     eval $VARNAME="$VALUE"
     #echo "VAR $VARNAME='$VALUE'"
-    echo "VAR $VARNAME=\"$VALUE\""
-    export $VARNAME 
+    echo "VAR $VARNAME='$VALUE'"
+    echo "export $VARNAME='$VALUE'"
+    export $VARNAME
 }
 
 # Usage:
