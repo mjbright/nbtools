@@ -907,6 +907,7 @@ SET_VAR() {
 
     [ "${VARNAME#__}" = "$VARNAME" ] && {
         echo "SET_VAR: Correcting var name '$VARNAME' to '__$VARNAME'"
+        export $VARNAME 
         VARNAME=__$VARNAME
     }
 
@@ -918,6 +919,7 @@ SET_VAR() {
     eval $VARNAME="$VALUE"
     #echo "VAR $VARNAME='$VALUE'"
     echo "VAR $VARNAME=\"$VALUE\""
+    export $VARNAME 
 }
 
 # Usage:
