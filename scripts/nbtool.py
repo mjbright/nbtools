@@ -27,8 +27,11 @@ NUM_QUESTIONS=0
 INCLUDE_TOC=False
 # count_sections set to True if a cell with <div id='TOC' is found
 
-THICK_BAR=f"{IDIR}/ThickPurpleBar.png"
-THIN_BAR=f"{IDIR}/ThinPurpleBar.png"
+# THICK_BAR=f"{IDIR}/ThickPurpleBar.png"
+# THIN_BAR=f"{IDIR}/ThinPurpleBar.png"
+
+THICK_BAR=f"{IDIR}/ThickBlueBar.png"
+THIN_BAR=f"{IDIR}/ThinBlueBar.png"
 
 INSERT_THICK_BAR='![]('+f'{THICK_BAR})\n'
 INSERT_THIN_BAR='![]('+f'{THIN_BAR})\n'
