@@ -25,10 +25,12 @@ echo "setting NB_DIR=$NB_DIR"
 export NBTOOL_RC=$SCRIPT_DIR/nbtool.rc
 export NBTOOL_FN=$SCRIPT_DIR/nbtool.fn
 export NBTOOL_PY=$SCRIPT_DIR/nbtool.py
-export NBTOOL_K8_FN=$SCRIPT_DIR/nbtool.k8.fn
-export NBTOOL_TF_FN=$SCRIPT_DIR/nbtool.tf.fn
-export NBTOOL_DO_FN=$SCRIPT_DIR/nbtool.do.fn
-export NBTOOL_OPA_FN=$SCRIPT_DIR/nbtool.opa.fn
+
+ABS_SCRIPT_DIR=$( dirname $( readlink -f $NBTOOL_RC ) )
+export NBTOOL_K8_FN=$ABS_SCRIPT_DIR/nbtool.k8.fn
+export NBTOOL_TF_FN=$ABS_SCRIPT_DIR/nbtool.tf.fn
+export NBTOOL_DO_FN=$ABS_SCRIPT_DIR/nbtool.do.fn
+export NBTOOL_OPA_FN=$ABS_SCRIPT_DIR/nbtool.opa.fn
 
 [ "$1" = "-x" ] && { shift; set -x; }
 
