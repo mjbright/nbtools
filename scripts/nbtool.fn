@@ -492,6 +492,9 @@ function NB_QUIET_FILTER_NOTEBOOK {
       MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $R_NB)
       printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${R_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
     )
+
+    # Show die errors though:
+    grep " die " ~/tmp/quiet.filter.notebook.op && __RETURN 1
     __RETURN 0
 }
 
