@@ -2,6 +2,8 @@
 
 mkdir -p ~/tmp
 
+IPYNB=README.ipynb
+
 DIR=$( basename $PWD )
 
 ROOT=/home/student/src/mjbright.tf-scenarios-private/ServeUpLabs/content
@@ -57,14 +59,14 @@ SOURCE_VARIABLES() {
         [ "$DUMMY" != "y" ] && exit
     fi
 
-    [ ! -f README.ipynb ] && DIE "[$DIR] No such file as README.ipynb"
+    [ ! -f $IPYNB ] && DIE "[$DIR] No such file as $IPYNB"
 
-    LANG=$( jq -r '.metadata.kernelspec.language' README.ipynb )
+    LANG=$( jq -r '.metadata.kernelspec.language' $IPYNB )
     case $LANG in
         bash)
-            [ ! -f README.sh ] && { echo "Setting up pairing to bash";
-                echo "Configuring README.ipynb for pairing:"
-                CMD="jupytext --set-formats ipynb,sh:percent README.ipynb"
+            [ ! -f $IPYNB_SH ] && { echo "Setting up pairing to bash";
+                echo "Configuring $IPYNB for pairing:"
+                CMD="jupytext --set-formats ipynb,sh:percent $IPYNB"
                 echo "-- $CMD"; $CMD
             } ;;
     esac
@@ -73,12 +75,12 @@ SOURCE_VARIABLES() {
 CONVERT_1() {
     LAB_DIR=$1; shift
 
-    NB="$LAB_DIR/README.ipynb"
+    NB="$LAB_DIR/$IPYNB"
 
     [ ! -d "$LAB_DIR" ] && die "No such directory as '$LAB_DIR'"
     [ ! -f "$NB"      ] && die "No such notebook '$NB'"
     cd $LAB_DIR
-        ARGS=$( grep nbtool.rc README.ipynb | grep "Got args" | sed -e "s/.*Got args '//" -e "s/'.*//" )
+        ARGS=$( grep nbtool.rc $IPYNB | grep "Got args" | sed -e "s/.*Got args '//" -e "s/'.*//" )
         SOURCE_NBTOOL_RC $ARGS
         #SOURCE_VARIABLES
         #NB_INIT_NOTEBOOK
@@ -86,7 +88,7 @@ CONVERT_1() {
 }
 
 CONVERT_ALL() {
-    NBS=$( ls -1 $LABS_ROOT/README.ipynb )
+    NBS=$( ls -1 $LABS_ROOT/$IPYNB )
 
     for NB in $NBS; do
         LAB_DIR=$( dirname $NB )
@@ -96,22 +98,29 @@ CONVERT_ALL() {
 
 while [ ! -z "$1" ]; do
     case $1 in
+        *.ipynb) 
+            IPYNB=$1
+            IPYNB_SH=${IPYNB%.ipynb}.sh
+            CONVERT_1 $IPYNB
+            exit
+            ;;
         -A) DO ALL sub-dirs
             LABS_ROOT=$ROOT/$LABS
             CONVERT_ALL $LABS_ROOT
             exit
             ;;
-         *) CONVERT_1 $1
-            exit
-            ;;
+         #*) CONVERT_1 $1
+            #exit
+            #;;
     esac
 done
 
+IPYNB_SH=${IPYNB%.ipynb}.sh
 SOURCE_NBTOOL_RC
 SOURCE_VARIABLES
 
 echo
-echo "---- Waiting for README.ipynb updates:"
+echo "---- Waiting for $IPYNB updates:"
 FIRST_LOOP=1
 echo "Forcing conversion on first loop"
 [ ! -f .converting  ] && touch .converting
@@ -122,30 +131,30 @@ while true; do
     }
 
     [ ~/scripts/nbtool.py -nt ~/tmp/.nbtool.py.read ] && {
-        echo "[$DIR] nbtool.py updated - NOT touching README.ipynb - but please save notebook"
+        echo "[$DIR] nbtool.py updated - NOT touching $IPYNB - but please save notebook"
     }
 
     [ ~/scripts/nbtool.rc -nt ~/tmp/.nbtool.rc.read ] && {
         source ~/scripts/nbtool.rc
-        echo "[$DIR] nbtool.rc updated - NOT touching README.ipynb - but please save notebook"
+        echo "[$DIR] nbtool.rc updated - NOT touching $IPYNB - but please save notebook"
     }
 
-    #[ $( find README.ipynb -newer .converting | wc -l ) != 0 ] && {
+    #[ $( find $IPYNB -newer .converting | wc -l ) != 0 ] && {
     CONVERT=0
     [ $FIRST_LOOP  -eq 1           ] && { CONVERT=1; FIRST_LOOP=0; }
-    [ README.ipynb -nt .converting ] && { CONVERT=1; }
+    [ $IPYNB -nt .converting ] && { CONVERT=1; }
 
     [ $CONVERT -eq 1 ] && {
         echo; echo "---- [$DIR] NB_LAB_ENV:"
         touch .converting
-        #NB_LAB_ENV; #NB_FILTER_NOTEBOOK README.ipynb
+        #NB_LAB_ENV; #NB_FILTER_NOTEBOOK $IPYNB
         NB_INIT_NOTEBOOK
         ls -altr
         echo "-- <$DIR_NUM/$LAB_NUM> [$DIR]"
         touch ~/tmp/.nbtool.rc.read ~/tmp/.nbtool.py.read
     }
 
-    CHECK_FILE_SIZE README.md 1000 || {
+    CHECK_FILE_SIZE ${IPYNB%.ipynb}.md 1000 || {
         echo "Resourcing variables ..."
         SOURCE_VARIABLES
     }
