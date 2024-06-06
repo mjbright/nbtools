@@ -9,7 +9,7 @@ ENVIRONMENT="** NO ~/.environment **"
 
 which banner >/dev/null && {
     #sudo apt install -y sysvbanner
-    banner() { echo "BANNER: $*"; }
+    function banner { echo "BANNER: $*"; }
 }
 
 HOSTNAME=$(hostname)
@@ -17,14 +17,14 @@ HOSTNAME=$(hostname)
 DEBUG_WAIT=0
 WAIT_SLEEP=1
 
-__NB_DEBUG() {
+function __NB_DEBUG {
     local INFO="${PWD##*/} $(date +'%Y-%b-%d %0Hh%0Mm')"
     echo "__NB_DEBUG: $INFO"
     echo "__NB_DEBUG: $(id -un)@$(hostname):$PWD"
     echo "__NB_DEBUG: -- $*"
 }
 
-SHOW_LONG_LINES() {
+function SHOW_LONG_LINES {
     local IPFILE=""
     local MAX_LINE_LEN=80
     local LEFT_COLS=7
@@ -55,7 +55,7 @@ SHOW_LONG_LINES() {
         grep -v "^ *[0-9]*"$'\t'"$"
 }
 
-RUN() {
+function RUN {
     echo "+ $@" >&2
     if [ "$1" = "opa" ]; then
         eval "$@" | __FN_OPA_OP
@@ -65,7 +65,7 @@ RUN() {
     #$@
 }
 
-__FN_OPA_OP() {
+function __FN_OPA_OP {
     local OPFILE=~/tmp/opa.$$
 
     mkdir -p ~/tmp
@@ -80,7 +80,7 @@ __FN_OPA_OP() {
     rm $OPFILE
 }
 
-__FN_FILE_COMMON() {
+function __FN_FILE_COMMON {
     APPEND=0
     [ "$1" = "-a" ] && { APPEND=1; shift; }
     FILE=$1; shift
@@ -113,7 +113,7 @@ __FN_FILE_COMMON() {
     ls -al $FILE >> $LOG
 }
 
-__FN_NEW_FILE() {
+function __FN_NEW_FILE {
     #set -x
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say create a file with these contents
     FILE="$1"; shift
@@ -123,7 +123,7 @@ __FN_NEW_FILE() {
     __FN_FILE_COMMON $FILE
 }
 
-__FN_MOD_FILE() {
+function __FN_MOD_FILE {
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say modify a file with these contents
     FILE="$1"; shift
     local LOG=/tmp/__MOD_FILE
@@ -132,7 +132,7 @@ __FN_MOD_FILE() {
     __FN_FILE_COMMON $FILE
 }
 
-__FN_APPEND_FILE() {
+function __FN_APPEND_FILE {
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say append file with these contents
     FILE="$1"; shift
     local LOG=/tmp/__APPEND_FILE
@@ -141,10 +141,10 @@ __FN_APPEND_FILE() {
     __FN_FILE_COMMON -a $FILE
 }
 
-#__FN_COLOUR() { grep --color always ''; }
-#__FN_COLOUR() { sed -e 's/^/\\01b[1;34m/' -e 's/$/\\01b[0m/'; }
+#function __FN_COLOUR { grep --color always ''; }
+#function __FN_COLOUR { sed -e 's/^/\\01b[1;34m/' -e 's/$/\\01b[0m/'; }
 
-__FN_COLOUR() {
+function __FN_COLOUR {
     # #  NORMAL;           BOLD;                 INVERSE;
     # _black='\e[00;30m';  _L_black='\e[01;30m';  _I_black='\e[07;30m'
     # _white='\e[00;37m';  _L_white='\e[01;37m';  _I_white='\e[07;37m'
@@ -187,13 +187,13 @@ typeset -f > $FN_0_LIST
 # SETUP     FUNCTIONS: ------------------------------------------------
 # Source .jupyer.profile, then demonstrate kubectl working:
 
-DIE() {
+function DIE {
     echo "[$PWD] die - $*" | __FN_HIGHLIGHT
     env | grep -E "NBTOOL|LAB"
     exit 1
 }
 
-CHECK_FILE_SIZE() {
+function CHECK_FILE_SIZE {
     local FILE=$1; shift;
     local MIN_BYTES=$1; shift;
 
@@ -212,9 +212,9 @@ CHECK_FILE_SIZE() {
 
 # START: TIMER FUNCTIONS ================================================
 
-__TIMER_START() { START_S=`date +%s`; }
+function __TIMER_START { START_S=`date +%s`; }
 
-__TIMER_STOP() {
+function __TIMER_STOP {
     LABEL=""
     [ ! -z "$1" ] && LABEL="[$*]: "
 
@@ -226,7 +226,7 @@ __TIMER_STOP() {
     echo $__TIMER_STOP
 }
 
-__TIMER_hhmmss() {
+function __TIMER_hhmmss {
     _REM_SECS=$1; shift
 
     let SECS=_REM_SECS%60
@@ -244,7 +244,7 @@ __TIMER_hhmmss() {
 
 # END: TIMER FUNCTIONS ================================================
 
-__FN_INIT_NOTEBOOK() {
+function __FN_INIT_NOTEBOOK {
     #set -x
     NB=""
     if [ -z "$1" ]; then
@@ -350,7 +350,7 @@ __FN_INIT_NOTEBOOK() {
     __FN_FILTER_NOTEBOOK $NB
 }
 
-__FN_LAB_ENV() {
+function __FN_LAB_ENV {
     #set -x
     local REPO=""
     local SHA=""
@@ -406,7 +406,7 @@ __FN_LAB_ENV() {
     return 0
 }
 
-__FN_k8s_SETUP() {
+function __FN_k8s_SETUP {
     [ ! -z "$_SETUP_RUN" ] && return 0
     export _SETUP_RUN=$(date)
 
@@ -426,10 +426,14 @@ __FN_k8s_SETUP() {
     cat /etc/hosts
 
     typeset -f > $FN_1_LIST
-    ALL_ADD_FNS=$(diff $FN_0_LIST_ORIG $FN_1_LIST | grep "^> .* ()" | sed -e 's/^>  *//' -e 's/ ()//' | grep -v functions: | tr '\n' ' ')
+
+    #ALL_ADD_FNS=$(diff $FN_0_LIST_ORIG $FN_1_LIST | grep "^> .* ()" | sed -e 's/^>  *//' -e 's/ ()//' | grep -v functions: | tr '\n' ' ')
+    ALL_ADD_FNS=$(diff $FN_0_LIST_ORIG $FN_1_LIST | grep " function " | sed -e 's/.* function *//' -e 's/ .*//' | grep -v functions: | tr '\n' ' ')
     [ ! -z "$ALL_ADD_FNS" ] && echo "All added functions: $ALL_ADD_FNS"
+
     [ "$FN_0_LIST_ORIG" != "$FN_0_LIST" ] && {
-        NEW_ADD_FNS=$(diff $FN_0_LIST $FN_1_LIST | grep "^> .* ()" | sed -e 's/^>  *//' -e 's/ ()//' | grep -v functions: | tr '\n' ' ')
+        #NEW_ADD_FNS=$(diff $FN_0_LIST $FN_1_LIST | grep "^> .* ()" | sed -e 's/^>  *//' -e 's/ ()//' | grep -v functions: | tr '\n' ' ')
+        NEW_ADD_FNS=$(diff $FN_0_LIST $FN_1_LIST | grep " function " | sed -e 's/.* function *//' -e 's/ .*//' | grep -v functions: | tr '\n' ' ')
         [ ! -z "$NEW_ADD_FNS" ] && echo "New functions: $NEW_ADD_FNS"
     }
 }
@@ -438,7 +442,7 @@ __FN_k8s_SETUP() {
 
 # SET_FRONTMATTER:
 
-SET_FRONTMATTER() {
+function SET_FRONTMATTER {
     local __TITLE="$1"; shift
     local __WEIGHT="$1"; shift
 
@@ -457,11 +461,11 @@ weight: $__WEIGHT
 EOF
 }
 
-REPLACE_HOME_STDIN() {
+function REPLACE_HOME_STDIN {
     sed -e "s?${HOME}/?~/?g"
 }
 
-ARCHIVE_SOLUTIONS() {
+function ARCHIVE_SOLUTIONS {
     LAB_NAME="$*"
 
 set -x
@@ -485,17 +489,17 @@ set +x
 # - TODO: Create ToC (Table of Contents) and links to Next section
 # - TODO: Autonumber sections/subsections
 #
-__QUIET() {
+function __QUIET {
     # Quiet except on failure --> __FILTER
     pwd
     __FN_QUIET_FILTER_NOTEBOOK $* || __FILTER
 }
-__FILTER() {
+function __FILTER {
     pwd
     __FN_FILTER_NOTEBOOK $*
 }
 
-__FN_QUIET_FILTER_NOTEBOOK() {
+function __FN_QUIET_FILTER_NOTEBOOK {
     #ls -altrd $NB_DIR/README.md $NB_DIR/${NAME}.ipynb  | __FN_COLOUR green
     #( cd $NB_DIR; ls -altrd README.md ${NAME}.ipynb  | __FN_COLOUR green; )
     #( cd $NB_DIR; ls -altrd README.md *.ipynb  | __FN_COLOUR green; )
@@ -520,14 +524,14 @@ __FN_QUIET_FILTER_NOTEBOOK() {
     __RETURN 0
 }
 
-__CHECK_NB_DIR() {
+function __CHECK_NB_DIR {
     [ -z "$NB_DIR" ] && NB_DIR=$(cat .dir)
     [ -z "$NB_DIR" ] && DIE "NB_DIR is unset"
     env | grep ^NB_DIR= || DIE "NB_DIR is not exported"
     echo "NB_DIR='$NB_DIR'"
 }
 
-__FN_FILTER_NOTEBOOK() {
+function __FN_FILTER_NOTEBOOK {
     NOTEBOOK="$1"
     [ -z "$NOTEBOOK" ] && NOTEBOOK=README.ipynb
     export NOTEBOOK
@@ -640,7 +644,7 @@ __FN_FILTER_NOTEBOOK() {
     return 0
 }
 
-__FN_NBCONVERT() {
+function __FN_NBCONVERT {
     __CHECK_NB_DIR
    (
         cd $NB_DIR;
@@ -731,20 +735,20 @@ __FN_NBCONVERT() {
 # e.g. code cell contents are:  (output set to actual value of $__CMD)
 #    CODE $__CMD # Must be first line in code cell
 #    EXEC $__CMD
-CODE()                    { echo $*;                            return 0;  }
-NO_EXEC()                 {                                     return 0;  }
-EXEC()                    { $*;                                 return $?; }
+function CODE                    { echo $*;                            return 0;  }
+function NO_EXEC                 {                                     return 0;  }
+function EXEC                    { $*;                                 return $?; }
 
 # __* FUNCTIONS: ------------------------------------------------
 
 # Terraform-specific:
-__TF_INIT() {
+function __TF_INIT {
     __NB_DEBUG terraform init $*
     terraform init $*
     __RETURN
 }
 
-__TF_PLAN() {
+function __TF_PLAN {
     __NB_DEBUG terraform plan $*
     #__RETURN
     TIME=""
@@ -766,7 +770,7 @@ __TF_PLAN() {
     __RETURN
 }
 
-__TF_APPLY() {
+function __TF_APPLY {
     TIME=""
     local QUIET=0
     __NB_DEBUG terraform apply $*
@@ -787,11 +791,11 @@ __TF_APPLY() {
     __RETURN
 }
 
-____TF_DESTROY() {
+function ____TF_DESTROY {
     __TF_DESTROY $*
 }
 
-__TF_DESTROY() {
+function __TF_DESTROY {
     TIME=""
     local QUIET=0
     __NB_DEBUG terraform destroy $*
@@ -812,14 +816,14 @@ __TF_DESTROY() {
     __RETURN
 }
 
-__DOCKER() {
+function __DOCKER {
     # In nbtools.py replace by "ssh vm-linux-docker docker $*"
     __NB_DEBUG docker $*
     docker $*
     __RETURN
 }
 
-__CURL() {
+function __CURL {
     # In nbtools.py replace by "ssh vm-linux-docker docker $*"
     __NB_DEBUG curl $*
     curl $*
@@ -827,13 +831,13 @@ __CURL() {
 }
 
 # Kubernetes-specific:
-__K_GET() {
+function __K_GET {
     kubectl get $*
     # TODO: If kubectl get svc, get service => recuperate IP, PORT info
     # TODO: If kubectl get po, get pod      => recuperate IP, PORT info
 }
 
-__K_CREATE() {
+function __K_CREATE {
     kubectl create $*
     # TODO: If kubectl create svc, create service => recuperate IP, PORT info
     # TODO: If kubectl create dep, create deploy  => recuperate IP, PORT info
@@ -850,12 +854,12 @@ __K_CREATE() {
 # e.g. use as
 #      ls | __HIDE hidden_files
 
-__FN_HIDE()            { grep -v $* ;                        return 0; }
+function __FN_HIDE            { grep -v $* ;                        return 0; }
 
-__FN_HIGHLIGHT()       { grep --color=always -E "|.*${*}.*"; return 0; }
-__FN_HIGHLIGHT_EOL()   { grep --color=always -E "|${*}.*";   return 0; }
-__FN_HIGHLIGHT_SOL()   { grep --color=always -E "|.*${*}";   return 0; }
-__FN_HIGHLIGHT_MATCH() { grep --color=always -E "${*}";    return 0; }
+function __FN_HIGHLIGHT       { grep --color=always -E "|.*${*}.*"; return 0; }
+function __FN_HIGHLIGHT_EOL   { grep --color=always -E "|${*}.*";   return 0; }
+function __FN_HIGHLIGHT_SOL   { grep --color=always -E "|.*${*}";   return 0; }
+function __FN_HIGHLIGHT_MATCH { grep --color=always -E "${*}";    return 0; }
 
 #echo HELLO WORLD from Jupyter | __HIGHLIGHT WORLD
 #echo HELLO WORLD from Jupyter | __HIGHLIGHT_EOL WORLD
@@ -863,7 +867,7 @@ __FN_HIGHLIGHT_MATCH() { grep --color=always -E "${*}";    return 0; }
 
 # VARIABLE  FUNCTIONS: ------------------------------------------------
 
-SET_VAR() {
+function SET_VAR {
     local VARNAME=$1; shift
 
     [ "${VARNAME#*=}" != "$VARNAME" ] && {
@@ -893,13 +897,13 @@ SET_VAR() {
 
 # Usage:
 # SET_VAR_LAST_FILE args
-SET_VAR_LAST_FILE() {
+function SET_VAR_LAST_FILE {
     __LAST_FILE=$(ls -1tr . | tail -1)
     echo VAR __LAST_FILE=$__LAST_FILE
     return 0
 }
 
-SET_NAMESPACE() {
+function SET_NAMESPACE {
     local __NS_ARG="$1"; 
 
     [ ! -z "$__NS_ARG" ] && { NS=$__NS_ARG; return; }
@@ -913,7 +917,7 @@ SET_NAMESPACE() {
     NS="default"
 }
 
-K_GET_SVC() {
+function K_GET_SVC {
     [ "$1" = "-n" ] && { NS=$2; shift; shift; }
     #SET_NAMESPACE
 
@@ -923,7 +927,7 @@ K_GET_SVC() {
     SET_VAR_SVC_EXTIP $1 "$NS"
 }
 
-K_GET_PODS() {
+function K_GET_PODS {
     [ "$1" = "-n" ] && { NS=$2; shift; shift; }
     #SET_NAMESPACE
     POD_NAME=$1;
@@ -936,7 +940,7 @@ K_GET_PODS() {
 
 # Usage: SET_VAR_POD_IPS -n <ns> podname
 # curl -sL http://$__POD_IPS
-SET_VAR_POD_IPS() {
+function SET_VAR_POD_IPS {
     #set -x
     POD_NAME="$1"
     SET_NAMESPACE "$2"
@@ -953,7 +957,7 @@ SET_VAR_POD_IPS() {
     return 0
 }
 
-SET_VAR_SVC_IP() {
+function SET_VAR_SVC_IP {
     __SVC_NAME="$1"
     SET_NAMESPACE "$2"
     
@@ -962,7 +966,7 @@ SET_VAR_SVC_IP() {
     return 0
 }
 
-SET_VAR_SVC_EXTIP() {
+function SET_VAR_SVC_EXTIP {
     __SVC_NAME="$1"
     SET_NAMESPACE "$2"
     
@@ -971,7 +975,7 @@ SET_VAR_SVC_EXTIP() {
     return 0
 }
 
-SET_VAR_SVC_PORT() {
+function SET_VAR_SVC_PORT {
     __SVC_NAME="$1"
     SET_NAMESPACE "$2"
     
@@ -980,7 +984,7 @@ SET_VAR_SVC_PORT() {
     return 0
 }
 
-SET_VAR_NODE_IP() {
+function SET_VAR_NODE_IP {
     __NODE_NAME="$1"
     SET_NAMESPACE "$2"
     
@@ -989,7 +993,7 @@ SET_VAR_NODE_IP() {
     return 0
 }
 
-SET_VAR_IDX() {
+function SET_VAR_IDX {
     VAR_NAME=$1; shift
     IDX=$1;      shift
 
@@ -1009,7 +1013,7 @@ SET_VAR_IDX() {
     return 0
 }
 
-FOREACH() {
+function FOREACH {
     __VAR_NAME=$1; shift
     #echo "\$*=$*"
            
@@ -1029,7 +1033,7 @@ FOREACH() {
     return 0
 }
 
-TEST_VAR_FUNCTIONS() {
+function TEST_VAR_FUNCTIONS {
     #SET_VAR_POD_IPS k8s-demo
     SET_VAR_POD_IPS kube-system coredns
     echo $__POD_IPS
@@ -1050,7 +1054,7 @@ TEST_VAR_FUNCTIONS() {
     FOREACH __POD_IP echo "POD_IP=\$__POD_IP"
 }
 
-SET_VAR_POD_NAME() {
+function SET_VAR_POD_NAME {
     local PODNAME_MATCH=$1; shift;
     local POD_IDX=1;
     [ ! -z "$1" ] && { POD_IDX=$1; shift; }
@@ -1061,15 +1065,15 @@ SET_VAR_POD_NAME() {
 
 # WAIT ON EXEC FUNCTIONS: ---------------------------------------------
 
-__FN_WAIT() { sleep $1; cat; return 0; }
+function __FN_WAIT { sleep $1; cat; return 0; }
 
 # Sleep and cell will be excluded
-__FN_WAIT() {
+function __FN_WAIT {
     sleep $1;
     return 0
 }
 
-__FN_WAIT_CMD() {
+function __FN_WAIT_CMD {
     #set -x
     echo $* >/tmp/WAIT_CMD
     
@@ -1088,7 +1092,7 @@ __FN_WAIT_CMD() {
 
 # Waits for at least 1 Pod to be in state (default: Running)
 
-__FN_WAIT_PODS() {
+function __FN_WAIT_PODS {
     if [ "$1" = "-n" ]; then
         shift; SET_NAMESPACE $1; shift
     else
@@ -1138,7 +1142,7 @@ __FN_WAIT_PODS() {
 }
 
 # Note: would be useful a function which waits for *all* matching Pods to be running
-__FN_WAIT_ALL_PODS_RUNNING() {
+function __FN_WAIT_ALL_PODS_RUNNING {
     local NS=""
     if [ "$1" = "-n" ]; then
         NS="-n $2"
@@ -1148,7 +1152,7 @@ __FN_WAIT_ALL_PODS_RUNNING() {
     while kubectl $NS get pods --no-headers | grep -vq Running; do sleep $WAIT_SLEEP; done
 }
 
-__FN_WAIT_NO_PODS() {
+function __FN_WAIT_NO_PODS {
     if [ "$1" = "-n" ]; then
         shift; SET_NAMESPACE $1; shift
     else
@@ -1191,7 +1195,7 @@ __FN_WAIT_NO_PODS() {
 
 # __CLEANUP      FUNCTIONS: ---------------------------------------------
 
-__FN_CLEANUP_TRAEFIK() {
+function __FN_CLEANUP_TRAEFIK {
     kubectl -n kube-system delete deploy/traefik-ingress-controller
     kubectl -n kube-system delete svc traefik-ingress-service
     kubectl -n kube-system delete sa/traefik-ingress-controller
@@ -1200,7 +1204,7 @@ __FN_CLEANUP_TRAEFIK() {
     kubectl -n kube-system delete sa/traefik-ingress-controller
 }
 
-__FN_CLEANUP() {
+function __FN_CLEANUP {
     SET_NAMESPACE "$1"
     echo
     echo "======== CLEANUP namespace($NS) ==========================="
@@ -1221,19 +1225,19 @@ __FN_CLEANUP() {
     WAIT_NO_PODS
 }
 
-__FN_CLEANUP_TRAEFIK() {
+function __FN_CLEANUP_TRAEFIK {
     kubectl delete -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-deployment.yaml
     kubectl delete -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-rbac.yaml
 }
 
-__FN_NODES_CHECK() {
+function __FN_NODES_CHECK {
     kubectl get node
     kubectl describe node | grep Pressure | grep True
 }
 
 # OTHER MISC   FUNCTIONS: ---------------------------------------------
 
-__RETURN() {
+function __RETURN {
     [ -z "$1" ] && return 0
     return $1
 }
