@@ -3,8 +3,24 @@
 # In practice 74 seems to be a good limit for the PDF output (tested using Safari/macOS):
 MAX_LEN_MD=74
 
+# Default for SSH functions
+SSH_NODE=worker
+
+SSH_SET() {
+    SSH_NODE=$1
+}
+
+SSH() {
+    #ssh -qt $SSH_NODE $*
+    ssh -q $SSH_NODE $*
+}
+
 ENVIRONMENT="** NO ~/.environment **"
-[ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
+
+SET_ENVIRONMENT() {
+    [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
+}
+
 #echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"
 
 which banner >/dev/null && {
@@ -255,7 +271,13 @@ function __FN_INIT_NOTEBOOK {
 
     [ ! -f "$NB" ] && DIE "[$PWD] No such notebook as '$NB'"
 
+    dpkg -l | grep -q "^ii jq " || {
+       echo "==== sudo apt-get install -y jq"
+       sudo apt-get install -y jq >/dev/null 2>&1
+    }
+
     echo
+    SET_ENVIRONMENT
     echo "**** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"; echo
     
     #set -x
@@ -316,12 +338,18 @@ function __FN_INIT_NOTEBOOK {
             TITLE_MODE="K8S"
             [ -z "$KUBECONFIG" ] && export KUBECONFIG=~/.kube/config
             echo "KUBECONFIG='$KUBECONFIG'"
-            grep current-context "$KUBECONFIG" | grep -q kubernetes-admin && echo "## ASSUMING full cluster admin rights"
-            grep server: $KUBECONFIG
-            kubectl get nodes
-            kubectl config get-contexts
-            #DEBUG_WAIT=1; __CLEANUP; DEBUG_WAIT=0
-            #kubectl delete pods -lapp=web-student0
+            KUBEOK=1
+            [   -z "$KUBECONFIG" ] && KUBEOK=0
+            [ ! -f "$KUBECONFIG" ] && KUBEOK=0
+            which kubectl >/dev/null 2>&1 && KUBEOK=0
+            if [ $KUBEOK -ne 0 ]; then
+                grep current-context "$KUBECONFIG" | grep -q kubernetes-admin && echo "## ASSUMING full cluster admin rights"
+                grep server: $KUBECONFIG
+                kubectl get nodes
+                kubectl config get-contexts
+                #DEBUG_WAIT=1; __CLEANUP; DEBUG_WAIT=0
+                #kubectl delete pods -lapp=web-student0
+            fi
             ;;
 
         Rego)
@@ -400,6 +428,7 @@ function __FN_LAB_ENV {
             ;;
     esac
                   
+    SET_ENVIRONMENT
     echo "# Notebook initial generation:"
     echo "# - $(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
     [ ! -z "$REPO" ] && echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
@@ -468,9 +497,9 @@ function REPLACE_HOME_STDIN {
 function ARCHIVE_SOLUTIONS {
     LAB_NAME="$*"
 
-set -x
+    # set -x
     LAB_NUM=$( echo $LAB_NAME | sed -e 's/^lab//i' -e 's/ .*//' -e 's/\..*//' )
-set +x
+    # set +x
     #echo "LAB_NUM='$LAB_NUM'"
 
     mkdir -p ~/Solutions/BAK
@@ -870,8 +899,9 @@ function __FN_HIGHLIGHT_MATCH { grep --color=always -E "${*}";    return 0; }
 function SET_VAR {
     local VARNAME=$1; shift
 
+    # DETECT A=B form:
     [ "${VARNAME#*=}" != "$VARNAME" ] && {
-        echo "SET_VAR: Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
+        echo "SET_VAR: [A=B] Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
         local ARGS="${VARNAME#*=}"
         VARNAME=${VARNAME%%=*}
         #set -- ${VARNAME#*=}
@@ -880,8 +910,11 @@ function SET_VAR {
         #echo "Leaving args as $*"
     }
 
+    # DETECT VARNAME not preceded by __
     [ "${VARNAME#__}" = "$VARNAME" ] && {
-        echo "SET_VAR: Correcting var name '$VARNAME' to '__$VARNAME'"
+        echo "SET_VAR: [not __A] Correcting var name '$VARNAME' to '__$VARNAME'"
+        echo "export $VARNAME=$*"
+        export $VARNAME=$*
         VARNAME=__$VARNAME
     }
 
@@ -892,7 +925,9 @@ function SET_VAR {
     }
     eval $VARNAME="$VALUE"
     #echo "VAR $VARNAME='$VALUE'"
-    echo "VAR $VARNAME=\"$VALUE\""
+    echo "VAR $VARNAME='$VALUE'"
+    echo "export $VARNAME='$VALUE'"
+    export $VARNAME
 }
 
 # Usage:
@@ -929,13 +964,13 @@ function K_GET_SVC {
 
 function K_GET_PODS {
     [ "$1" = "-n" ] && { NS=$2; shift; shift; }
-    #SET_NAMESPACE
-    POD_NAME=$1;
+    SET_NAMESPACE
+    POD_NAME="$1"; # specify pod name / or not
 
     #kubectl get pod $*
-    kubectl -n $NS get pod | grep " $POD_NAME"
-    SET_VAR_POD_IPS  $POD_NAME   $NS
-    SET_VAR_POD_NAME $POD_NAME 1 $NS
+    kubectl -n $NS get pod | grep "^$POD_NAME"
+    SET_VAR_POD_IPS  "$POD_NAME"   $NS
+    SET_VAR_POD_NAME "$POD_NAME" 1 $NS
 }
 
 # Usage: SET_VAR_POD_IPS -n <ns> podname
@@ -945,15 +980,21 @@ function SET_VAR_POD_IPS {
     POD_NAME="$1"
     SET_NAMESPACE "$2"
     
+    #set -x
     #POD_IP=$(kubectl -n $NS get pods "$POD_NAME" -o custom-columns=NAME:.status.podIP --no-headers)
-    __POD_IPS=$(kubectl -n "$NS" get pods -o wide | awk "/^$POD_NAME/ { print \$6; }")
+    kubectl -n "$NS" get --no-headers pods -o wide
+    kubectl -n "$NS" get --no-headers pods -o wide | awk "/^$POD_NAME/ { print \$6; }"
+    __POD_IPS=$(kubectl -n "$NS" get --no-headers pods -o wide | awk "/^$POD_NAME/ { print \$6; }")
     # WHY FAILING??
     #   __POD_IP=${__POD_IPS%% *}
     #   __POD_IP=$( echo "${__POD_IPS}" | awk '{ print $1; }')
     #   __POD_IP=$( echo "${__POD_IPS}" | sed 's/\([0-9,.]*\).*/X\1/' )
-    __POD_IP=$(kubectl -n "$NS" get pods -o wide | awk "/^$POD_NAME/ { print \$6; exit(0); }")
+    __POD_IP=${__POD_IPS%% *}
+    #__POD_IP=$(kubectl -n "$NS" get pods -o wide | awk "/^$POD_NAME/ { print \$6; exit(0); }")
     echo VAR __POD_IP=$__POD_IP
     echo VAR __POD_IPS=$__POD_IPS
+    echo [NS=$NS] POD_NAME=$POD_NAME
+    #set +x
     return 0
 }
 
@@ -1090,6 +1131,18 @@ function __FN_WAIT_CMD {
 # 
 # See - https://mrkaran.dev/posts/kubectl-wait/
 
+__FN_WAIT_DEPLOY() {
+    if [ "$1" = "-n" ]; then
+        shift; SET_NAMESPACE $1; shift
+    else
+        SET_NAMESPACE
+    fi
+
+    DEPLOY=$1; shift
+
+    set -x; kubectl wait --for=jsonpath='{.status.readyReplicas}'=1 deploy/$DEPLOY; set +x;
+}
+
 # Waits for at least 1 Pod to be in state (default: Running)
 
 function __FN_WAIT_PODS {
@@ -1100,13 +1153,18 @@ function __FN_WAIT_PODS {
     fi
 
     POD_MATCH=$1; shift
-    STATE=""
-        
+
+    STATE="Ready"
     [ ! -z "$1" ] && STATE=$1
+
+    set -x; kubectl wait --for=condition=$STATE pod/$POD_MATCH; set +x;
+    return
+
+    # UNUSED: =====================
     if [ -z "$STATE" ];then
         #echo WAIT_PODS -n $NS $POD_MATCH "(ContainerCreating|Running)"
         #WAIT_PODS -n $NS $POD_MATCH "(ContainerCreating|Running)"
-        WAIT_PODS -n $NS $POD_MATCH "Running"
+        __FN_WAIT_PODS -n $NS $POD_MATCH "Running"
         return 0
     fi
 
@@ -1158,8 +1216,9 @@ function __FN_WAIT_NO_PODS {
     else
         SET_NAMESPACE
     fi
+    POD_MATCH=$1; shift
 
-    if [ -z "$1" ]; then
+    if [ -z "$POD_MATCH" ]; then
         while ! kubectl -n $NS get pods |& grep -q "No resources"; do
             [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods
             [ $DEBUG_WAIT -ne 0 ] && echo .
@@ -1167,12 +1226,13 @@ function __FN_WAIT_NO_PODS {
         done
         [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods
         [ $DEBUG_WAIT -ne 0 ] && echo
-        return
+    else
+        set -x; kubectl -n $NS wait --for=delete pod/$POD_MATCH; set +x
     fi
+    return
 
-    POD_MATCH=$1; shift
+    # UNUSED: =====================
     STATE=""
-    
     [ $DEBUG_WAIT -ne 0 ] && echo "---- Waiting for '$POD_MATCH' Pods to terminate ..."
     while kubectl -n $NS get pods |& grep -q $POD_MATCH; do
         [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods |& grep $POD_MATCH
@@ -1222,7 +1282,7 @@ function __FN_CLEANUP {
     echo
     echo "======== Remaining pods across all namespaces ==========================="
     kubectl get pods -A
-    WAIT_NO_PODS
+    __FN_WAIT_NO_PODS
 }
 
 function __FN_CLEANUP_TRAEFIK {

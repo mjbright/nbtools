@@ -12,6 +12,8 @@ ansi2html_conv = Ansi2HTMLConverter()
 from inspect import currentframe, getframeinfo
 from inspect import stack
 
+SSH_NODE="worker"
+
 # For copy.deepcopy:
 import copy
 
@@ -25,8 +27,11 @@ NUM_QUESTIONS=0
 INCLUDE_TOC=False
 # count_sections set to True if a cell with <div id='TOC' is found
 
-THICK_BAR=f"{IDIR}/ThickPurpleBar.png"
-THIN_BAR=f"{IDIR}/ThinPurpleBar.png"
+# THICK_BAR=f"{IDIR}/ThickPurpleBar.png"
+# THIN_BAR=f"{IDIR}/ThinPurpleBar.png"
+
+THICK_BAR=f"{IDIR}/ThickBlueBar.png"
+THIN_BAR=f"{IDIR}/ThinBlueBar.png"
 
 INSERT_THICK_BAR='![]('+f'{THICK_BAR})\n'
 INSERT_THIN_BAR='![]('+f'{THIN_BAR})\n'
@@ -743,6 +748,9 @@ def filter_nb(json_data, DEBUG=False):
                   TAG='**Note:**'; O_TAG='Note: '
                   if source_lines[slno].find(TAG) == 0:
                        source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', '#ffffff', O_TAG, full_page_width=False)
+                  TAG='**Stretch:**'; O_TAG='Stretch Goal: '
+                  if source_lines[slno].find(TAG) == 0:
+                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', '#00aaaa', O_TAG, full_page_width=False)
                   TAG='# __INFO:'; O_TAG='Info: '
                   if source_lines[slno].find(TAG) == 0:
                        source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#00AA00', '#eeffee', O_TAG)
@@ -756,6 +764,14 @@ def filter_nb(json_data, DEBUG=False):
                        summary=source_lines[slno][ 9+source_lines[slno].find('__DETAIL(') : source_lines[slno].find('):') ]
                        details=source_lines[slno][ source_lines[slno].find('):') + 2 : ]
                        source_lines[slno]=details_box(summary, details, '#0000FF', '#ffffff', 'Info: ')
+
+                  if source_lines[slno].find('SSH_SET ') == 0:
+                       SSH_NODE=source_lines[slno][8:]
+                       source_lines[slno] = ''
+                  elif source_lines[slno].find('SSH ') == 0:
+                       #source_lines[slno] = 'ssh ' + SSH_NODE + source_lines[slno][3:]
+                       source_lines[slno] = source_lines[slno][4:]
+
                   if source_lines[slno].find('# __Q(') == 0:
                        summary=source_lines[slno][ 9+source_lines[slno].find('__Q(') : source_lines[slno].find('):') ]
                        details=source_lines[slno][ source_lines[slno].find('):') + 2 : ]
@@ -849,11 +865,11 @@ def filter_nb(json_data, DEBUG=False):
               s_line=source_line.rstrip()
               DEBUG(f'[{cell_type}][{cell_no} line{slno}] "{s_line}"')
 
-              if cell_type == 'markdown' and len(s_line) > MAX_LINE_LEN:
-                  show_long_line( 'MARKDOWN', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
-
-              if cell_type == 'output' and len(s_line) > MAX_LINE_LEN:
-                  show_long_line( 'CODE-op', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+              #if cell_type == 'markdown' and len(s_line) > MAX_LINE_LEN:
+              #    show_long_line( 'MARKDOWN', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+              #
+              #if cell_type == 'output' and len(s_line) > MAX_LINE_LEN:
+              #    show_long_line( 'CODE-op', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               if cell_type == 'code' and not EXCLUDED_CODE_CELL:
                   inc_source_line = source_line
@@ -866,7 +882,10 @@ def filter_nb(json_data, DEBUG=False):
                   #if '| EXCL_FN' in source_line:
                       #inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
                   if len(inc_source_line) > MAX_LINE_LEN and \
-                      source_line0.find("__FN_NEW_FILE") == -1 and source_line0.find("__FN_MOD_FILE") == -1 and source_line0.find("__FN_APPEND_FILE") == -1:
+                      source_lines[slno][0] != '#' and \
+                      source_line0.find("__FN_NEW_FILE") == -1 and \
+                      source_line0.find("__FN_MOD_FILE") == -1 and \
+                      source_line0.find("__FN_APPEND_FILE") == -1:
                           show_long_line( 'CODE-src', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               insert_line_image=''
@@ -955,7 +974,7 @@ def filter_nb(json_data, DEBUG=False):
               if 'outputs' in json_data['cells'][cell_no]:
                   REMOVE_NB_DEBUG(json_data, cell_no)
                   CONVERT_ANSI_CODES2TXT(json_data, cell_no)
-                  #replace_vars_in_cell_output_lines(json_data, cell_no, VARS_SEEN)
+                  replace_vars_in_cell_output_lines(json_data, cell_no, VARS_SEEN)
                   #UNUSED_CONVERT_ANSI_CODES2HTML(json_data, cell_no)
                       
               ## # CODE: nbtool.py will replace source_line by first line of output text (which is then removed from output_text)
