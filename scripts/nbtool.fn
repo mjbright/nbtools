@@ -6,18 +6,18 @@ MAX_LEN_MD=74
 # Default for SSH functions
 SSH_NODE=worker
 
-SSH_SET() {
+function SSH_SET {
     SSH_NODE=$1
 }
 
-SSH() {
+function SSH {
     #ssh -qt $SSH_NODE $*
     ssh -q $SSH_NODE $*
 }
 
 ENVIRONMENT="** NO ~/.environment **"
 
-SET_ENVIRONMENT() {
+function NB_SET_ENV {
     [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
 }
 
@@ -30,17 +30,14 @@ which banner >/dev/null && {
 
 HOSTNAME=$(hostname)
 
-DEBUG_WAIT=0
-WAIT_SLEEP=1
-
-function __NB_DEBUG {
+function NB_DEBUG {
     local INFO="${PWD##*/} $(date +'%Y-%b-%d %0Hh%0Mm')"
-    echo "__NB_DEBUG: $INFO"
-    echo "__NB_DEBUG: $(id -un)@$(hostname):$PWD"
-    echo "__NB_DEBUG: -- $*"
+    echo "NB_DEBUG: $INFO"
+    echo "NB_DEBUG: $(id -un)@$(hostname):$PWD"
+    echo "NB_DEBUG: -- $*"
 }
 
-function SHOW_LONG_LINES {
+function NB_SHOW_LONG_LINES {
     local IPFILE=""
     local MAX_LINE_LEN=80
     local LEFT_COLS=7
@@ -71,32 +68,17 @@ function SHOW_LONG_LINES {
         grep -v "^ *[0-9]*"$'\t'"$"
 }
 
-function RUN {
+function NB_RUN {
     echo "+ $@" >&2
     if [ "$1" = "opa" ]; then
-        eval "$@" | __FN_OPA_OP
+        eval "$@" | OPA_OP
     else
         eval "$@"
     fi
     #$@
 }
 
-function __FN_OPA_OP {
-    local OPFILE=~/tmp/opa.$$
-
-    mkdir -p ~/tmp
-    cat > $OPFILE
-
-    # There's probably a jq idiomatic way of doing this !!
-    cat $OPFILE | if $( grep -q result $OPFILE ); then
-        jq '.result[].expressions[].value'
-    else
-        jq '.errors[].code'
-    fi
-    rm $OPFILE
-}
-
-function __FN_FILE_COMMON {
+function __NB_FILE_COMMON {
     APPEND=0
     [ "$1" = "-a" ] && { APPEND=1; shift; }
     FILE=$1; shift
@@ -129,38 +111,29 @@ function __FN_FILE_COMMON {
     ls -al $FILE >> $LOG
 }
 
-function __FN_NEW_FILE {
+function NB_FILE {
     #set -x
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say create a file with these contents
     FILE="$1"; shift
-    local LOG=/tmp/__NEW_FILE
+    local LOG=/tmp/__FILE
 
     echo "[$PWD] Writing to new file '$FILE'" >$LOG
-    __FN_FILE_COMMON $FILE
+    __NB_FILE_COMMON $FILE
 }
 
-function __FN_MOD_FILE {
-    # NOTE: nbtool.py to replace this code_cell with markdown cell to say modify a file with these contents
-    FILE="$1"; shift
-    local LOG=/tmp/__MOD_FILE
-
-    echo "[$PWD] Writing to file '$FILE'" >$LOG
-    __FN_FILE_COMMON $FILE
-}
-
-function __FN_APPEND_FILE {
+function NB_FILE_A {
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say append file with these contents
     FILE="$1"; shift
-    local LOG=/tmp/__APPEND_FILE
+    local LOG=/tmp/__FILE_A
 
     echo "[$PWD] Appending to file '$FILE'" >$LOG
-    __FN_FILE_COMMON -a $FILE
+    __NB_FILE_COMMON -a $FILE
 }
 
-#function __FN_COLOUR { grep --color always ''; }
-#function __FN_COLOUR { sed -e 's/^/\\01b[1;34m/' -e 's/$/\\01b[0m/'; }
+#function NB_COLOUR { grep --color always ''; }
+#function NB_COLOUR { sed -e 's/^/\\01b[1;34m/' -e 's/$/\\01b[0m/'; }
 
-function __FN_COLOUR {
+function NB_COLOUR {
     # #  NORMAL;           BOLD;                 INVERSE;
     # _black='\e[00;30m';  _L_black='\e[01;30m';  _I_black='\e[07;30m'
     # _white='\e[00;37m';  _L_white='\e[01;37m';  _I_white='\e[07;37m'
@@ -204,12 +177,12 @@ typeset -f > $FN_0_LIST
 # Source .jupyer.profile, then demonstrate kubectl working:
 
 function DIE {
-    echo "[$PWD] die - $*" | __FN_HIGHLIGHT
+    echo "[$PWD] die - $*" | NB_HIGHLIGHT
     env | grep -E "NBTOOL|LAB"
     exit 1
 }
 
-function CHECK_FILE_SIZE {
+function NB_CHECK_FILE_SIZE {
     local FILE=$1; shift;
     local MIN_BYTES=$1; shift;
 
@@ -228,21 +201,21 @@ function CHECK_FILE_SIZE {
 
 # START: TIMER FUNCTIONS ================================================
 
-function __TIMER_START { START_S=`date +%s`; }
+function TIMER_START { START_S=`date +%s`; }
 
-function __TIMER_STOP {
+function TIMER_STOP {
     LABEL=""
     [ ! -z "$1" ] && LABEL="[$*]: "
 
     END_S=`date +%s`
     let TOOK=END_S-START_S
 
-    __TIMER_hhmmss $TOOK
-    __TIMER_STOP="${LABEL}Took $TOOK secs [${HRS}h${MINS}m${SECS}]"
-    echo $__TIMER_STOP
+    TIMER_hhmmss $TOOK
+    TIMER_STOP="${LABEL}Took $TOOK secs [${HRS}h${MINS}m${SECS}]"
+    echo $TIMER_STOP
 }
 
-function __TIMER_hhmmss {
+function TIMER_hhmmss {
     _REM_SECS=$1; shift
 
     let SECS=_REM_SECS%60
@@ -255,12 +228,12 @@ function __TIMER_hhmmss {
     [ $MINS -lt 10 ] && MINS="0$MINS"
 }
 
-# __TIMER_START
-# __TIMER_STOP "Sleep test"
+# TIMER_START
+# TIMER_STOP "Sleep test"
 
 # END: TIMER FUNCTIONS ================================================
 
-function __FN_INIT_NOTEBOOK {
+function NB_INIT_NOTEBOOK {
     #set -x
     NB=""
     if [ -z "$1" ]; then
@@ -277,7 +250,7 @@ function __FN_INIT_NOTEBOOK {
     }
 
     echo
-    SET_ENVIRONMENT
+    NB_SET_ENV
     echo "**** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"; echo
     
     #set -x
@@ -297,44 +270,47 @@ function __FN_INIT_NOTEBOOK {
         #NB_DIR=$(cat .dir)
         export NB_DIR
         NB=$NB_DIR/$NB
-        echo "NB_DIR=$NB_DIR" | __FN_HIGHLIGHT
+        echo "NB_DIR=$NB_DIR" | NB_HIGHLIGHT
     fi
 
     # To be used in markdown front-matter, picked up by Hugo/Printing to give PDF filename ...
     TITLE_MODE=""
     case $LAB_MODE in
         Terraform)
+            echo "-- source ./nbtool.tf.fn"; source ./nbtool.tf.fn
             TITLE_MODE="TF"
             rm -rf ~/tmp/terraform*
             echo; echo "==== Setting TF_DATA_DIR ===="
             export TF_DATA_DIR=~/dot.terraform
-            echo "TF_DATA_DIR=$TF_DATA_DIR" | __FN_HIGHLIGHT_EOL =
+            echo "TF_DATA_DIR=$TF_DATA_DIR" | NB_HIGHLIGHT_EOL =
             if [ -f ~/.aws/linked/student20.rc ]; then
-                env | grep MYAWS_ACCOUNT_NAME= | __FN_HIGHLIGHT_EOL =
+                env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
                 echo; echo "==== Setting AWS vars for student20 account ===="
-                . ~/.aws/linked/student20.rc; env | grep MYAWS_ACCOUNT_NAME= | __FN_HIGHLIGHT_EOL =
-                #env | grep AWS_LINKED_ACCOUNT= | __FN_HIGHLIGHT_EOL =
+                . ~/.aws/linked/student20.rc; env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
+                #env | grep AWS_LINKED_ACCOUNT= | NB_HIGHLIGHT_EOL =
                 TITLE_MODE="TF-AWS"
             else
                 echo; echo "==== No AWS vars ( ~/.aws/linked/student20.rc )"
             fi
             if [ -f ~/.student.rc ]; then
-                env | grep MYAWS_ACCOUNT_NAME= | __FN_HIGHLIGHT_EOL =
+                env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
                 echo; echo "==== Setting AZURE vars for student account ===="
                 . ~/.student.rc;
-                env | grep AZURE_CONFIG_DIR= | __FN_HIGHLIGHT_EOL =
-                env | grep ^ARM_.*=          | __FN_HIGHLIGHT_EOL =
+                env | grep AZURE_CONFIG_DIR= | NB_HIGHLIGHT_EOL =
+                env | grep ^ARM_.*=          | NB_HIGHLIGHT_EOL =
                 TITLE_MODE="TF-AZ"
             else
                 echo; echo "==== No AZURE vars ( ~/.student.rc )"
             fi
             ;;
         Docker)
+            echo "-- source ./nbtool.do.fn"; source ./nbtool.do.fn
             TITLE_MODE="DO"
             echo "In Docker Mode"
             #exit 1
             ;;
         Kubernetes)
+            echo "-- source ./nbtool.k8.fn"; source ./nbtool.k8.fn
             TITLE_MODE="K8S"
             [ -z "$KUBECONFIG" ] && export KUBECONFIG=~/.kube/config
             echo "KUBECONFIG='$KUBECONFIG'"
@@ -347,38 +323,37 @@ function __FN_INIT_NOTEBOOK {
                 grep server: $KUBECONFIG
                 kubectl get nodes
                 kubectl config get-contexts
-                #DEBUG_WAIT=1; __CLEANUP; DEBUG_WAIT=0
-                #kubectl delete pods -lapp=web-student0
             fi
             ;;
 
         Rego)
+            echo "-- source ./nbtool.opa.fn"; source ./nbtool.opa.fn
             TITLE_MODE="REGO"
             ;;
 
         *)
-            echo "Error: Unknown LAB_MODE '$LAB_MODE' - should be one of 'Terraform|Kubernetes|Rego'" | __FN_HIGHLIGHT
+            echo "Error: Unknown LAB_MODE '$LAB_MODE' - should be one of 'Terraform|Kubernetes|Rego'" | NB_HIGHLIGHT
             banner ERR
             return
             ;;
     esac
 
     #rm -rf ~/labs
-    #NO_EXEC echo SHOULD NOT BE SEEN | __FN_HIGHLIGHT_SOL SHOULD
-    #EXEC    echo SHOULD BE SEEN     | __FN_HIGHLIGHT_SOL SHOULD
+    #NO_EXEC echo SHOULD NOT BE SEEN | NB_HIGHLIGHT_SOL SHOULD
+    #EXEC    echo SHOULD BE SEEN     | NB_HIGHLIGHT_SOL SHOULD
 
-    #echo "LABTAG=$LAB_TAG" | __FN_HIGHLIGHT_EOL =
+    #echo "LABTAG=$LAB_TAG" | NB_HIGHLIGHT_EOL =
     echo
-    echo "======== $LAB_MODE Lab weight[$LAB_WEIGHT] / tag[$LAB_TAG] / name[$LAB_NAME] ========" | __FN_HIGHLIGHT_EOL weight
+    echo "======== $LAB_MODE Lab weight[$LAB_WEIGHT] / tag[$LAB_TAG] / name[$LAB_NAME] ========" | NB_HIGHLIGHT_EOL weight
     PDF_NAME=$( echo "$LAB_NAME" | sed -e 's/  */_/g' -e "s/^/${TITLE_MODE}_/" -e 's/_-_/-/g' )
-    SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
+    MD_SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
 
     echo "NB_DIR=$NB_DIR"
     echo "NB=$NB"
-    __FN_FILTER_NOTEBOOK $NB
+    NB_FILTER_NOTEBOOK $NB
 }
 
-function __FN_LAB_ENV {
+function NB_LAB_ENV {
     #set -x
     local REPO=""
     local SHA=""
@@ -428,50 +403,18 @@ function __FN_LAB_ENV {
             ;;
     esac
                   
-    SET_ENVIRONMENT
+    NB_SET_ENV
     echo "# Notebook initial generation:"
     echo "# - $(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
     [ ! -z "$REPO" ] && echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
     return 0
 }
 
-function __FN_k8s_SETUP {
-    [ ! -z "$_SETUP_RUN" ] && return 0
-    export _SETUP_RUN=$(date)
-
-    # Jupyter on Ubuntu, or in kubelab:
-    [ $(id -un) = "root" ] && export HOME=/root
-    ## [ -f /root/.profile ]         && . /root/.profile
-    ## [ -f /root/.jupyter.profile ] && . /root/.jupyter.profile
-    export PATH=~/bin:$PATH
-    #### ls -altr ~/
-    kubectl get pods
-
-    echo "$(kubectl get nodes master -o custom-columns=IP:.status.addresses[0].address --no-headers) master" >> /etc/hosts
-    echo "$(kubectl get nodes worker1 -o custom-columns=IP:.status.addresses[0].address --no-headers) worker1" >> /etc/hosts
-
-    echo
-    echo "/etc/hosts inside kubelab Pod:"
-    cat /etc/hosts
-
-    typeset -f > $FN_1_LIST
-
-    #ALL_ADD_FNS=$(diff $FN_0_LIST_ORIG $FN_1_LIST | grep "^> .* ()" | sed -e 's/^>  *//' -e 's/ ()//' | grep -v functions: | tr '\n' ' ')
-    ALL_ADD_FNS=$(diff $FN_0_LIST_ORIG $FN_1_LIST | grep " function " | sed -e 's/.* function *//' -e 's/ .*//' | grep -v functions: | tr '\n' ' ')
-    [ ! -z "$ALL_ADD_FNS" ] && echo "All added functions: $ALL_ADD_FNS"
-
-    [ "$FN_0_LIST_ORIG" != "$FN_0_LIST" ] && {
-        #NEW_ADD_FNS=$(diff $FN_0_LIST $FN_1_LIST | grep "^> .* ()" | sed -e 's/^>  *//' -e 's/ ()//' | grep -v functions: | tr '\n' ' ')
-        NEW_ADD_FNS=$(diff $FN_0_LIST $FN_1_LIST | grep " function " | sed -e 's/.* function *//' -e 's/ .*//' | grep -v functions: | tr '\n' ' ')
-        [ ! -z "$NEW_ADD_FNS" ] && echo "New functions: $NEW_ADD_FNS"
-    }
-}
-
 # NOTEBOOK  FUNCTIONS: ------------------------------------------------
 
-# SET_FRONTMATTER:
+# MD_SET_FRONTMATTER:
 
-function SET_FRONTMATTER {
+function MD_SET_FRONTMATTER {
     local __TITLE="$1"; shift
     local __WEIGHT="$1"; shift
 
@@ -490,11 +433,11 @@ weight: $__WEIGHT
 EOF
 }
 
-function REPLACE_HOME_STDIN {
+function NB_REPLACE_HOME_STDIN {
     sed -e "s?${HOME}/?~/?g"
 }
 
-function ARCHIVE_SOLUTIONS {
+function NB_ARCHIVE_SOLUTIONS {
     LAB_NAME="$*"
 
     # set -x
@@ -513,30 +456,30 @@ function ARCHIVE_SOLUTIONS {
 #
 # Perform nbtool.py processing
 # - filters out '#EXCLUDE' cells
-# - filters out SET_VARS cells, but picks up VAR values
+# - filters out NB_SET_VARS cells, but picks up VAR values
 # - replaces VAR values in cells
 # - TODO: Create ToC (Table of Contents) and links to Next section
 # - TODO: Autonumber sections/subsections
 #
-function __QUIET {
+function NB_QUIET {
     # Quiet except on failure --> __FILTER
     pwd
-    __FN_QUIET_FILTER_NOTEBOOK $* || __FILTER
+    NB_QUIET_FILTER_NOTEBOOK $* || __FILTER
 }
-function __FILTER {
+function NB_FILTER {
     pwd
-    __FN_FILTER_NOTEBOOK $*
+    NB_FILTER_NOTEBOOK $*
 }
 
-function __FN_QUIET_FILTER_NOTEBOOK {
-    #ls -altrd $NB_DIR/README.md $NB_DIR/${NAME}.ipynb  | __FN_COLOUR green
-    #( cd $NB_DIR; ls -altrd README.md ${NAME}.ipynb  | __FN_COLOUR green; )
-    #( cd $NB_DIR; ls -altrd README.md *.ipynb  | __FN_COLOUR green; )
+function NB_QUIET_FILTER_NOTEBOOK {
+    #ls -altrd $NB_DIR/README.md $NB_DIR/${NAME}.ipynb  | NB_COLOUR green
+    #( cd $NB_DIR; ls -altrd README.md ${NAME}.ipynb  | NB_COLOUR green; )
+    #( cd $NB_DIR; ls -altrd README.md *.ipynb  | NB_COLOUR green; )
     pwd
-    __FN_FILTER_NOTEBOOK $* > ~/tmp/quiet.filter.notebook.op 2>&1
+    NB_FILTER_NOTEBOOK $* > ~/tmp/quiet.filter.notebook.op 2>&1
     __CHECK_NB_DIR
     ( cd $NB_DIR;
-      ls -altrd README.md *.ipynb | tail -2 | __FN_COLOUR green;
+      ls -altrd README.md *.ipynb | tail -2 | NB_COLOUR green;
 
       R_NB=README.ipynb
       TOTAL_CELLS=$(jq -rc '.cells    | length' $R_NB )
@@ -560,7 +503,7 @@ function __CHECK_NB_DIR {
     echo "NB_DIR='$NB_DIR'"
 }
 
-function __FN_FILTER_NOTEBOOK {
+function NB_FILTER_NOTEBOOK {
     NOTEBOOK="$1"
     [ -z "$NOTEBOOK" ] && NOTEBOOK=README.ipynb
     export NOTEBOOK
@@ -572,10 +515,10 @@ function __FN_FILTER_NOTEBOOK {
     echo "======== Filtering current notebook [$NOTEBOOK] ========"
     echo "**** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"; echo
 
-    ARCHIVE_SOLUTIONS $LAB_NAME
+    NB_ARCHIVE_SOLUTIONS $LAB_NAME
 
     # Re-source latest version:
-    echo "-- source $NBTOOL_FN" | REPLACE_HOME_STDIN
+    echo "-- source $NBTOOL_FN" | NB_REPLACE_HOME_STDIN
     [ -z "$NBTOOL_FN" ] && DIE "NBTOOL_FN is unset"
     source $NBTOOL_FN
 
@@ -587,7 +530,7 @@ function __FN_FILTER_NOTEBOOK {
 
     echo; echo "======== FILTERING NOTEBOOK ===================================================="
     CMD="$PYTHON3 $NBTOOL_PY -f $NOTEBOOK"
-    echo; echo "-- $CMD" | REPLACE_HOME_STDIN
+    echo; echo "-- $CMD" | NB_REPLACE_HOME_STDIN
     $CMD
     echo "======== FILTERING DONE ========================================================"; echo
     __CHECK_NB_DIR
@@ -596,7 +539,7 @@ function __FN_FILTER_NOTEBOOK {
     [ -z "$OP_NOTEBOOK" ] && {
         which python3
         echo "[$PWD] Error: failed to find filtered README*.ipynb in directory '$NB_DIR'"
-        ls -1tr $NB_DIR/ | grep .ipynb$ | REPLACE_HOME_STDIN | sed 's/^/::/'
+        ls -1tr $NB_DIR/ | grep .ipynb$ | NB_REPLACE_HOME_STDIN | sed 's/^/::/'
         exit 1
     }
 
@@ -607,16 +550,16 @@ function __FN_FILTER_NOTEBOOK {
         ${OP_NOTEBOOK} > ${OP_NOTEBOOK_LINEWRAPPED}
 
     ls -altr $OP_NOTEBOOK
-    ls -altr $OP_NOTEBOOK| REPLACE_HOME_STDIN
+    ls -altr $OP_NOTEBOOK| NB_REPLACE_HOME_STDIN
 
     # Detect visibility of EXCLUDE/FN_EXCL in output (even if "# EXCLUDE" rather than "#EXCLUDE"):
     echo "Checking for 'EXCLUDE|FN_EXCL' in filtered notebook"
     grep -qE "EXCLUDE|FN_EXCL" $OP_NOTEBOOK && {
         echo; echo "---- Error: EXCLUDE/FN_EXCL seen in $OP_NOTEBOOK:"
         echo "Occurrences of EXCLUDE in $OP_NOTEBOOK:" $( grep -o EXCLUDE $OP_NOTEBOOK | wc -l )
-        #grep EXCLUDE $OP_NOTEBOOK | __FN_HIGHLIGHT_MATCH EXCLUDE
+        #grep EXCLUDE $OP_NOTEBOOK | NB_HIGHLIGHT_MATCH EXCLUDE
         echo "Occurrences of FN_EXCL in $OP_NOTEBOOK:" $( grep -o FN_EXCL $OP_NOTEBOOK | wc -l )
-        #grep FN_EXCL $OP_NOTEBOOK | __FN_HIGHLIGHT_MATCH FN_EXCL
+        #grep FN_EXCL $OP_NOTEBOOK | NB_HIGHLIGHT_MATCH FN_EXCL
 
         JUPYTEXT=$( which jupytext )
         echo "JUPYTEXT='$JUPYTEXT'"
@@ -632,10 +575,10 @@ function __FN_FILTER_NOTEBOOK {
 
     echo "Checks specific to TF/K8S:"
     __TF_OK="TF_DATA_DIR|__TF_VAR_|__TF_INPUT|__TF_CLI|__TF_CLI_ARG|__TF_LOG"
-    grep "__TF_"  $OP_NOTEBOOK | grep -vE $__TF_OK | __FN_HIGHLIGHT_MATCH __TF_
-    grep "K_"  $OP_NOTEBOOK | __FN_HIGHLIGHT_MATCH K_
+    grep "__TF_"  $OP_NOTEBOOK | grep -vE $__TF_OK | NB_HIGHLIGHT_MATCH __TF_
+    grep "K_"  $OP_NOTEBOOK | NB_HIGHLIGHT_MATCH K_
 
-    S_NB=$( echo $NOTEBOOK | REPLACE_HOME_STDIN )
+    S_NB=$( echo $NOTEBOOK | NB_REPLACE_HOME_STDIN )
     __EXCLUDE="__start_kubectl"
     NUM=$( jq '.' $NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
     [ "$NUM" = "0" ] && {
@@ -646,7 +589,7 @@ function __FN_FILTER_NOTEBOOK {
         # DIE "Can't continue"
     }
 
-    S_OP_NB=$( echo $OP_NOTEBOOK | REPLACE_HOME_STDIN )
+    S_OP_NB=$( echo $OP_NOTEBOOK | NB_REPLACE_HOME_STDIN )
     __EXCLUDE="__start_kubectl"
     NUM=$( jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
     [ "$NUM" = "0" ] && {
@@ -654,7 +597,7 @@ function __FN_FILTER_NOTEBOOK {
     } || {
         echo; echo "Error: $NUM VAR defs/usages in o/p file: $S_OP_NB"
         #echo; echo "VARS in output file: $S_OP_NB"
-        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __ | __FN_HIGHLIGHT
+        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __ | NB_HIGHLIGHT
         #DIE "Can't continue"
     }
 
@@ -662,18 +605,18 @@ function __FN_FILTER_NOTEBOOK {
     [ "$NUM" != "0" ] && {
         echo; echo "Error: $NUM \${__XX} defs/usages in o/p file: $S_OP_NB"
         #echo; echo "VARS in output file: $S_OP_NB"
-        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n '${__' | __FN_HIGHLIGHT
+        jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n '${__' | NB_HIGHLIGHT
         #DIE "Can't continue"
     }
 
-    echo "Performing __FN_NBCONVERT"
-    [ "$NOTEBOOK" = "${NOTEBOOK##*TEST}" ] && __FN_NBCONVERT
+    echo "Performing NB_CONVERT"
+    [ "$NOTEBOOK" = "${NOTEBOOK##*TEST}" ] && NB_CONVERT
     )
 
     return 0
 }
 
-function __FN_NBCONVERT {
+function NB_CONVERT {
     __CHECK_NB_DIR
    (
         cd $NB_DIR;
@@ -698,25 +641,25 @@ function __FN_NBCONVERT {
         mv     $OP_NOTEBOOK_MD ${OP_NOTEBOOK_MD}.bak
         cp -a  $OP_NOTEBOOK ${OP_NOTEBOOK}.bak
 
-        #echo; ls -altr *.md | __FN_COLOUR green
+        #echo; ls -altr *.md | NB_COLOUR green
 
         #TEST: cp /dev/null $OP_NOTEBOOK
         #echo
-        CHECK_FILE_SIZE $OP_NOTEBOOK 1000 || {
+        NB_CHECK_FILE_SIZE $OP_NOTEBOOK 1000 || {
             #ls -altr $OP_NOTEBOOK
             DIE "File $OP_NOTEBOOK is too small - supsicious"
         }
 
-        NUM_LONG_LINES=$( SHOW_LONG_LINES -m $MAX_LEN_MD README.md | wc -l )
+        NUM_LONG_LINES=$( NB_SHOW_LONG_LINES -m $MAX_LEN_MD README.md | wc -l )
         if [ "$NUM_LONG_LINES" != "0" ]; then
             echo
             echo "---- $NUM_LONG_LINES long lines (> $MAX_LEN_MD) in README.md:"
-            #SHOW_LONG_LINES -m $MAX_LEN_MD README.md | __FN_COLOUR red
+            #NB_SHOW_LONG_LINES -m $MAX_LEN_MD README.md | NB_COLOUR red
         fi
 
         #cp /dev/null README.md
         #echo
-        CHECK_FILE_SIZE README.md 1000 || {
+        NB_CHECK_FILE_SIZE README.md 1000 || {
             #ls -altr README.md
             DIE "File README.md is too small - supsicious"
         }
@@ -732,9 +675,9 @@ function __FN_NBCONVERT {
         #mv README.md ${NAME}.md
 
         # FILTER_OK_CHECK:
-        #echo; ls -altr README.md  | __FN_COLOUR green
-        #echo; ls -altr ${NAME}.*  | __FN_COLOUR green
-        echo; ls -altr README.md ${NAME}.*  | __FN_COLOUR green
+        #echo; ls -altr README.md  | NB_COLOUR green
+        #echo; ls -altr ${NAME}.*  | NB_COLOUR green
+        echo; ls -altr README.md ${NAME}.*  | NB_COLOUR green
         #ls -altr *.md
     )
 }
@@ -764,131 +707,18 @@ function __FN_NBCONVERT {
 # e.g. code cell contents are:  (output set to actual value of $__CMD)
 #    CODE $__CMD # Must be first line in code cell
 #    EXEC $__CMD
-function CODE                    { echo $*;                            return 0;  }
-function NO_EXEC                 {                                     return 0;  }
-function EXEC                    { $*;                                 return $?; }
+function NB_CODE                    { echo $*;                            return 0;  }
+function NB_NO_EXEC                 {                                     return 0;  }
+function NB_EXEC                    { $*;                                 return $?; }
 
 # __* FUNCTIONS: ------------------------------------------------
 
-# Terraform-specific:
-function __TF_INIT {
-    __NB_DEBUG terraform init $*
-    terraform init $*
-    __RETURN
-}
+function NB_HIDE            { grep -v $* ;                        return 0; }
 
-function __TF_PLAN {
-    __NB_DEBUG terraform plan $*
-    #__RETURN
-    TIME=""
-    local QUIET=0
-
-    [ -z "$1"     ] && TIME="time "
-    [ "$1" = "-t" ] && { TIME="time "; shift; }
-    [ "$1" = "-q" ] && { QUIET=1; shift; }
-    [ "$1" = "-t" ] && { TIME="time "; shift; }
-    TIME=""; __TIMER_START
-
-    if [ $QUIET -ne 0 ]; then
-        ${TIME}terraform plan $* |
-            tee /tmp/PLAN.op |& grep -iE "complet|fail|error| to add"
-    else
-        ${TIME}terraform plan $*
-    fi
-    __NB_DEBUG $( __TIMER_STOP 'terraform plan' )
-    __RETURN
-}
-
-function __TF_APPLY {
-    TIME=""
-    local QUIET=0
-    __NB_DEBUG terraform apply $*
-
-    [ -z "$1"     ] && TIME="time "
-    [ "$1" = "-t" ] && { TIME="time "; shift; }
-    [ "$1" = "-q" ] && { QUIET=1; shift; }
-    [ "$1" = "-t" ] && { TIME="time "; shift; }
-    TIME=""; __TIMER_START
-
-    if [ $QUIET -ne 0 ]; then
-        ${TIME}terraform apply -auto-approve $* |
-            tee /tmp/APPLY.op |& grep -iE "complet|fail|error| to add"
-    else
-        ${TIME}terraform apply -auto-approve $*
-    fi
-    __NB_DEBUG $( __TIMER_STOP 'terraform apply' )
-    __RETURN
-}
-
-function ____TF_DESTROY {
-    __TF_DESTROY $*
-}
-
-function __TF_DESTROY {
-    TIME=""
-    local QUIET=0
-    __NB_DEBUG terraform destroy $*
-
-    [ -z "$1"     ] && TIME="time "
-    [ "$1" = "-t" ] && { TIME="time "; shift; }
-    [ "$1" = "-q" ] && { QUIET=1; shift; }
-    [ "$1" = "-t" ] && { TIME="time "; shift; }
-    TIME=""; __TIMER_START
-
-    if [ $QUIET -ne 0 ]; then
-        ${TIME}terraform destroy -auto-approve $* |
-            tee /tmp/DESTROY.op |& grep -iE "complet|fail|error| to add"
-    else
-        ${TIME}terraform destroy -auto-approve $*
-    fi
-    __NB_DEBUG $( __TIMER_STOP 'terraform destroy' )
-    __RETURN
-}
-
-function __DOCKER {
-    # In nbtools.py replace by "ssh vm-linux-docker docker $*"
-    __NB_DEBUG docker $*
-    docker $*
-    __RETURN
-}
-
-function __CURL {
-    # In nbtools.py replace by "ssh vm-linux-docker docker $*"
-    __NB_DEBUG curl $*
-    curl $*
-    __RETURN
-}
-
-# Kubernetes-specific:
-function __K_GET {
-    kubectl get $*
-    # TODO: If kubectl get svc, get service => recuperate IP, PORT info
-    # TODO: If kubectl get po, get pod      => recuperate IP, PORT info
-}
-
-function __K_CREATE {
-    kubectl create $*
-    # TODO: If kubectl create svc, create service => recuperate IP, PORT info
-    # TODO: If kubectl create dep, create deploy  => recuperate IP, PORT info
-    # TODO: If kubectl run                        => recuperate IP, PORT info
-    # Check in YAML ?!
-    #if [ "$1" = "pod" ]; then
-    #fi
-
-    # TODO:
-    # Create deploy - wait for Pods ready? ==> NO use WAIT_PODS function
-}
-
-# Hide stdin elements matching arguments,
-# e.g. use as
-#      ls | __HIDE hidden_files
-
-function __FN_HIDE            { grep -v $* ;                        return 0; }
-
-function __FN_HIGHLIGHT       { grep --color=always -E "|.*${*}.*"; return 0; }
-function __FN_HIGHLIGHT_EOL   { grep --color=always -E "|${*}.*";   return 0; }
-function __FN_HIGHLIGHT_SOL   { grep --color=always -E "|.*${*}";   return 0; }
-function __FN_HIGHLIGHT_MATCH { grep --color=always -E "${*}";    return 0; }
+function NB_HIGHLIGHT       { grep --color=always -E "|.*${*}.*"; return 0; }
+function NB_HIGHLIGHT_EOL   { grep --color=always -E "|${*}.*";   return 0; }
+function NB_HIGHLIGHT_SOL   { grep --color=always -E "|.*${*}";   return 0; }
+function NB_HIGHLIGHT_MATCH { grep --color=always -E "${*}";    return 0; }
 
 #echo HELLO WORLD from Jupyter | __HIGHLIGHT WORLD
 #echo HELLO WORLD from Jupyter | __HIGHLIGHT_EOL WORLD
@@ -896,12 +726,12 @@ function __FN_HIGHLIGHT_MATCH { grep --color=always -E "${*}";    return 0; }
 
 # VARIABLE  FUNCTIONS: ------------------------------------------------
 
-function SET_VAR {
+function NB_SET_VAR {
     local VARNAME=$1; shift
 
     # DETECT A=B form:
     [ "${VARNAME#*=}" != "$VARNAME" ] && {
-        echo "SET_VAR: [A=B] Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
+        echo "NB_SET_VAR: [A=B] Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
         local ARGS="${VARNAME#*=}"
         VARNAME=${VARNAME%%=*}
         #set -- ${VARNAME#*=}
@@ -912,7 +742,7 @@ function SET_VAR {
 
     # DETECT VARNAME not preceded by __
     [ "${VARNAME#__}" = "$VARNAME" ] && {
-        echo "SET_VAR: [not __A] Correcting var name '$VARNAME' to '__$VARNAME'"
+        echo "NB_SET_VAR: [not __A] Correcting var name '$VARNAME' to '__$VARNAME'"
         echo "export $VARNAME=$*"
         export $VARNAME=$*
         VARNAME=__$VARNAME
@@ -931,190 +761,22 @@ function SET_VAR {
 }
 
 # Usage:
-# SET_VAR_LAST_FILE args
-function SET_VAR_LAST_FILE {
+# NB_SET_VAR_LAST_FILE args
+function NB_SET_VAR_LAST_FILE {
     __LAST_FILE=$(ls -1tr . | tail -1)
     echo VAR __LAST_FILE=$__LAST_FILE
     return 0
 }
 
-function SET_NAMESPACE {
-    local __NS_ARG="$1"; 
-
-    [ ! -z "$__NS_ARG" ] && { NS=$__NS_ARG; return; }
-
-    # Note: --minify removes all output not used by the current context from the output
-    local __NS=$(kubectl config view --minify -o 'jsonpath={..namespace}')
-
-    [ ! -z "$__NS" ] && { NS=$__NS; return; }
-
-    # If __NS is unset then default is the namespace:
-    NS="default"
-}
-
-function K_GET_SVC {
-    [ "$1" = "-n" ] && { NS=$2; shift; shift; }
-    #SET_NAMESPACE
-
-    kubectl -n $NS get svc $*
-    SET_VAR_SVC_IP $1 "$NS"
-    SET_VAR_SVC_PORT $1 "$NS"
-    SET_VAR_SVC_EXTIP $1 "$NS"
-}
-
-function K_GET_PODS {
-    [ "$1" = "-n" ] && { NS=$2; shift; shift; }
-    SET_NAMESPACE
-    POD_NAME="$1"; # specify pod name / or not
-
-    #kubectl get pod $*
-    kubectl -n $NS get pod | grep "^$POD_NAME"
-    SET_VAR_POD_IPS  "$POD_NAME"   $NS
-    SET_VAR_POD_NAME "$POD_NAME" 1 $NS
-}
-
-# Usage: SET_VAR_POD_IPS -n <ns> podname
-# curl -sL http://$__POD_IPS
-function SET_VAR_POD_IPS {
-    #set -x
-    POD_NAME="$1"
-    SET_NAMESPACE "$2"
-    
-    #set -x
-    #POD_IP=$(kubectl -n $NS get pods "$POD_NAME" -o custom-columns=NAME:.status.podIP --no-headers)
-    kubectl -n "$NS" get --no-headers pods -o wide
-    kubectl -n "$NS" get --no-headers pods -o wide | awk "/^$POD_NAME/ { print \$6; }"
-    __POD_IPS=$(kubectl -n "$NS" get --no-headers pods -o wide | awk "/^$POD_NAME/ { print \$6; }")
-    # WHY FAILING??
-    #   __POD_IP=${__POD_IPS%% *}
-    #   __POD_IP=$( echo "${__POD_IPS}" | awk '{ print $1; }')
-    #   __POD_IP=$( echo "${__POD_IPS}" | sed 's/\([0-9,.]*\).*/X\1/' )
-    __POD_IP=${__POD_IPS%% *}
-    #__POD_IP=$(kubectl -n "$NS" get pods -o wide | awk "/^$POD_NAME/ { print \$6; exit(0); }")
-    echo VAR __POD_IP=$__POD_IP
-    echo VAR __POD_IPS=$__POD_IPS
-    echo [NS=$NS] POD_NAME=$POD_NAME
-    #set +x
-    return 0
-}
-
-function SET_VAR_SVC_IP {
-    __SVC_NAME="$1"
-    SET_NAMESPACE "$2"
-    
-    __SVC_IP=$(kubectl -n $NS get service "$__SVC_NAME" -o custom-columns=IP:.spec.clusterIP --no-headers)
-    echo VAR __SVC_IP=$__SVC_IP
-    return 0
-}
-
-function SET_VAR_SVC_EXTIP {
-    __SVC_NAME="$1"
-    SET_NAMESPACE "$2"
-    
-    __SVC_EXTIP=$(kubectl -n $NS get service "$__SVC_NAME" -o custom-columns=IP:.spec.externalIPs[0] --no-headers)
-    echo VAR __SVC_EXTIP=$__SVC_EXTIP
-    return 0
-}
-
-function SET_VAR_SVC_PORT {
-    __SVC_NAME="$1"
-    SET_NAMESPACE "$2"
-    
-    __SVC_PORT=$(kubectl -n $NS get service "$__SVC_NAME" -o custom-columns=NP:.spec.ports[0].nodePort --no-headers)
-    echo VAR __SVC_PORT=$__SVC_PORT
-    return 0
-}
-
-function SET_VAR_NODE_IP {
-    __NODE_NAME="$1"
-    SET_NAMESPACE "$2"
-    
-    __NODE_IP=$(kubectl get node "$__NODE_NAME" -o custom-columns=IP:.status.addresses[0].address --no-headers)
-    echo VAR __NODE_IP=$__NODE_IP
-    return 0
-}
-
-function SET_VAR_IDX {
-    VAR_NAME=$1; shift
-    IDX=$1;      shift
-
-    NEW_VAR_NAME=${VAR_NAME%S}
-    #NEW_VAR_NAME=${NEW_VAR_NAME%S}
-    
-    eval VALUE="\$$VAR_NAME"
-    echo VALUE=$VALUE
-    while [ $IDX -gt 1 ]; do
-        echo "[$IDX] VALUE=$VALUE"
-        VALUE=${VALUE#* }
-        let IDX=IDX-1
-    done
-    VALUE=${VALUE%% *}
-    echo eval $NEW_VAR_NAME=$VALUE
-    eval $NEW_VAR_NAME="$VALUE"
-    return 0
-}
-
-function FOREACH {
-    __VAR_NAME=$1; shift
-    #echo "\$*=$*"
-           
-    __VAR_NAME_s="${__VAR_NAME}S"
-    #echo "__VAR_NAME_s=$__VAR_NAME_s"
-    #echo "__POD_IPS=$__POD_IPS"
-    eval __VALUES="\$$__VAR_NAME_s"
-    #echo "__VALUES=$__VALUES"
-    
-    for __VALUE in $__VALUES; do
-        eval $__VAR_NAME=$__VALUE
-        #echo
-        #echo "__POD_IP=$__POD_IP"
-        #echo "\$*=$*"
-        eval $*
-    done
-    return 0
-}
-
-function TEST_VAR_FUNCTIONS {
-    #SET_VAR_POD_IPS k8s-demo
-    SET_VAR_POD_IPS kube-system coredns
-    echo $__POD_IPS
-
-    SET_VAR_SVC_IP kubernetes
-    echo $__SVC_IP
-
-    SET_VAR_SVC_PORT k8s-demo-np
-    echo $__SVC_PORT
-
-    #__POD_IPS="1.a.b.c.d 2.A.B.C.E 3.a.B.c.F 4.4 5.5 6.6 7.7 8.8"
-    #SET_VAR_IDX __POD_IPS 3
-    #echo $__POD_IP
-
-    SET_VAR_NODE_IP master
-    echo $__NODE_IP
-
-    FOREACH __POD_IP echo "POD_IP=\$__POD_IP"
-}
-
-function SET_VAR_POD_NAME {
-    local PODNAME_MATCH=$1; shift;
-    local POD_IDX=1;
-    [ ! -z "$1" ] && { POD_IDX=$1; shift; }
-    SET_NAMESPACE "$1"
-    __POD_NAME=$(kubectl -n $NS get pods --no-headers | grep $PODNAME_MATCH | head -$POD_IDX | tail -1 | awk '{ print $1; }')
-    echo VAR __POD_NAME=$__POD_NAME
-}
-
-# WAIT ON EXEC FUNCTIONS: ---------------------------------------------
-
-function __FN_WAIT { sleep $1; cat; return 0; }
+# function NB_WAIT { sleep $1; cat; return 0; }
 
 # Sleep and cell will be excluded
-function __FN_WAIT {
+function NB_WAIT {
     sleep $1;
     return 0
 }
 
-function __FN_WAIT_CMD {
+function NB_WAIT_CMD {
     #set -x
     echo $* >/tmp/WAIT_CMD
     
@@ -1125,189 +787,8 @@ function __FN_WAIT_CMD {
     return 0
 }
 
-### --- TODO ----------------------
-### Use kubectl wait
-# - In scripts use kubectl wait: kubectl wait --for=condition=available --timeout=60s --all deployments
-# 
-# See - https://mrkaran.dev/posts/kubectl-wait/
-
-__FN_WAIT_DEPLOY() {
-    if [ "$1" = "-n" ]; then
-        shift; SET_NAMESPACE $1; shift
-    else
-        SET_NAMESPACE
-    fi
-
-    DEPLOY=$1; shift
-
-    set -x; kubectl wait --for=jsonpath='{.status.readyReplicas}'=1 deploy/$DEPLOY; set +x;
-}
-
-# Waits for at least 1 Pod to be in state (default: Running)
-
-function __FN_WAIT_PODS {
-    if [ "$1" = "-n" ]; then
-        shift; SET_NAMESPACE $1; shift
-    else
-        SET_NAMESPACE
-    fi
-
-    POD_MATCH=$1; shift
-
-    STATE="Ready"
-    [ ! -z "$1" ] && STATE=$1
-
-    set -x; kubectl wait --for=condition=$STATE pod/$POD_MATCH; set +x;
-    return
-
-    # UNUSED: =====================
-    if [ -z "$STATE" ];then
-        #echo WAIT_PODS -n $NS $POD_MATCH "(ContainerCreating|Running)"
-        #WAIT_PODS -n $NS $POD_MATCH "(ContainerCreating|Running)"
-        __FN_WAIT_PODS -n $NS $POD_MATCH "Running"
-        return 0
-    fi
-
-    [ $DEBUG_WAIT -ne 0 ] && echo "---- Waiting for '$POD_MATCH' Pods to start ..."
-    while ! kubectl -n $NS get pods | grep -q $POD_MATCH; do
-        [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods
-        [ $DEBUG_WAIT -ne 0 ] && echo .
-        sleep $WAIT_SLEEP
-    done
-    [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods | grep $POD_MATCH
-    [ $DEBUG_WAIT -ne 0 ] && echo
-
-    [ $DEBUG_WAIT -ne 0 ] && echo "---- Waiting for at least 1 '$POD_MATCH' Pods to to be in <$STATE> state  ..."
-    while ! kubectl -n $NS get pods |& grep $POD_MATCH | grep -qE " $STATE "; do
-        [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods |& grep $POD_MATCH
-        [ $DEBUG_WAIT -ne 0 ] && echo .
-        sleep $WAIT_SLEEP
-    done
-    [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods | grep $POD_MATCH
-    [ $DEBUG_WAIT -ne 0 ] && echo
-    
-    #### # NEEDS TESTING:
-    #### # All in same state:
-    [ $DEBUG_WAIT -ne 0 ] && echo "---- Waiting for all '$POD_MATCH' Pods to to be in <$STATE> state  ..."
-    while kubectl -n $NS get pods | grep $POD_MATCH | grep -vq " $STATE "; do
-    #while ! kubectl -n $NS get pods | grep $POD_MATCH | grep -vq " $STATE "; do
-        [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods |& grep $POD_MATCH
-        [ $DEBUG_WAIT -ne 0 ] && echo .
-        sleep $WAIT_SLEEP
-    done
-    [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods | grep $POD_MATCH
-    return 0
-}
-
-# Note: would be useful a function which waits for *all* matching Pods to be running
-function __FN_WAIT_ALL_PODS_RUNNING {
-    local NS=""
-    if [ "$1" = "-n" ]; then
-        NS="-n $2"
-    fi
-
-    WAIT_SLEEP=2
-    while kubectl $NS get pods --no-headers | grep -vq Running; do sleep $WAIT_SLEEP; done
-}
-
-function __FN_WAIT_NO_PODS {
-    if [ "$1" = "-n" ]; then
-        shift; SET_NAMESPACE $1; shift
-    else
-        SET_NAMESPACE
-    fi
-    POD_MATCH=$1; shift
-
-    if [ -z "$POD_MATCH" ]; then
-        while ! kubectl -n $NS get pods |& grep -q "No resources"; do
-            [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods
-            [ $DEBUG_WAIT -ne 0 ] && echo .
-            sleep $WAIT_SLEEP
-        done
-        [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods
-        [ $DEBUG_WAIT -ne 0 ] && echo
-    else
-        set -x; kubectl -n $NS wait --for=delete pod/$POD_MATCH; set +x
-    fi
-    return
-
-    # UNUSED: =====================
-    STATE=""
-    [ $DEBUG_WAIT -ne 0 ] && echo "---- Waiting for '$POD_MATCH' Pods to terminate ..."
-    while kubectl -n $NS get pods |& grep -q $POD_MATCH; do
-        [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods |& grep $POD_MATCH
-        [ $DEBUG_WAIT -ne 0 ] && echo .
-        sleep $WAIT_SLEEP
-    done
-    [ $DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods | grep $POD_MATCH
-    [ $DEBUG_WAIT -ne 0 ] && echo
-    return 0
-}
-
-#set +x
-#WAIT 1
-#WAIT_CMD [ -f /tmp/OK ]
-#WAIT_PODS quiz
-#WAIT_PODS quiz
-#WAIT_PODS quiz "ContainerCreating|Running"
-
-# EXCLUDE CELL FUNCTIONS: ---------------------------------------------
-
-# __CLEANUP      FUNCTIONS: ---------------------------------------------
-
-function __FN_CLEANUP_TRAEFIK {
-    kubectl -n kube-system delete deploy/traefik-ingress-controller
-    kubectl -n kube-system delete svc traefik-ingress-service
-    kubectl -n kube-system delete sa/traefik-ingress-controller
-    kubectl delete clusterrolebinding/traefik-ingress-controller
-    kubectl delete clusterrole/traefik-ingress-controller
-    kubectl -n kube-system delete sa/traefik-ingress-controller
-}
-
-function __FN_CLEANUP {
-    SET_NAMESPACE "$1"
-    echo
-    echo "======== CLEANUP namespace($NS) ==========================="
-    #kubectl get ns
-    #kubectl delete ns frontend
-    echo -n "Deployments: "
-    kubectl -n $NS delete deploy --all
-    echo -n "Services:    "
-    kubectl -n $NS delete service --all
-    sleep 2
-    echo -n "Pods:        "
-    kubectl -n $NS delete pods --all
-
-    #kubectl taint node master node-role.kubernetes.io/master:NoSchedule
-    echo
-    echo "======== Remaining pods across all namespaces ==========================="
-    kubectl get pods -A
-    __FN_WAIT_NO_PODS
-}
-
-function __FN_CLEANUP_TRAEFIK {
-    kubectl delete -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-deployment.yaml
-    kubectl delete -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-rbac.yaml
-}
-
-function __FN_NODES_CHECK {
-    kubectl get node
-    kubectl describe node | grep Pressure | grep True
-}
-
-# OTHER MISC   FUNCTIONS: ---------------------------------------------
-
 function __RETURN {
     [ -z "$1" ] && return 0
     return $1
 }
-
-# SETUP SECTION -------------------------------------------------------
-
-#### __k8s_SETUP
-
-# OTHER NOTES   -------------------------------------------------------
-
-# See kubectl wait remarks above
-# kubectl api-resources
 

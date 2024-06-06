@@ -1,0 +1,78 @@
+
+# Terraform-specific:
+
+function TF_INIT {
+    NB_DEBUG terraform init $*
+    terraform init $*
+    __RETURN
+}
+
+function TF_PLAN {
+    NB_DEBUG terraform plan $*
+    #__RETURN
+    TIME=""
+    local QUIET=0
+
+    [ -z "$1"     ] && TIME="time "
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-q" ] && { QUIET=1; shift; }
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    TIME=""; TIMER_START
+
+    if [ $QUIET -ne 0 ]; then
+        ${TIME}terraform plan $* |
+            tee /tmp/PLAN.op |& grep -iE "complet|fail|error| to add"
+    else
+        ${TIME}terraform plan $*
+    fi
+    NB_DEBUG $( TIMER_STOP 'terraform plan' )
+    __RETURN
+}
+
+function TF_APPLY {
+    TIME=""
+    local QUIET=0
+    NB_DEBUG terraform apply $*
+
+    [ -z "$1"     ] && TIME="time "
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-q" ] && { QUIET=1; shift; }
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    TIME=""; TIMER_START
+
+    if [ $QUIET -ne 0 ]; then
+        ${TIME}terraform apply -auto-approve $* |
+            tee /tmp/APPLY.op |& grep -iE "complet|fail|error| to add"
+    else
+        ${TIME}terraform apply -auto-approve $*
+    fi
+    NB_DEBUG $( TIMER_STOP 'terraform apply' )
+    __RETURN
+}
+
+# What ??
+#function ____TF_DESTROY {
+    #TF_DESTROY $*
+#}
+
+function TF_DESTROY {
+    TIME=""
+    local QUIET=0
+    NB_DEBUG terraform destroy $*
+
+    [ -z "$1"     ] && TIME="time "
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-q" ] && { QUIET=1; shift; }
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    TIME=""; TIMER_START
+
+    if [ $QUIET -ne 0 ]; then
+        ${TIME}terraform destroy -auto-approve $* |
+            tee /tmp/DESTROY.op |& grep -iE "complet|fail|error| to add"
+    else
+        ${TIME}terraform destroy -auto-approve $*
+    fi
+    NB_DEBUG $( TIMER_STOP 'terraform destroy' )
+    __RETURN
+}
+

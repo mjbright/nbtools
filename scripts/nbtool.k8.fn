@@ -1,0 +1,327 @@
+# Kubernetes-specific:
+
+K8S_DEBUG_WAIT=0
+K8S_WAIT_SLEEP=1
+
+# VARIABLE  FUNCTIONS: ------------------------------------------------
+
+function K_SET_NAMESPACE {
+    local __NS_ARG="$1"; 
+
+    [ ! -z "$__NS_ARG" ] && { NS=$__NS_ARG; return; }
+
+    # Note: --minify removes all output not used by the current context from the output
+    local __NS=$(kubectl config view --minify -o 'jsonpath={..namespace}')
+
+    [ ! -z "$__NS" ] && { NS=$__NS; return; }
+
+    # If __NS is unset then default is the namespace:
+    NS="default"
+}
+
+function K_GET_SVC {
+    [ "$1" = "-n" ] && { NS=$2; shift; shift; }
+    #K_SET_NAMESPACE
+
+    kubectl -n $NS get svc $*
+    K_SET_VAR_SVC_IP $1 "$NS"
+    K_SET_VAR_SVC_PORT $1 "$NS"
+    K_SET_VAR_SVC_EXTIP $1 "$NS"
+}
+
+function K_GET_PODS {
+    [ "$1" = "-n" ] && { NS=$2; shift; shift; }
+    K_SET_NAMESPACE
+    POD_NAME="$1"; # specify pod name / or not
+
+    #kubectl get pod $*
+    kubectl -n $NS get pod | grep "^$POD_NAME"
+    K_SET_VAR_POD_IPS  "$POD_NAME"   $NS
+    K_SET_VAR_POD_NAME "$POD_NAME" 1 $NS
+}
+
+# Usage: K_SET_VAR_POD_IPS -n <ns> podname
+# curl -sL http://$__POD_IPS
+function K_SET_VAR_POD_IPS {
+    #set -x
+    POD_NAME="$1"
+    K_SET_NAMESPACE "$2"
+    
+    #set -x
+    #POD_IP=$(kubectl -n $NS get pods "$POD_NAME" -o custom-columns=NAME:.status.podIP --no-headers)
+    kubectl -n "$NS" get --no-headers pods -o wide
+    kubectl -n "$NS" get --no-headers pods -o wide | awk "/^$POD_NAME/ { print \$6; }"
+    __POD_IPS=$(kubectl -n "$NS" get --no-headers pods -o wide | awk "/^$POD_NAME/ { print \$6; }")
+    # WHY FAILING??
+    #   __POD_IP=${__POD_IPS%% *}
+    #   __POD_IP=$( echo "${__POD_IPS}" | awk '{ print $1; }')
+    #   __POD_IP=$( echo "${__POD_IPS}" | sed 's/\([0-9,.]*\).*/X\1/' )
+    __POD_IP=${__POD_IPS%% *}
+    #__POD_IP=$(kubectl -n "$NS" get pods -o wide | awk "/^$POD_NAME/ { print \$6; exit(0); }")
+    echo VAR __POD_IP=$__POD_IP
+    echo VAR __POD_IPS=$__POD_IPS
+    echo [NS=$NS] POD_NAME=$POD_NAME
+    #set +x
+    return 0
+}
+
+function K_SET_VAR_SVC_IP {
+    __SVC_NAME="$1"
+    K_SET_NAMESPACE "$2"
+    
+    __SVC_IP=$(kubectl -n $NS get service "$__SVC_NAME" -o custom-columns=IP:.spec.clusterIP --no-headers)
+    echo VAR __SVC_IP=$__SVC_IP
+    return 0
+}
+
+function K_SET_VAR_SVC_EXTIP {
+    __SVC_NAME="$1"
+    K_SET_NAMESPACE "$2"
+    
+    __SVC_EXTIP=$(kubectl -n $NS get service "$__SVC_NAME" -o custom-columns=IP:.spec.externalIPs[0] --no-headers)
+    echo VAR __SVC_EXTIP=$__SVC_EXTIP
+    return 0
+}
+
+function K_SET_VAR_SVC_PORT {
+    __SVC_NAME="$1"
+    K_SET_NAMESPACE "$2"
+    
+    __SVC_PORT=$(kubectl -n $NS get service "$__SVC_NAME" -o custom-columns=NP:.spec.ports[0].nodePort --no-headers)
+    echo VAR __SVC_PORT=$__SVC_PORT
+    return 0
+}
+
+function K_SET_VAR_NODE_IP {
+    __NODE_NAME="$1"
+    K_SET_NAMESPACE "$2"
+    
+    __NODE_IP=$(kubectl get node "$__NODE_NAME" -o custom-columns=IP:.status.addresses[0].address --no-headers)
+    echo VAR __NODE_IP=$__NODE_IP
+    return 0
+}
+
+function K_SET_VAR_IDX {
+    VAR_NAME=$1; shift
+    IDX=$1;      shift
+
+    NEW_VAR_NAME=${VAR_NAME%S}
+    #NEW_VAR_NAME=${NEW_VAR_NAME%S}
+    
+    eval VALUE="\$$VAR_NAME"
+    echo VALUE=$VALUE
+    while [ $IDX -gt 1 ]; do
+        echo "[$IDX] VALUE=$VALUE"
+        VALUE=${VALUE#* }
+        let IDX=IDX-1
+    done
+    VALUE=${VALUE%% *}
+    echo eval $NEW_VAR_NAME=$VALUE
+    eval $NEW_VAR_NAME="$VALUE"
+    return 0
+}
+
+function K_FOREACH {
+    __VAR_NAME=$1; shift
+    #echo "\$*=$*"
+           
+    __VAR_NAME_s="${__VAR_NAME}S"
+    #echo "__VAR_NAME_s=$__VAR_NAME_s"
+    #echo "__POD_IPS=$__POD_IPS"
+    eval __VALUES="\$$__VAR_NAME_s"
+    #echo "__VALUES=$__VALUES"
+    
+    for __VALUE in $__VALUES; do
+        eval $__VAR_NAME=$__VALUE
+        #echo
+        #echo "__POD_IP=$__POD_IP"
+        #echo "\$*=$*"
+        eval $*
+    done
+    return 0
+}
+
+function K_TEST_VAR_FUNCTIONS {
+    #K_SET_VAR_POD_IPS k8s-demo
+    K_SET_VAR_POD_IPS kube-system coredns
+    echo $__POD_IPS
+
+    K_SET_VAR_SVC_IP kubernetes
+    echo $__SVC_IP
+
+    K_SET_VAR_SVC_PORT k8s-demo-np
+    echo $__SVC_PORT
+
+    #__POD_IPS="1.a.b.c.d 2.A.B.C.E 3.a.B.c.F 4.4 5.5 6.6 7.7 8.8"
+    #K_SET_VAR_IDX __POD_IPS 3
+    #echo $__POD_IP
+
+    K_SET_VAR_NODE_IP master
+    echo $__NODE_IP
+
+    K_FOREACH __POD_IP echo "POD_IP=\$__POD_IP"
+}
+
+function K_SET_VAR_POD_NAME {
+    local PODNAME_MATCH=$1; shift;
+    local POD_IDX=1;
+    [ ! -z "$1" ] && { POD_IDX=$1; shift; }
+    K_SET_NAMESPACE "$1"
+    __POD_NAME=$(kubectl -n $NS get pods --no-headers | grep $PODNAME_MATCH | head -$POD_IDX | tail -1 | awk '{ print $1; }')
+    echo VAR __POD_NAME=$__POD_NAME
+}
+
+# WAIT ON EXEC FUNCTIONS: ---------------------------------------------
+
+# function K_WAIT { sleep $1; cat; return 0; }
+
+# Sleep and cell will be excluded
+function K_WAIT {
+    sleep $1;
+    return 0
+}
+
+function K_WAIT_CMD {
+    #set -x
+    echo $* >/tmp/WAIT_CMD
+    
+    while ! eval "$*" >>/tmp/WAIT_CMD 2>&1; do
+        #echo looping ...
+        sleep 1
+    done
+    return 0
+}
+
+### --- TODO ----------------------
+### Use kubectl wait
+# - In scripts use kubectl wait: kubectl wait --for=condition=available --timeout=60s --all deployments
+# 
+# See - https://mrkaran.dev/posts/kubectl-wait/
+
+_K_WAIT_DEPLOY() {
+    if [ "$1" = "-n" ]; then
+        shift; K_SET_NAMESPACE $1; shift
+    else
+        K_SET_NAMESPACE
+    fi
+
+    DEPLOY=$1; shift
+
+    set -x; kubectl wait --for=jsonpath='{.status.readyReplicas}'=1 deploy/$DEPLOY; set +x;
+}
+
+# Waits for at least 1 Pod to be in state (default: Running)
+
+function K_WAIT_PODS {
+    if [ "$1" = "-n" ]; then
+        shift; K_SET_NAMESPACE $1; shift
+    else
+        K_SET_NAMESPACE
+    fi
+
+    POD_MATCH=$1; shift
+
+    STATE="Ready"
+    [ ! -z "$1" ] && STATE=$1
+
+    set -x; kubectl wait --for=condition=$STATE pod/$POD_MATCH; set +x;
+    return
+
+    # UNUSED: =====================
+    if [ -z "$STATE" ];then
+        #echo WAIT_PODS -n $NS $POD_MATCH "(ContainerCreating|Running)"
+        #K_WAIT_PODS -n $NS $POD_MATCH "(ContainerCreating|Running)"
+        K_WAIT_PODS -n $NS $POD_MATCH "Running"
+        return 0
+    fi
+
+    [ $K8S_DEBUG_WAIT -ne 0 ] && echo "---- Waiting for '$POD_MATCH' Pods to start ..."
+    while ! kubectl -n $NS get pods | grep -q $POD_MATCH; do
+        [ $K8S_DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods
+        [ $K8S_DEBUG_WAIT -ne 0 ] && echo .
+        sleep $K8S_WAIT_SLEEP
+    done
+    [ $K8S_DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods | grep $POD_MATCH
+    [ $K8S_DEBUG_WAIT -ne 0 ] && echo
+
+    [ $K8S_DEBUG_WAIT -ne 0 ] && echo "---- Waiting for at least 1 '$POD_MATCH' Pods to to be in <$STATE> state  ..."
+    while ! kubectl -n $NS get pods |& grep $POD_MATCH | grep -qE " $STATE "; do
+        [ $K8S_DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods |& grep $POD_MATCH
+        [ $K8S_DEBUG_WAIT -ne 0 ] && echo .
+        sleep $K8S_WAIT_SLEEP
+    done
+    [ $K8S_DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods | grep $POD_MATCH
+    [ $K8S_DEBUG_WAIT -ne 0 ] && echo
+    
+    #### # NEEDS TESTING:
+    #### # All in same state:
+    [ $K8S_DEBUG_WAIT -ne 0 ] && echo "---- Waiting for all '$POD_MATCH' Pods to to be in <$STATE> state  ..."
+    while kubectl -n $NS get pods | grep $POD_MATCH | grep -vq " $STATE "; do
+    #while ! kubectl -n $NS get pods | grep $POD_MATCH | grep -vq " $STATE "; do
+        [ $K8S_DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods |& grep $POD_MATCH
+        [ $K8S_DEBUG_WAIT -ne 0 ] && echo .
+        sleep $K8S_WAIT_SLEEP
+    done
+    [ $K8S_DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods | grep $POD_MATCH
+    return 0
+}
+
+# Note: would be useful a function which waits for *all* matching Pods to be running
+function K_WAIT_ALL_PODS_RUNNING {
+    local NS=""
+    if [ "$1" = "-n" ]; then
+        NS="-n $2"
+    fi
+
+    K8S_WAIT_SLEEP=2
+    while kubectl $NS get pods --no-headers | grep -vq Running; do sleep $K8S_WAIT_SLEEP; done
+}
+
+function K_WAIT_NO_PODS {
+    if [ "$1" = "-n" ]; then
+        shift; K_SET_NAMESPACE $1; shift
+    else
+        K_SET_NAMESPACE
+    fi
+    POD_MATCH=$1; shift
+
+    if [ -z "$POD_MATCH" ]; then
+        while ! kubectl -n $NS get pods |& grep -q "No resources"; do
+            [ $K8S_DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods
+            [ $K8S_DEBUG_WAIT -ne 0 ] && echo .
+            sleep $K8S_WAIT_SLEEP
+        done
+        [ $K8S_DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods
+        [ $K8S_DEBUG_WAIT -ne 0 ] && echo
+    else
+        set -x; kubectl -n $NS wait --for=delete pod/$POD_MATCH; set +x
+    fi
+    return
+
+    # UNUSED: =====================
+    STATE=""
+    [ $K8S_DEBUG_WAIT -ne 0 ] && echo "---- Waiting for '$POD_MATCH' Pods to terminate ..."
+    while kubectl -n $NS get pods |& grep -q $POD_MATCH; do
+        [ $K8S_DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods |& grep $POD_MATCH
+        [ $K8S_DEBUG_WAIT -ne 0 ] && echo .
+        sleep $K8S_WAIT_SLEEP
+    done
+    [ $K8S_DEBUG_WAIT -ne 0 ] && kubectl -n $NS get pods | grep $POD_MATCH
+    [ $K8S_DEBUG_WAIT -ne 0 ] && echo
+    return 0
+}
+
+#set +x
+#WAIT 1
+#WAIT_CMD [ -f /tmp/OK ]
+#WAIT_PODS quiz
+#WAIT_PODS quiz
+#WAIT_PODS quiz "ContainerCreating|Running"
+
+# MISC ....... FUNCTIONS: ---------------------------------------------
+
+function K_NODES_CHECK {
+    kubectl get node
+    kubectl describe node | grep Pressure | grep True
+}
+

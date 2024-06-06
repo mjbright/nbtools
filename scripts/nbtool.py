@@ -115,20 +115,20 @@ REPLACE_OP_WORDS={
 }
 
 REPLACE_COMMANDS={
-    '__TF_INIT':    'terraform init',
-    '__TF_PLAN -q':    'terraform plan',
-    '__TF_PLAN':    'terraform plan',
-    '__TF_APPLY -t -q':   'terraform apply',
-    '__TF_APPLY -q':   'terraform apply',
-    '__TF_APPLY':   'terraform apply',
-    '__TF_DESTROY -t -q': 'terraform destroy',
-    '__TF_DESTROY -q': 'terraform destroy',
-    '__TF_DESTROY':  'terraform destroy',
-    '__TIMER_START': '',
-    '__TIMER_STOP':  '',
-    '__K_GET':      'kubectl get',
-    '__K_CREATE':   'kubectl create',
-    '__CODE':       '',
+    'TF_INIT':    'terraform init',
+    'TF_PLAN -q':    'terraform plan',
+    'TF_PLAN':    'terraform plan',
+    'TF_APPLY -t -q':   'terraform apply',
+    'TF_APPLY -q':   'terraform apply',
+    'TF_APPLY':   'terraform apply',
+    'TF_DESTROY -t -q': 'terraform destroy',
+    'TF_DESTROY -q': 'terraform destroy',
+    'TF_DESTROY':  'terraform destroy',
+    'TIMER_START': '',
+    'TIMER_STOP':  '',
+    'K_GET':      'kubectl get',
+    'K_CREATE':   'kubectl create',
+    'NB_CODE':       '',
     #'EOF```':      'EOF\n```\n',
 }
 
@@ -457,7 +457,7 @@ def get_var_defs_in_cell_output_lines(section_title, cell_no, output_lines):
                         vars_seen[VAR_NAME]=VAR_VALUE
 
                         #output_lines'][opno]['texts'][textno].replace('$'+VAR_NAME, VAR_VALUE)
-              #if "SET_VAR" in source_line:
+              #if "NB_SET_VAR" in source_line:
     return vars_seen
 
 def show_long_line( label, source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL ):
@@ -672,8 +672,8 @@ def filter_nb(json_data, DEBUG=False):
               In_cell_no=json_data['cells'][cell_no]['execution_count']
 
               ### XXX: TODO In_cell_no use this
-              if 'SET_VAR' in ' '.join(source_lines):
-                  DEBUG(f"[cell={cell_no} section={section_title}] SET_VAR variables seen in cell source_lines")
+              if 'NB_SET_VAR' in ' '.join(source_lines):
+                  DEBUG(f"[cell={cell_no} section={section_title}] NB_SET_VAR variables seen in cell source_lines")
 
               #json_data['cells'][cell_no]['source'].append(f'\n\n# Code-Cell[{cell_no}]\n')
               #source_lines.append(f'\n# Code-Cell[{cell_no}]\n')
@@ -802,21 +802,21 @@ def filter_nb(json_data, DEBUG=False):
           if cell_type == 'code' and not EXCLUDED_CODE_CELL:
               DEBUG(f'len(source_lines)={len(source_lines)} source_lines="{source_lines}"')
               source_line0 = source_lines[0]
-              if source_line0.find("__FN_NEW_FILE") == 0:
+              if source_line0.find("NB_FILE") == 0:
                   replace_EOF_backticks( section_title, cell_no, json_data['cells'][cell_no]['source'] )
                   replace_code_cell_by_markdown( json_data['cells'][cell_no], 
                       "Create a new file __FILE__ with the following content:")
                   #PRESS(f'-- {source_line0}\n    ')
                   #die("LOOK")
 
-              if source_line0.find("__FN_MOD_FILE") == 0:
+              if source_line0.find("NB_FILE_M") == 0:
                   replace_EOF_backticks( section_title, cell_no, json_data['cells'][cell_no]['source'] )
                   replace_code_cell_by_markdown( json_data['cells'][cell_no], 
                       "Modify the file __FILE__ replacing with the following content:")
                   #PRESS(f'-- {source_line0}\n    ')
                   #die("LOOK")
 
-              if source_line0.find("__FN_APPEND_FILE") == 0:
+              if source_line0.find("NB_FILE_A") == 0:
                   replace_EOF_backticks( section_title, cell_no, json_data['cells'][cell_no]['source'] )
                   replace_code_cell_by_markdown( json_data['cells'][cell_no], 
                       "Append the following content to file __FILE__:")
@@ -873,19 +873,19 @@ def filter_nb(json_data, DEBUG=False):
 
               if cell_type == 'code' and not EXCLUDED_CODE_CELL:
                   inc_source_line = source_line
-                  if '| __FN' in source_line:
-                      inc_source_line = source_line[ : source_line.find('| __FN') ]
+                  if '| NB_' in source_line:
+                      inc_source_line = source_line[ : source_line.find('| NB_') ]
                       source_lines[slno] = inc_source_line
-                  if '__FN' in source_line:
+                  if 'NB_' in source_line:
                       inc_source_line = ''
                       source_lines[slno] = inc_source_line
                   #if '| EXCL_FN' in source_line:
                       #inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
                   if len(inc_source_line) > MAX_LINE_LEN and \
                       source_lines[slno][0] != '#' and \
-                      source_line0.find("__FN_NEW_FILE") == -1 and \
-                      source_line0.find("__FN_MOD_FILE") == -1 and \
-                      source_line0.find("__FN_APPEND_FILE") == -1:
+                      source_line0.find("NB_FILE") == -1 and \
+                      source_line0.find("NB_FILE_M") == -1 and \
+                      source_line0.find("NB_FILE_A") == -1:
                           show_long_line( 'CODE-src', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
 
               insert_line_image=''
@@ -1039,7 +1039,7 @@ def filter_nb(json_data, DEBUG=False):
                   # continue
 
               # Pragma | __(HIDE_|HIGHLIGHT*)
-              if "__FN_HI" in source_line:
+              if "NB_HIGHLIGHT" in source_line:
                   if DEBUG:
                       orig=json_data['cells'][cell_no]['source'][slno]
                   json_data['cells'][cell_no]['source'][slno] = \
@@ -1050,9 +1050,9 @@ def filter_nb(json_data, DEBUG=False):
                           print(f"{orig.rstrip()} => {new.rstrip()}")
            
               # Pragma WAIT:
-              if source_line.find("__FN_WAIT")     == 0:
+              if source_line.find("NB_WAIT")     == 0:
                   include_cell=False
-                  DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - __FN_WAIT")
+                  DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - NB_WAIT")
                   continue
 
               # Pragma RETURN:
@@ -1061,22 +1061,22 @@ def filter_nb(json_data, DEBUG=False):
                   DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - __RETURN")
                   continue
 
-              if source_line.find("SET_VAR") == -1 and source_line.find("__K_GET_") == -1:
-                  DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - no SET_VAR (or __K_GET)")
+              if source_line.find("NB_SET_VAR") == -1 and source_line.find("K_GET_") == -1:
+                  DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - no NB_SET_VAR (or __K_GET)")
                   continue
 
-              # Pragma SET_VAR:
+              # Pragma NB_SET_VAR:
               include_cell=False
-              #if source_line.find("SET_VAR") != -1: print(f'======== {source_line} ========')
+              #if source_line.find("NB_SET_VAR") != -1: print(f'======== {source_line} ========')
 
-              # If SET_VAR seen in source, we exclude **this cell** and set the variable
-              #if source_line.find("SET_VAR_") == 0:
-                  #VAR_NAME=source_line[len("SET_VAR_"):].rstrip()
+              # If NB_SET_VAR seen in source, we exclude **this cell** and set the variable
+              #if source_line.find("NB_SET_VAR_") == 0:
+                  #VAR_NAME=source_line[len("NB_SET_VAR_"):].rstrip()
 
               #if " " in VAR_NAME: VAR_NAME=VAR_NAME[:VAR_NAME.find(" ")]
               #VAR_VALUE="var_value"
               #VARS_SEEN[VAR_NAME]=VAR_VALUE
-              #DEBUG(f"SET_VAR {VAR_NAME}")
+              #DEBUG(f"NB_SET_VAR {VAR_NAME}")
               #print(f"VAR_NAME={VAR_NAME}")
               #outputs = json_data['cells'][cell_no]['outputs']
 
@@ -1094,8 +1094,8 @@ def filter_nb(json_data, DEBUG=False):
               #if FINAL_CELL_CHECK(copy.deepcopy( json_data['cells'][cell_no]), cell_no, cell_type):
               if FINAL_CELL_CHECK( json_data['cells'][cell_no], cell_no, cell_type):
                   cells.append(cell_no)
-    #            #if source_lines[0].find("SET_VAR_") == -1:
-    #             if not findInSource(source_lines, "SET_VAR_"):
+    #            #if source_lines[0].find("NB_SET_VAR_") == -1:
+    #             if not findInSource(source_lines, "NB_SET_VAR_"):
     #                 cells.append(cell_no)
     #                 continue
 
@@ -1205,8 +1205,8 @@ def split_nb(json_data, DEBUG=False):
 
               if cell_type == 'code' and not EXCLUDED_CODE_CELL:
                   inc_source_line = source_line
-                  if '| __FN' in source_line:
-                      inc_source_line = source_line[ : source_line.find('| __FN') ]
+                  if '| NB_' in source_line:
+                      inc_source_line = source_line[ : source_line.find('| NB_') ]
                       source_lines[slno] = inc_source_line
                   #if len(inc_source_line) > MAX_LINE_LEN:
                       #print(f'[split_nb]: long {inc_source_line} > {MAX_LINE_LEN} {EXCLUDED_CODE_CELL}' )

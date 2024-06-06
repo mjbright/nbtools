@@ -1,0 +1,16 @@
+
+function OPA_OP {
+    local OPFILE=~/tmp/opa.$$
+
+    mkdir -p ~/tmp
+    cat > $OPFILE
+
+    # There's probably a jq idiomatic way of doing this !!
+    cat $OPFILE | if $( grep -q result $OPFILE ); then
+        jq '.result[].expressions[].value'
+    else
+        jq '.errors[].code'
+    fi
+    rm $OPFILE
+}
+

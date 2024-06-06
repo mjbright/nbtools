@@ -55,6 +55,6 @@ echo "==== Reading nbtool functions from '$NBTOOL_FN' ====";
 if [ $NBTOOL_INIT -ne 0 ]; then
     # Now use MAX_LEN_MD in nbtool.rc (instead of "export MAX_LINE_LEN=80" here)
 
-    __FN_INIT_NOTEBOOK
+    NB_INIT_NOTEBOOK
 fi
 

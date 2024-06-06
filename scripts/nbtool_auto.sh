@@ -81,7 +81,7 @@ CONVERT_1() {
         ARGS=$( grep nbtool.rc README.ipynb | grep "Got args" | sed -e "s/.*Got args '//" -e "s/'.*//" )
         SOURCE_NBTOOL_RC $ARGS
         #SOURCE_VARIABLES
-        #__FN_INIT_NOTEBOOK
+        #NB_INIT_NOTEBOOK
     cd -
 }
 
@@ -136,10 +136,10 @@ while true; do
     [ README.ipynb -nt .converting ] && { CONVERT=1; }
 
     [ $CONVERT -eq 1 ] && {
-        echo; echo "---- [$DIR] __FN_LAB_ENV:"
+        echo; echo "---- [$DIR] NB_LAB_ENV:"
         touch .converting
-        #__FN_LAB_ENV; #__FN_FILTER_NOTEBOOK README.ipynb
-        __FN_INIT_NOTEBOOK
+        #NB_LAB_ENV; #NB_FILTER_NOTEBOOK README.ipynb
+        NB_INIT_NOTEBOOK
         ls -altr
         echo "-- <$DIR_NUM/$LAB_NUM> [$DIR]"
         touch ~/tmp/.nbtool.rc.read ~/tmp/.nbtool.py.read
