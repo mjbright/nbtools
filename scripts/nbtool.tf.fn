@@ -17,6 +17,7 @@ function TF_PLAN {
     [ "$1" = "-t" ] && { TIME="time "; shift; }
     [ "$1" = "-q" ] && { QUIET=1; shift; }
     [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-qt" ] && { QUIET=1; TIME="time "; shift; }
     TIME=""; TIMER_START
 
     if [ $QUIET -ne 0 ]; then
@@ -38,6 +39,7 @@ function TF_APPLY {
     [ "$1" = "-t" ] && { TIME="time "; shift; }
     [ "$1" = "-q" ] && { QUIET=1; shift; }
     [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-qt" ] && { QUIET=1; TIME="time "; shift; }
     TIME=""; TIMER_START
 
     if [ $QUIET -ne 0 ]; then
@@ -64,6 +66,7 @@ function TF_DESTROY {
     [ "$1" = "-t" ] && { TIME="time "; shift; }
     [ "$1" = "-q" ] && { QUIET=1; shift; }
     [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-qt" ] && { QUIET=1; TIME="time "; shift; }
     TIME=""; TIMER_START
 
     if [ $QUIET -ne 0 ]; then
