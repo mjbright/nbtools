@@ -277,7 +277,7 @@ function NB_INIT_NOTEBOOK {
     TITLE_MODE=""
     case $LAB_MODE in
         Terraform)
-            echo "-- source ./nbtool.tf.fn"; source ./nbtool.tf.fn
+            echo "-- source ~/scripts/nbtool.tf.fn"; source ~/scripts/nbtool.tf.fn
             TITLE_MODE="TF"
             rm -rf ~/tmp/terraform*
             echo; echo "==== Setting TF_DATA_DIR ===="
@@ -304,13 +304,13 @@ function NB_INIT_NOTEBOOK {
             fi
             ;;
         Docker)
-            echo "-- source ./nbtool.do.fn"; source ./nbtool.do.fn
+            echo "-- source ~/scripts/nbtool.do.fn"; source ~/scripts/nbtool.do.fn
             TITLE_MODE="DO"
             echo "In Docker Mode"
             #exit 1
             ;;
         Kubernetes)
-            echo "-- source ./nbtool.k8.fn"; source ./nbtool.k8.fn
+            echo "-- source ~/scripts/nbtool.k8.fn"; source ~/scripts/nbtool.k8.fn
             TITLE_MODE="K8S"
             [ -z "$KUBECONFIG" ] && export KUBECONFIG=~/.kube/config
             echo "KUBECONFIG='$KUBECONFIG'"
@@ -327,7 +327,7 @@ function NB_INIT_NOTEBOOK {
             ;;
 
         Rego)
-            echo "-- source ./nbtool.opa.fn"; source ./nbtool.opa.fn
+            echo "-- source ~/scripts/nbtool.opa.fn"; source ~/scripts/nbtool.opa.fn
             TITLE_MODE="REGO"
             ;;
 
