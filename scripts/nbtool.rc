@@ -44,6 +44,13 @@ if [ ! -z "$1" ]; then
     export LAB_WEIGHT="$1"; shift
     export LAB_MODE="$1"; shift
     export LAB_NAME="$1"; shift
+
+    # LAB_IPYNB defaults to README.ipynb ... or to 4th argument if .ipynb:
+    export LAB_IPYNB=README.ipynb
+    case "$1" in
+        *.ipynb) LAB_IPYNB=$1; shift;;
+    esac
+
     export LAB_TAG="${PWD##*/}"; shift
     # ----------------------------------------------
     set | grep ^LAB_ > ~/tmp/LAB_vars.env

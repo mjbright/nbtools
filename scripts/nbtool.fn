@@ -193,7 +193,7 @@ function NB_CHECK_FILE_SIZE {
         ls -al $FILE 
         # Ignore if ALLOW_SMALL (needed for LFS458 Lab2):
         #grep ALLOW_SMALL $FILE ||
-        grep ALLOW_SMALL README.ipynb ||
+        grep ALLOW_SMALL ${LAB_IPYNB} ||
             return 1
     }
     return 0
@@ -237,7 +237,7 @@ function NB_INIT_NOTEBOOK {
     #set -x
     NB=""
     if [ -z "$1" ]; then
-        NB="README.ipynb"
+        NB="${LAB_IPYNB}"
     else
         NB=$( basename "$1" )
     fi
@@ -256,7 +256,7 @@ function NB_INIT_NOTEBOOK {
     #set -x
     #set +x
 
-    if [ -f README.ipynb ]; then
+    if [ -f ${LAB_IPYNB} ]; then
         if [ -f .dir ]; then
             # Detect moved dir with out of date ~/.dir
             [ "$PWD" != "$(cat .dir)" ] && DIE ".dir out of date";
@@ -476,15 +476,15 @@ function NB_QUIET_FILTER_NOTEBOOK {
     NB_FILTER_NOTEBOOK $* > ~/tmp/quiet.filter.notebook.op 2>&1
     __CHECK_NB_DIR
     ( cd $NB_DIR;
-      ls -altrd README.md *.ipynb | tail -2 | NB_COLOUR green;
+      ls -altrd ${LAB_IPYNB%.ipynb}.md *.ipynb | tail -2 | NB_COLOUR green;
 
-      R_NB=README.ipynb
+      R_NB=${LAB_IPYNB}
       TOTAL_CELLS=$(jq -rc '.cells    | length' $R_NB )
       CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $R_NB)
       MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $R_NB)
       printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${R_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
 
-      R_NB=$( ls -1tr *.ipynb | grep -v README | tail -1)
+      R_NB=$( ls -1tr *.ipynb | grep -v ${LAB_IPYNB%.ipynb} | tail -1)
       TOTAL_CELLS=$(jq -rc '.cells    | length' $R_NB )
       CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $R_NB)
       MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $R_NB)
@@ -501,15 +501,11 @@ function __CHECK_NB_DIR {
 }
 
 function NB_FILTER_NOTEBOOK {
-    NOTEBOOK="$1"
-    [ -z "$NOTEBOOK" ] && NOTEBOOK=README.ipynb
-    export NOTEBOOK
-
     __CHECK_NB_DIR
     ( cd $NB_DIR;
     
     echo
-    echo "======== Filtering current notebook [$NOTEBOOK] ========"
+    echo "======== Filtering current notebook [$LAB_IPYNB] ========"
     echo "**** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"; echo
 
     NB_ARCHIVE_SOLUTIONS $LAB_NAME
@@ -526,7 +522,7 @@ function NB_FILTER_NOTEBOOK {
     PYTHON3=$(which python3 || echo /opt/conda/bin/python3)
 
     echo; echo "======== FILTERING NOTEBOOK ===================================================="
-    CMD="$PYTHON3 $NBTOOL_PY -f $NOTEBOOK"
+    CMD="$PYTHON3 $NBTOOL_PY -f $LAB_IPYNB"
     echo; echo "-- $CMD" | NB_REPLACE_HOME_STDIN
     $CMD
     echo "======== FILTERING DONE ========================================================"; echo
@@ -535,7 +531,7 @@ function NB_FILTER_NOTEBOOK {
     OP_NOTEBOOK=$(ls -1tr $NB_DIR/ | grep filtered.ipynb$ | tail -1)
     [ -z "$OP_NOTEBOOK" ] && {
         which python3
-        echo "[$PWD] Error: failed to find filtered README*.ipynb in directory '$NB_DIR'"
+        echo "[$PWD] Error: failed to find filtered *.ipynb in directory '$NB_DIR'"
         ls -1tr $NB_DIR/ | grep .ipynb$ | NB_REPLACE_HOME_STDIN | sed 's/^/::/'
         exit 1
     }
@@ -565,7 +561,7 @@ function NB_FILTER_NOTEBOOK {
             grep -nE -A 5 "EXCLUDE|FN_EXCL" ${OP_NOTEBOOK%.ipynb}.sh # filtered
         fi
 
-        ls -altr README.ipynb  README.sh
+        ls -altr ${LAB_IPYNB}  ${LAB_IPYNB%.ipynb}.sh
         echo "-------------------------------------------------"
     }
 
@@ -574,14 +570,14 @@ function NB_FILTER_NOTEBOOK {
     grep "__TF_"  $OP_NOTEBOOK | grep -vE $__TF_OK | NB_HIGHLIGHT_MATCH __TF_
     grep "K_"  $OP_NOTEBOOK | NB_HIGHLIGHT_MATCH K_
 
-    S_NB=$( echo $NOTEBOOK | NB_REPLACE_HOME_STDIN )
+    S_NB=$( echo $LAB_IPYNB | NB_REPLACE_HOME_STDIN )
     __EXCLUDE="__start_kubectl"
-    NUM=$( jq '.' $NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
+    NUM=$( jq '.' $LAB_IPYNB | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
     [ "$NUM" = "0" ] && {
         echo; echo "Good: No VAR defs/usages in i/p file"
     } || {
         echo; echo "$NUM VAR defs/usages in i/p file: $S_NB"
-        # jq '.' $NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __
+        # jq '.' $LAB_IPYNB | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __
         # DIE "Can't continue"
     }
 
@@ -606,7 +602,7 @@ function NB_FILTER_NOTEBOOK {
     }
 
     echo "Performing NB_CONVERT"
-    [ "$NOTEBOOK" = "${NOTEBOOK##*TEST}" ] && NB_CONVERT
+    [ "$LAB_IPYNB" = "${LAB_IPYNB##*TEST}" ] && NB_CONVERT
     )
 
     return 0
@@ -627,12 +623,12 @@ function NB_CONVERT {
         CMD="jupyter-nbconvert --to html $OP_NOTEBOOK"
         echo; echo "-- $CMD"; $CMD
 
-        echo "$FRONTMATTER"           > README.md
+        echo "$FRONTMATTER"           > ${LAB_IPYNB%.ipynb}.md
         OP_NOTEBOOK_MD=${OP_NOTEBOOK%.ipynb}.md
         sed \
             -e 's?\.\./\.\./\.\./static/images/?/images/?' \
             -e 's?\.\./images/?/images/?' \
-            $OP_NOTEBOOK_MD >> README.md
+            $OP_NOTEBOOK_MD >> ${LAB_IPYNB%.ipynb}.md
         mv     $OP_NOTEBOOK_MD ${OP_NOTEBOOK_MD}.bak
         cp -a  $OP_NOTEBOOK ${OP_NOTEBOOK}.bak
 
@@ -645,14 +641,14 @@ function NB_CONVERT {
             DIE "File $OP_NOTEBOOK is too small - supsicious"
         }
 
-        NUM_LONG_LINES=$( NB_SHOW_LONG_LINES -m $MAX_LEN_MD README.md | wc -l )
+        NUM_LONG_LINES=$( NB_SHOW_LONG_LINES -m $MAX_LEN_MD ${LAB_IPYNB%.ipynb}.md | wc -l )
         if [ "$NUM_LONG_LINES" != "0" ]; then
             echo
-            echo "---- $NUM_LONG_LINES long lines (> $MAX_LEN_MD) in README.md:"
+            echo "---- $NUM_LONG_LINES long lines (> $MAX_LEN_MD) in ${LAB_IPYNB%.ipynb}.md:"
         fi
 
-        NB_CHECK_FILE_SIZE README.md 1000 || {
-            DIE "File README.md is too small - supsicious"
+        NB_CHECK_FILE_SIZE ${LAB_IPYNB%.ipynb}.md 1000 || {
+            DIE "File ${LAB_IPYNB%.ipynb}.md is too small - supsicious"
         }
 
         # Sanitize notebook/markdown filename:
@@ -664,7 +660,7 @@ function NB_CONVERT {
 
         # FILTER_OK_CHECK:
         #echo; ls -altr ${NAME}.*  | NB_COLOUR green
-        echo; ls -altr README.md ${NAME}.*  | NB_COLOUR green
+        echo; ls -altr ${LAB_IPYNB%.ipynb}.md ${NAME}.*  | NB_COLOUR green
         #ls -altr *.md
     )
 }
