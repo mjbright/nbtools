@@ -464,7 +464,9 @@ function NB_ARCHIVE_SOLUTIONS {
 function NB_QUIET {
     # Quiet except on failure --> __FILTER
     pwd
+    TIMER_START
     NB_QUIET_FILTER_NOTEBOOK $* || __FILTER
+    TIMER_STOP "Notebook filtering/conversion"
 }
 function NB_FILTER {
     pwd
