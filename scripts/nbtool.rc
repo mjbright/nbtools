@@ -4,6 +4,7 @@ set +x
 SCRIPT=${BASH_SOURCE[0]}
 SCRIPT_DIR=$(dirname $SCRIPT)
 
+# Assume main lab file is called README.ipynb
 [ ! -f README.ipynb ] && {
     echo "[$PWD] $SCRIPT: No README.ipynb in workiing directory"
     exit 1
