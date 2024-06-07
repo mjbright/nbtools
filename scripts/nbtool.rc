@@ -53,6 +53,9 @@ if [ ! -z "$1" ]; then
 
     # LAB_IPYNB defaults to README.ipynb ... or to 4th argument if .ipynb:
     export LAB_IPYNB=README.ipynb
+
+    [ ! -z "${JPY_SESSION_NAME}" ] && export LAB_IPYNB=${JPY_SESSION_NAME##*/}
+
     case "$1" in
         *.ipynb) LAB_IPYNB=$1; shift;;
     esac
