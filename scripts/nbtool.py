@@ -2,6 +2,12 @@
 
 import json, sys, re, os
 
+''' MAIN PATH FLOW: (filter mode):
+   new_data = filter_nb( read_json(ipfile), DEBUG )
+   opfile=ipfile+'.filtered.ipynb'
+   write_nb(opfile, new_data)
+'''
+
 # TODO:
 # - add option to put cell_no/type as a comment in cell (only for code cells)
 
@@ -915,6 +921,7 @@ def filter_nb(json_data, DEBUG=False):
     incl_code_cells=[]
     incl_md_cells=[]
 
+    # BEGINNING of filter_nb:
     for cell_no in range(nb_cells(json_data)):
           sec_cell_no+=1
           #print(cell_no)
@@ -1127,6 +1134,7 @@ def filter_nb(json_data, DEBUG=False):
     DEBUG(f"cells to include[#{len(cells)}]=[{cells}]")
     cells.reverse()
     
+    # END of filter_nb: remove deleted (EXCLUDED?) cells
     for cell_no in range(nb_cells(json_data)-1, -1, -1):
         #print(cell_no)
         if not cell_no in cells:
