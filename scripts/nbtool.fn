@@ -251,7 +251,7 @@ function NB_INIT_NOTEBOOK {
 
     echo
     NB_SET_ENV
-    echo "**** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"; echo
+    echo "**** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"
     
     #set -x
     #set +x
@@ -280,27 +280,27 @@ function NB_INIT_NOTEBOOK {
             echo "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN
             TITLE_MODE="TF"
             rm -rf ~/tmp/terraform*
-            echo; echo "==== Setting TF_DATA_DIR ===="
+            echo "==== Setting TF_DATA_DIR ===="
             export TF_DATA_DIR=~/dot.terraform
             echo "TF_DATA_DIR=$TF_DATA_DIR" | NB_HIGHLIGHT_EOL =
             if [ -f ~/.aws/linked/student20.rc ]; then
                 env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
-                echo; echo "==== Setting AWS vars for student20 account ===="
+                echo "==== Setting AWS vars for student20 account ===="
                 . ~/.aws/linked/student20.rc; env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
                 #env | grep AWS_LINKED_ACCOUNT= | NB_HIGHLIGHT_EOL =
                 TITLE_MODE="TF-AWS"
             else
-                echo; echo "==== No AWS vars ( ~/.aws/linked/student20.rc )"
+                echo "==== No AWS vars ( ~/.aws/linked/student20.rc )"
             fi
             if [ -f ~/.student.rc ]; then
                 env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
-                echo; echo "==== Setting AZURE vars for student account ===="
+                echo "==== Setting AZURE vars for student account ===="
                 . ~/.student.rc;
                 env | grep AZURE_CONFIG_DIR= | NB_HIGHLIGHT_EOL =
                 env | grep ^ARM_.*=          | NB_HIGHLIGHT_EOL =
                 TITLE_MODE="TF-AZ"
             else
-                echo; echo "==== No AZURE vars ( ~/.student.rc )"
+                echo "==== No AZURE vars ( ~/.student.rc )"
             fi
             ;;
         Docker)
@@ -343,7 +343,6 @@ function NB_INIT_NOTEBOOK {
     #EXEC    echo SHOULD BE SEEN     | NB_HIGHLIGHT_SOL SHOULD
 
     #echo "LABTAG=$LAB_TAG" | NB_HIGHLIGHT_EOL =
-    echo
     echo "======== $LAB_MODE Lab weight[$LAB_WEIGHT] / tag[$LAB_TAG] / name[$LAB_NAME] ========" | NB_HIGHLIGHT_EOL weight
     PDF_NAME=$( echo "$LAB_NAME" | sed -e 's/  */_/g' -e "s/^/${TITLE_MODE}_/" -e 's/_-_/-/g' )
     MD_SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
@@ -510,9 +509,8 @@ function NB_FILTER_NOTEBOOK {
     __CHECK_NB_DIR
     ( cd $NB_DIR;
     
-    echo
     echo "======== Filtering current notebook [$LAB_IPYNB] ========"
-    echo "**** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"; echo
+    echo "**** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"
 
     NB_ARCHIVE_SOLUTIONS $LAB_NAME
 
@@ -527,11 +525,11 @@ function NB_FILTER_NOTEBOOK {
     which python3
     PYTHON3=$(which python3 || echo /opt/conda/bin/python3)
 
-    echo; echo "======== FILTERING NOTEBOOK ===================================================="
+    echo "======== FILTERING NOTEBOOK ===================================================="
     CMD="$PYTHON3 $NBTOOL_PY -f $LAB_IPYNB"
-    echo; echo "-- $CMD" | NB_REPLACE_HOME_STDIN
+    echo "-- $CMD" | NB_REPLACE_HOME_STDIN
     $CMD
-    echo "======== FILTERING DONE ========================================================"; echo
+    echo "======== FILTERING DONE ========================================================"
     __CHECK_NB_DIR
 
     OP_NOTEBOOK=$(ls -1tr $NB_DIR/ | grep filtered.ipynb$ | tail -1)
@@ -554,7 +552,7 @@ function NB_FILTER_NOTEBOOK {
     # Detect visibility of EXCLUDE/FN_EXCL in output (even if "# EXCLUDE" rather than "#EXCLUDE"):
     echo "Checking for 'EXCLUDE|FN_EXCL' in filtered notebook"
     grep -qE "EXCLUDE|FN_EXCL" $OP_NOTEBOOK && {
-        echo; echo "---- Error: EXCLUDE/FN_EXCL seen in $OP_NOTEBOOK:"
+        echo "---- Error: EXCLUDE/FN_EXCL seen in $OP_NOTEBOOK:"
         echo "Occurrences of EXCLUDE in $OP_NOTEBOOK:" $( grep -o EXCLUDE $OP_NOTEBOOK | wc -l )
         #grep EXCLUDE $OP_NOTEBOOK | NB_HIGHLIGHT_MATCH EXCLUDE
         echo "Occurrences of FN_EXCL in $OP_NOTEBOOK:" $( grep -o FN_EXCL $OP_NOTEBOOK | wc -l )
@@ -580,9 +578,9 @@ function NB_FILTER_NOTEBOOK {
     __EXCLUDE="__start_kubectl"
     NUM=$( jq '.' $LAB_IPYNB | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
     [ "$NUM" = "0" ] && {
-        echo; echo "Good: No VAR defs/usages in i/p file"
+        echo "Good: No VAR defs/usages in i/p file"
     } || {
-        echo; echo "$NUM VAR defs/usages in i/p file: $S_NB"
+        echo "$NUM VAR defs/usages in i/p file: $S_NB"
         # jq '.' $LAB_IPYNB | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __
         # DIE "Can't continue"
     }
@@ -591,18 +589,16 @@ function NB_FILTER_NOTEBOOK {
     __EXCLUDE="__start_kubectl"
     NUM=$( jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
     [ "$NUM" = "0" ] && {
-        echo; echo "Good: No VAR defs/usages in o/p file"
+        echo "Good: No VAR defs/usages in o/p file"
     } || {
-        echo; echo "Error: $NUM VAR defs/usages in o/p file: $S_OP_NB"
-        #echo; echo "VARS in output file: $S_OP_NB"
+        echo "Error: $NUM VAR defs/usages in o/p file: $S_OP_NB"
         jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __ | NB_HIGHLIGHT
         #DIE "Can't continue"
     }
 
     NUM=$( jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c '${__' )
     [ "$NUM" != "0" ] && {
-        echo; echo "Error: $NUM \${__XX} defs/usages in o/p file: $S_OP_NB"
-        #echo; echo "VARS in output file: $S_OP_NB"
+        echo "Error: $NUM \${__XX} defs/usages in o/p file: $S_OP_NB"
         jq '.' $OP_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n '${__' | NB_HIGHLIGHT
         #DIE "Can't continue"
     }
@@ -625,9 +621,9 @@ function NB_CONVERT {
         #   command | TREAT_OUTPUT yaml
 
         CMD="jupyter-nbconvert --to markdown $OP_NOTEBOOK"
-        echo; echo "-- $CMD"; $CMD
+        echo "-- $CMD"; $CMD
         CMD="jupyter-nbconvert --to html $OP_NOTEBOOK"
-        echo; echo "-- $CMD"; $CMD
+        echo "-- $CMD"; $CMD
 
         echo "$FRONTMATTER"           > ${LAB_IPYNB%.ipynb}.md
         OP_NOTEBOOK_MD=${OP_NOTEBOOK%.ipynb}.md
@@ -638,10 +634,6 @@ function NB_CONVERT {
         mv     $OP_NOTEBOOK_MD ${OP_NOTEBOOK_MD}.bak
         cp -a  $OP_NOTEBOOK ${OP_NOTEBOOK}.bak
 
-        #echo; ls -altr *.md | NB_COLOUR green
-
-        #TEST: cp /dev/null $OP_NOTEBOOK
-        #echo
         NB_CHECK_FILE_SIZE $OP_NOTEBOOK 1000 || {
             #ls -altr $OP_NOTEBOOK
             DIE "File $OP_NOTEBOOK is too small - supsicious"
@@ -665,7 +657,6 @@ function NB_CONVERT {
         #  Disabled - messes up output cells under Hugo (no black background)
 
         # FILTER_OK_CHECK:
-        #echo; ls -altr ${NAME}.*  | NB_COLOUR green
         echo; ls -altr ${LAB_IPYNB%.ipynb}.md ${NAME}.*  | NB_COLOUR green
         #ls -altr *.md
     )
