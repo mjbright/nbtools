@@ -494,7 +494,8 @@ function NB_QUIET_FILTER_NOTEBOOK {
     )
 
     # Show die errors though:
-    grep " die " ~/tmp/quiet.filter.notebook.op && __RETURN 1
+    grep      " die "       ~/tmp/quiet.filter.notebook.op && __RETURN 1
+    grep -A30 "^Traceback " ~/tmp/quiet.filter.notebook.op && __RETURN 1
     __RETURN 0
 }
 
