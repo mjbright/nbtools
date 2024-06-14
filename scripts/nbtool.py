@@ -193,18 +193,13 @@ def writefile(path, mode='w', text='hello world\n'):
     ofd.close()
 
 def read_json(ipfile):
-    #with open(ipfile, 'r') as f:
-
     if not os.path.exists(ipfile):
         die(f'No such input notebook {ipfile}')
 
     with open(ipfile, encoding='utf-8-sig') as json_file:
-        #text = json_file.read()
-        #json_data = json.loads(text)
         return json.load(json_file)
 
 def pp_json(json_data):
-    #print(json_data)
     print(json.dumps(json_data, indent = 4, sort_keys=True))
 
 def pp_nb(json_data):
@@ -225,10 +220,8 @@ def nb_dump1sourceLine(ipfile):
     json_data = read_json(ipfile)
     print(f"{ipfile}: #cells={nb_cells(json_data)}")
     for cell_no in range(nb_cells(json_data)):
-          #print(cell_no)
           source=json_data['cells'][cell_no]['source']
           if len(source) == 0:
-              #print("empty")
               continue
           print(f"  cell[{cell_no}]source[0]={source[0]}")
 
@@ -377,24 +370,18 @@ def CONVERT_ANSI_CODES2TXT(cells_data, cell_no):
                 text = raw_ansi2text(ansi)
                 #### if cell_no == 20 and textno == 91: print(f"AFTER2: cell{cell_no} has 'text' element {textno} '{text}' in element {opno}")
 
-                # print("Press <enter>")
-                # sys.stdin.readline()
                 cells_data[cell_no]['outputs'][opno]['text'][textno] = text
                 #### if text != ansi: print(f"cell{cell_no} has output element {opno} changed\n    text={text}')
 
 def UNUSED_CONVERT_ANSI_CODES2HTML(cells_data, cell_no):
     return
     op=cells_data[cell_no]['outputs']
-    #print(f'cell_no[{cell_no}] op={op}')
-    #ansi = cells_data[cell_no]['outputs'][opno]['text'][textno]
     for opno in range(len(cells_data[cell_no]['outputs'])):
         if 'text' in cells_data[cell_no]['outputs'][opno]:
             for textno in range(len(cells_data[cell_no]['outputs'][opno]['text'])):
                 ansi = cells_data[cell_no]['outputs'][opno]['text'][textno]
                 html = ansi2html_conv.convert(ansi)
                 print(f'Converting {ansi} to {html}')
-                # print("Press <enter>")
-                # sys.stdin.readline()
                 cells_data[cell_no]['outputs'][opno]['text'][textno] = html
 
 def substitute_vars_in_line(source_line, slno, VARS_SEEN):
@@ -404,13 +391,7 @@ def substitute_vars_in_line(source_line, slno, VARS_SEEN):
         if '$__'+var in source_line:
             vars_seen.append('__'+var)
             DEBUG(f"substitute_vars_in_line([line{slno}] {source_line}")
-            #DEBUG(f"substitute_vars_in_line([line{slno}] {source_line} {cells_data[cell_no]['source'][slno]}")
-            #cells_data[cell_no]['source'][slno]=cells_data[cell_no]['source'][slno].replace('$__'+var, VARS_SEEN[var])
             new_line=new_line.replace('$__'+var, VARS_SEEN[var])
-            #if DEBUG:
-                #print("=>")
-                #print(cells_data[cell_no]['source'][slno])
-                #print(cells_data[cell_no]['source'][slno])
 
     if new_line != source_line:
         DEBUG(f"[line{slno}]: {var} seen in '{source_line}' will replace vars [{vars_seen}]")
@@ -463,12 +444,9 @@ def get_var_defs_in_cell_output_lines(section_title, cell_no, output_lines):
                     if output_lines[opno]['text'][textno].find(VAR_SET)==0:
                         VAR_VALUE=output_lines[opno]['text'][textno][len(VAR_SET):].rstrip()
                         VAR_VALUE=VAR_VALUE.strip('"').rstrip('"')
-                        #if DEBUG: print(f"VAR {VAR_NAME}={VAR_VALUE}")
                         DEBUG(f"[{section_title}] [cell{cell_no} line{opno}]<<<<<<<<DEBUG>>>>>>>> VAR SET {VAR_NAME}={VAR_VALUE}")
                         vars_seen[VAR_NAME]=VAR_VALUE
 
-                        #output_lines'][opno]['texts'][textno].replace('$'+VAR_NAME, VAR_VALUE)
-              #if "NB_SET_VAR" in source_line:
     return vars_seen
 
 def show_long_line( label, source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL ):
@@ -514,13 +492,9 @@ def replace_code_cell_by_markdown(cell, format_string):
 
     file_name = source_line0[ source_line0.find(" ") : ]
     file_name =    file_name[ 1 : file_name.rfind("<<")-1 ]
-    #file_name = f'.md.{file_name}'
 
     file_type=''
     file_type='txt'
-    #### Disable syntax colour highlighting
-    ## if file_name.rfind('.tf') != -1: file_type='hcl'
-    ## if file_name.rfind('.yaml') != -1 or file_name.rfind('.yml') != -1: file_type='yaml'
 
     format_string = format_string.replace("__FILE__", f"**{file_name}**")
     output_cell_content=f"""{format_string}
@@ -547,9 +521,6 @@ def FINAL_CELL_CHECK(cell, cell_no, cell_type):
     if cell_type != 'code':
         return True
 
-    # FOR NOW ACCEPT ALL - just in case ...
-    ## return True
-
     copy_cell = copy.deepcopy( cell )
 
     # Remove: "# Code-Cell[*]" lines:
@@ -560,8 +531,6 @@ def FINAL_CELL_CHECK(cell, cell_no, cell_type):
 
     # Remove: newlines:
     source_content="".join( source_lines ).replace("\n","")
-    #print(f'TEST/CODE[{cell_no}] len={len(source_lines)} source_lines="{source_lines}"')
-    #print(f'TEST/CODE[{cell_no}] len={len(source_content)} source_content="{source_content}"')
 
     if REMOVE_SHORT:
         if len(source_content) <= 10:
@@ -598,9 +567,6 @@ def replace_asterisks_backticks(str):
     if len(split_str) == 5:
         str=split_str[0] + '<i>' + split_str[1] + '</i>' + split_str[2] + '<i>' + split_str[3] + '</i>' + split_str[4]
 
-    #if str != str0:
-        #print(f'STRING CHANGED FROM:\n\t{str0}\nTO\n\t{str}\n')
-        #sys.exit(1)
     return str
 
 def question_box(summary, details, box_colour, tag):
@@ -643,13 +609,8 @@ def markdown_cell(id, lines):
     }
 
 def replace_EOF_backticks( section_title, cell_no, source_lines ):
-    #for slno in range( len( source_lines ) ):
-    #    DEBUG(f'[line{slno}] {source_lines[slno]}')
-
     for slno in range( len( source_lines ) ):
-        #if 'EOF```' in source_lines[slno]:
         if source_lines[slno].find('EOF') == 0:
-            #source_lines[slno] = source_lines[slno] + '\n'
             source_lines[slno] = '\n'
             DEBUG(f'EOF-backticks replaced in section "{section_title}" cell_no {cell_no} in line "{source_lines[slno]}"')
 
@@ -673,8 +634,6 @@ def process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_
             if 'NB_' in source_line:
                 inc_source_line = ''
                 source_lines[slno] = inc_source_line
-            #if '| EXCL_FN' in source_line:
-                #inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
             if len(inc_source_line) > MAX_LINE_LEN and \
                 source_lines[slno][0] != '#' and \
                 source_line0.find("NB_FILE") == -1 and \
@@ -733,8 +692,6 @@ def process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_
             show_vars_seen(cell_type, source_line, cell_no)
 
             cells_data[cell_no]['source'][slno] = source_line
-            #print(f"MARKDOWN[cell{cell_no}] {source_line.rstrip()}")
-            #if o != source_line: print(o); die("GOT HERE")
 
         # Pragma FOREACH (use singular form of variable e.g. __POD_IP which will be populated form __POD_IPS)
         if source_line.find("FOREACH __") == 0:
@@ -747,7 +704,6 @@ def process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_
                 cmd_line=rest_line[space_pos:].lstrip()
                 new_line=''
 
-                #print(f"Vars seen so far={VARS_SEEN.keys()}")
                 if not VAR_NAME_S in VARS_SEEN:
                     print(f"Vars seen so far={VARS_SEEN.keys()}")
                     die(f"Var <{VAR_NAME_S}> not seen")
@@ -758,7 +714,6 @@ def process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_
                             .replace('\<', '<')\
                             .replace('\>', '>')\
                             .replace('$__'+VAR_NAME, value)+'\n'
-                #new_line=substitute_vars_in_line(cmd, slno, VARS_SEEN)
 
                 cells_data[cell_no]['source'][slno]=new_line
                 if new_line != source_line: print(new_line)
@@ -769,7 +724,6 @@ def process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_
             REMOVE_NB_DEBUG(cells_data, cell_no)
             CONVERT_ANSI_CODES2TXT(cells_data, cell_no)
             replace_vars_in_cell_output_lines(cells_data, cell_no, VARS_SEEN)
-            #UNUSED_CONVERT_ANSI_CODES2HTML(cells_data, cell_no)
                 
         ## # CODE: nbtool.py will replace source_line by first line of output text (which is then removed from output_text)
         ## # - useful when command is a variable
@@ -808,8 +762,6 @@ def process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_
             #if '__' in source_line:
                 #show_vars_seen(f'{cell_type} {cell_no}]', source_line, cell_no)
             if '$__'+var in source_line:
-                #if '__fqdn' in source_line:
-                #    die(f'__fqdn seen in cell={cell_no} line={slno} {source_line}')
                 new_line=substitute_vars_in_line(source_line, slno, VARS_SEEN)
                 show_vars_seen(f'{cell_type}[$__{var}]', source_line, cell_no)
                 DEBUG(f"{var} seen in {source_line} will replace '$__{var}'")
@@ -824,8 +776,6 @@ def process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_
         # TODO: extend for multiple replacements (will never happen ? :)
         REPLACE_CMD = get_longest_matching_key(REPLACE_COMMANDS, source_line)
         if REPLACE_CMD:
-        #for REPLACE_CMD in REPLACE_COMMANDS:
-        #if REPLACE_CMD in source_line:
             pos=cells_data[cell_no]['source'][slno].find(REPLACE_CMD)+len(REPLACE_CMD)
             cells_data[cell_no]['source'][slno] = \
                 REPLACE_COMMANDS[REPLACE_CMD] + ' ' + cells_data[cell_no]['source'][slno][pos:]
@@ -866,39 +816,19 @@ def process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_
             DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - no NB_SET_VAR (or __K_GET)")
             continue
 
-        # Pragma NB_SET_VAR:
         include_cell=False
-        #if source_line.find("NB_SET_VAR") != -1: print(f'======== {source_line} ========')
-
-        # If NB_SET_VAR seen in source, we exclude **this cell** and set the variable
-        #if source_line.find("NB_SET_VAR_") == 0:
-            #VAR_NAME=source_line[len("NB_SET_VAR_"):].rstrip()
-
-        #if " " in VAR_NAME: VAR_NAME=VAR_NAME[:VAR_NAME.find(" ")]
-        #VAR_VALUE="var_value"
-        #VARS_SEEN[VAR_NAME]=VAR_VALUE
-        #DEBUG(f"NB_SET_VAR {VAR_NAME}")
-        #print(f"VAR_NAME={VAR_NAME}")
-        #outputs = cells_data[cell_no]['outputs']
 
         if cells_data[cell_no]['outputs']:
             op_vars_seen = get_var_defs_in_cell_output_lines( section_title, cell_no, cells_data[cell_no]['outputs'] )
             if len(op_vars_seen) > 0:
                 DEBUG(f'NEW VARS_SEEN: "{op_vars_seen}"')
                 VARS_SEEN.update( op_vars_seen )
-                #XXXX
                 show_vars_seen('output', source_line, cell_no)
-            #replace_vars_in_cell_output_lines( cells_data[cell_no]['outputs'], VARS_SEEN )
             replace_vars_in_cell_output_lines(cells_data, cell_no, VARS_SEEN)
 
     if include_cell:
-        #if FINAL_CELL_CHECK(copy.deepcopy( cells_data[cell_no]), cell_no, cell_type):
         if FINAL_CELL_CHECK( cells_data[cell_no], cell_no, cell_type):
             cells.append(cell_no)
-    #            #if source_lines[0].find("NB_SET_VAR_") == -1:
-    #             if not findInSource(source_lines, "NB_SET_VAR_"):
-    #                 cells.append(cell_no)
-    #                 continue
 
 def filter_nb(json_data, DEBUG=False):
     global VARS_SEEN
@@ -931,24 +861,16 @@ def filter_nb(json_data, DEBUG=False):
           if cell_type == 'code':
               In_cell_no=cells_data[cell_no]['execution_count']
 
-              ### XXX: TODO In_cell_no use this
               if 'NB_SET_VAR' in ' '.join(source_lines):
                   DEBUG(f"[cell={cell_no} section={section_title}] NB_SET_VAR variables seen in cell source_lines")
 
-              #cells_data[cell_no]['source'].append(f'\n\n# Code-Cell[{cell_no}]\n')
-              #source_lines.append(f'\n# Code-Cell[{cell_no}]\n')
               source_lines.append(f'\n# Code-Cell[{cell_no}] In[{In_cell_no}]\n')
-              #source_lines.append(f'\n\n# Code-Cell[{cell_no}]\n')
 
               # CHECK for empty code cells:
               if len(source_lines) == 0:
-                  #if DEBUG_SHORT:
-                  #die("no source_lines")
                   DEBUG(f"[cell={cell_no} section={section_title}] CONTINUE - no source lines")
                   continue
 
-          #if DEBUG_CELLNOS:
-          #    source_lines.append( f'\n\n#### Cell[{cell_no}]\n')
           if len(source_lines) == 0: source_lines = ['']
 
           # Pragma --INCLUDE--SECTION--
@@ -956,7 +878,6 @@ def filter_nb(json_data, DEBUG=False):
               include=True
               # BUT THIS CELL IS EXCLUDED:
 
-              # TODO: PLACE THICK LINE HERE:
               exclude_cells.append(cell_no)
               DEBUG(f"[cell={cell_no} section={section_title}] CONTINUE - START INCLUDE--SECTION")
               continue
@@ -965,7 +886,6 @@ def filter_nb(json_data, DEBUG=False):
               include=False
               exclude_cells.append(cell_no)
 
-              # TODO: PLACE THICK LINE HERE:
               DEBUG(f"[cell={cell_no} section={section_title}] CONTINUE - START EXCLUDE--SECTION")
               continue
 
@@ -1029,7 +949,6 @@ def filter_nb(json_data, DEBUG=False):
                        SSH_NODE=source_lines[slno][8:]
                        source_lines[slno] = ''
                   elif source_lines[slno].find('SSH ') == 0:
-                       #source_lines[slno] = 'ssh ' + SSH_NODE + source_lines[slno][3:]
                        source_lines[slno] = source_lines[slno][4:]
 
                   if source_lines[slno].find('# __Q(') == 0:
@@ -1043,14 +962,12 @@ def filter_nb(json_data, DEBUG=False):
                      source_lines[slno].find('**Green**') != -1 or \
                      source_lines[slno].find('**Blue**') != -1 or \
                      source_lines[slno].find('**Yellow**') != -1):
-                     #print(source_line)
                      source_lines[slno]=source_lines[slno].replace("**Red**", "<div class='alert alert-danger'> ")
                      source_lines[slno]=source_lines[slno].replace("**Green**", "<div class='alert alert-success'> ")
                      source_lines[slno]=source_lines[slno].replace("**Blue**", "<div class='alert alert-info'> ")
                      source_lines[slno]=source_lines[slno].replace("**Yellow**", "<div class='alert alert-warning'> ")
                      source_lines[slno]=source_lines[slno] + "</div>"
                      cells_data[cell_no]['source'][slno] = source_lines[slno]
-                     #die(" ===================  OK  ===================")
 
           if cell_type == 'markdown' and not EXCLUDED_CODE_CELL:
               incl_md_cells.append(cell_no)
@@ -1066,22 +983,16 @@ def filter_nb(json_data, DEBUG=False):
                   replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
                   replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Create a new file __FILE__ with the following content:")
-                  #PRESS(f'-- {source_line0}\n    ')
-                  #die("LOOK")
 
               if source_line0.find("NB_FILE_M") == 0:
                   replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
                   replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Modify the file __FILE__ replacing with the following content:")
-                  #PRESS(f'-- {source_line0}\n    ')
-                  #die("LOOK")
 
               if source_line0.find("NB_FILE_A") == 0:
                   replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
                   replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Append the following content to file __FILE__:")
-                  #PRESS(f'-- {source_line0}\n    ')
-                  #die("LOOK")
 
           include_cell=True
 
@@ -1097,7 +1008,7 @@ def filter_nb(json_data, DEBUG=False):
 
           source_line_0=source_lines[0]
 
-          # Pragma | CODE(command)
+          # TODO: REMOVE/REPLACE/CHANGE-NAME?? Pragma | CODE(command)
           if source_line_0.find("__CODE") == 0 and len(cells_data[cell_no]['outputs']) != 0:
               nl='\n'
               print('---- BEFORE ------------------')
@@ -1106,11 +1017,9 @@ def filter_nb(json_data, DEBUG=False):
               print(f"No outputs={len(cells_data[cell_no]['outputs'][0]['text'])}")
               print(f"   outputs     ={ cells_data[cell_no]['outputs'][0]['text']}")
 
-              #cells_data[cell_no]['source']  = [ cells_data[cell_no]['outputs'][0]['text'][0], '' ]
               cells_data[cell_no]['source']  = [ cells_data[cell_no]['outputs'][0]['text'][0] ]
               source_lines = cells_data[cell_no]['source']
               cells_data[cell_no]['outputs'][0]['text'] = cells_data[cell_no]['outputs'][0]['text'][1:]
-              #source_lines.append(f'\n# Code-Cell[{cell_no}]\n')
               source_lines.append(f'# Code-Cell[{cell_no}]\n')
 
               print('---- AFTER  ------------------')
@@ -1191,7 +1100,6 @@ def split_nb(json_data, DEBUG=False):
     os.mkdir('md')
     markdown_file=f'section_{section_no}.md'
     markdown_file_path=f'md/{markdown_file}'
-    # md_files_index+=markdown_file+'\n'
 
     sec_cell_no=0
 
@@ -1199,16 +1107,13 @@ def split_nb(json_data, DEBUG=False):
     len_div_sec=len( div_sec )
     for cell_no in range(nb_cells(json_data)):
           sec_cell_no+=1
-          #print(cell_no)
           cell_type=json_data['cells'][cell_no]['cell_type']
           source_lines=json_data['cells'][cell_no]['source']
           if len(source_lines) == 0:
               if DEBUG: print("empty")
               continue
 
-          # current_cell_text='' 
           if cell_type == 'code': current_section_text+='\n```'
-          # current_cell_text='' 
 
           EXCLUDED_CODE_CELL=False
           if source_lines[0].find('#EXCLUDE') == 0 and cell_type == 'code':
@@ -1231,8 +1136,6 @@ def split_nb(json_data, DEBUG=False):
                   if '| NB_' in source_line:
                       inc_source_line = source_line[ : source_line.find('| NB_') ]
                       source_lines[slno] = inc_source_line
-                  #if len(inc_source_line) > MAX_LINE_LEN:
-                      #print(f'[split_nb]: long {inc_source_line} > {MAX_LINE_LEN} {EXCLUDED_CODE_CELL}' )
 
                   if len(inc_source_line) > MAX_LINE_LEN:
                       show_long_line( 'SPLIT', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
@@ -1244,7 +1147,6 @@ def split_nb(json_data, DEBUG=False):
                   end_pos = start_pos + len_div_sec + source_line[ start_pos + len_div_sec : ].find('"')
                   next_section_no=source_line[ start_pos + len_div_sec : end_pos ]
 
-                  ## <div id="sec1.2" > 1.2 This Lab Cluster </div>
                   close_div_pos = end_pos + source_line[ end_pos : ].find('</div')
                   next_section_title=source_line[ end_pos : close_div_pos ]
 
@@ -1260,20 +1162,16 @@ def split_nb(json_data, DEBUG=False):
                       section_no=next_section_no
                       section_title=next_section_title
                       sec_cell_no=0
-                      #section_title=section_title.replace(" ", "")
                       markdown_file=f'section_{section_no}.md'
                       markdown_file_path=f'md/{markdown_file}'
                       DEBUG(f"New section {section_no} seen")
                       md_files_index+=markdown_file+'\n'
 
-              #current_section_text+='\n'+source_line
               current_section_text+=source_line
 
           if cell_type == 'code': current_section_text+='\n```\n'
 
     if current_section_text != '':
-        #print(f'writefile({markdown_file})')
-        #writefile(f'{markdown_file}', 'w', current_section_text)
         write_markdown(markdown_file_path, cell_no+1, cell_type, section_title, current_section_text)
 
     writefile('md/index.txt', 'w', md_files_index)
