@@ -640,9 +640,10 @@ function NB_CONVERT {
         }
 
         NUM_LONG_LINES=$( NB_SHOW_LONG_LINES -m $MAX_LEN_MD ${LAB_IPYNB%.ipynb}.md | wc -l )
+        NB_SHOW_LONG_LINES -m $MAX_LEN_MD ${LAB_IPYNB%.ipynb}.md > ~/tmp/nb.longlines.md
         if [ "$NUM_LONG_LINES" != "0" ]; then
             echo
-            echo "---- $NUM_LONG_LINES long lines (> $MAX_LEN_MD) in ${LAB_IPYNB%.ipynb}.md:"
+            echo "---- $NUM_LONG_LINES long lines (> $MAX_LEN_MD) in ${LAB_IPYNB%.ipynb}.md: see ~/tmp/nb.longlines.md"
         fi
 
         NB_CHECK_FILE_SIZE ${LAB_IPYNB%.ipynb}.md 1000 || {
