@@ -1007,14 +1007,11 @@ def filter_nb(json_data, DEBUG=False):
                   source_line= json_data['cells'][cell_no]['source'][slno]
 
               # Pragma | NB_NO_EXEC(command)
-              if source_line.find("NB_NO_EXEC") == 0:
-                  #pos=json_data['cells'][cell_no]['source'][slno].find("NB_NO_EXEC")+len("NB_NO_EXEC")
-                  #json_data['cells'][cell_no]['source'][slno] = json_data['cells'][cell_no]['source'][slno][pos:]
-                  #print(f"WAS: {source_line}")
-                  #print(f"WAS: { json_data['cells'][cell_no]['source'][slno] }")
-                  json_data['cells'][cell_no]['source'][slno] = json_data['cells'][cell_no]['source'][slno][1+len("NB_NO_EXEC"):]
-                  source_line= json_data['cells'][cell_no]['source'][slno]
-                  #print(f"NOW: {source_line}")
+              if source_line.find("NB_NO_EXEC ") == 0:
+                  debug_save  = source_line
+                  source_line = source_line[ 1+len("NB_NO_EXEC"): ]
+                  json_data['cells'][cell_no]['source'][slno] = source_line
+                  DEBUG(f'source_line: "{debug_save}"\n    ==> "{source_line}"\n')
 
               # Pragma $__ variables ...
               # If $__variables seen in source then we modify the source to replace $__var by it's value
