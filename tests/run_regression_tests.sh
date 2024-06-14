@@ -30,18 +30,21 @@ TEST_DIR() {
     [ ! -f ${REFERENCE_ipynb}     ] && die "[$PWD] No reference file - expected ${REFERENCE_ipynb}"
     [ ! -f ${REFERENCE_ipynb_fmt} ] && jq .  < ${REFERENCE_ipynb} > ${REFERENCE_ipynb_fmt}
 
-    read -p "[$PWD] About to initialize"
+    echo; read -p "[$PWD] About to initialize ...> "
     . ~/scripts/nbtool.rc $NB_PRIO $NB_MODE "$NB_NAME"
 
-    read -p "About to generalize new filtered notebook"
+    echo; read -p "About to generalize new filtered notebook ...> "
     NB_QUIET
 
     jq . <$ipynb >$ipynb_fmt
-    wc -l $ipynb $ipynb_fmt
+    #wc -l $ipynb $ipynb_fmt
+    wc *.fmt
 
     CMD="diff $ipynb_fmt ${REFERENCE_ipynb_fmt}"
     echo "-- $CMD"
-    read -p "About to compare generated ipynb against reference"
+    $CMD >&/dev/null ; [ $? -eq 0 ] && { echo "$DIR: OK - no regression"; return; }
+
+    echo; read -p "About to compare generated ipynb against reference ...> "
     $CMD
 
     cd -
