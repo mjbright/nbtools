@@ -710,9 +710,9 @@ def process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_
                 values=VARS_SEEN[VAR_NAME_S].split()
                 for value in values:
                     new_line+=cmd_line\
-                        .replace('\$__', '$__')\
-                            .replace('\<', '<')\
-                            .replace('\>', '>')\
+                        .replace('$__', '$__')\
+                            .replace('<', '<')\
+                            .replace('>', '>')\
                             .replace('$__'+VAR_NAME, value)+'\n'
 
                 cells_data[cell_no]['source'][slno]=new_line
