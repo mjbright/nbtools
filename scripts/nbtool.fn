@@ -673,11 +673,11 @@ function NB_CONVERT {
 # Special   FUNCTIONS: ------------------------------------------------
 
 # at line level:
-# - EXEC    command: implemented here and in nbtools.py
+# - NB_EXEC    command: implemented here and in nbtools.py
 #       =>       execute in orig     notebook, 
 #       => don't appear  in filtered notebook, 
 #
-# - NO_EXEC command: implemented here and in nbtools.py
+# - NB_NO_EXEC command: implemented here and in nbtools.py
 #       => don't execute in orig     notebook, 
 #       =>       execute in filtered notebook, 
 #

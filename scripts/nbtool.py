@@ -346,6 +346,11 @@ def next_section(current_sections, level, source_line):
           
 # TODO: convert output to be separate markdown cells
 #print(f'DEBUG: cell_no:{cell_no}')
+def SET_NB_CODE_OP(json_data, cell_no, code_op):
+    if not 'outputs' in json_data['cells'][cell_no]:
+        json_data['cells'][cell_no]['outputs']=[]
+    json_data['cells'][cell_no]['outputs'].append(code_op)
+
 def REMOVE_NB_DEBUG(json_data, cell_no):
     op=json_data['cells'][cell_no]['outputs']
 
@@ -980,24 +985,34 @@ def filter_nb(json_data, DEBUG=False):
               ## # CODE: nbtool.py will replace source_line by first line of output text (which is then removed from output_text)
               ## # - useful when command is a variable
               ## # e.g. code cell contents are:  (output set to actual value of $__CMD)
-              ## #    CODE $__CMD # Must be first line in code cell
-              ## #    EXEC $__CMD
-              ## CODE()                    { echo $*;                            return 0;  }
-              ## NO_EXEC()                 {                                     return 0;  }
-              ## EXEC()                    { $*;                                 return $?; }
+              ## #    NB_CODE $__CMD # Must be first line in code cell
+              ## #    NB_EXEC $__CMD
+              ## NB_CODE()                    { echo $*;                            return 0;  }
+              ## NB_NO_EXEC()                 {                                     return 0;  }
+              ## NB_EXEC()                    { $*;                                 return $?; }
 
-              # Pragma | EXEC(command)
-              if source_line.find("EXEC ") == 0:
+              # ==== TO TEST:
+              # Pragma | NB_EXEC(command)
+              ''' TO TEST:
+              if source_line.find("NB_CODE ") == 0:
+                  json_data['cells'][cell_no]['source'][slno]=''
+                  source_line= json_data['cells'][cell_no]['source'][slno]
+                  code_op = json_data['cells'][cell_no]['source'][slno][1+len("NB_CODE"):]
+                  SET_NB_CODE_OP(json_data, cell_no, code_op)
+              '''
+
+              # Pragma | NB_EXEC(command)
+              if source_line.find("NB_EXEC ") == 0:
                   json_data['cells'][cell_no]['source'][slno]=''
                   source_line= json_data['cells'][cell_no]['source'][slno]
 
-              # Pragma | NO_EXEC(command)
-              if source_line.find("NO_EXEC") == 0:
-                  #pos=json_data['cells'][cell_no]['source'][slno].find("NO_EXEC")+len("NO_EXEC")
+              # Pragma | NB_NO_EXEC(command)
+              if source_line.find("NB_NO_EXEC") == 0:
+                  #pos=json_data['cells'][cell_no]['source'][slno].find("NB_NO_EXEC")+len("NB_NO_EXEC")
                   #json_data['cells'][cell_no]['source'][slno] = json_data['cells'][cell_no]['source'][slno][pos:]
                   #print(f"WAS: {source_line}")
                   #print(f"WAS: { json_data['cells'][cell_no]['source'][slno] }")
-                  json_data['cells'][cell_no]['source'][slno] = json_data['cells'][cell_no]['source'][slno][1+len("NO_EXEC"):]
+                  json_data['cells'][cell_no]['source'][slno] = json_data['cells'][cell_no]['source'][slno][1+len("NB_NO_EXEC"):]
                   source_line= json_data['cells'][cell_no]['source'][slno]
                   #print(f"NOW: {source_line}")
 
