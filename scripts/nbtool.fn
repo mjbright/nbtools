@@ -1,7 +1,7 @@
 # Max number of chars/line to allow in markdown output:
 # MAX_LEN_MD=110
 # In practice 74 seems to be a good limit for the PDF output (tested using Safari/macOS):
-MAX_LEN_MD=74
+MAX_LEN_MD=80
 
 # Default for SSH functions
 SSH_NODE=worker
@@ -35,6 +35,39 @@ function NB_DEBUG {
     echo "NB_DEBUG: $INFO"
     echo "NB_DEBUG: $(id -un)@$(hostname):$PWD"
     echo "NB_DEBUG: -- $*"
+}
+
+function NB_SHOW_LONG_CODE_LINES {
+    local IPFILE=""
+    #local MAX_LINE_LEN=80
+    local MAX_LINE_LEN=40
+    #local LEFT_COLS=7
+    local LEFT_COLS=0
+
+    while [ ! -z "$1" ]; do
+        case $1 in
+            -m) shift; MAX_LINE_LEN=$1;;
+             *) IPFILE=$1;;
+        esac
+        shift
+    done
+
+    let MAX=MAX_LINE_LEN+LEFT_COLS
+
+    if [ ! -z "$IPFILE" ]; then
+        cat $IPFILE
+    else
+        cat
+    fi |
+        # How to include cell number?
+        jq '.cells[] | select(.cell_type=="code").source' | 
+        sed -e 's/^ *"//' -e 's/",$//' -e 's/"$//' -e 's/\\n$//' |
+        tee ~/tmp/nb.longlines.precut |
+        grep -E ".{$MAX}" |
+        #cut -c 1-${LEFT_COLS},${MAX}-5000 |
+        #cut -c ${MAX}-5000 |
+        grep -v "^$"
+        #grep -v "^ *[0-9]*"$'\t'"$"
 }
 
 function NB_SHOW_LONG_LINES {
@@ -495,6 +528,8 @@ function NB_QUIET_FILTER_NOTEBOOK {
     # Show die errors though:
     grep      " die "       ~/tmp/quiet.filter.notebook.op && __RETURN 1
     grep -A30 "^Traceback " ~/tmp/quiet.filter.notebook.op && __RETURN 1
+
+    grep "long lines"       ~/tmp/quiet.filter.notebook.op
     __RETURN 0
 }
 
@@ -639,11 +674,16 @@ function NB_CONVERT {
             DIE "File $OP_NOTEBOOK is too small - supsicious"
         }
 
-        NUM_LONG_LINES=$( NB_SHOW_LONG_LINES -m $MAX_LEN_MD ${LAB_IPYNB%.ipynb}.md | wc -l )
-        NB_SHOW_LONG_LINES -m $MAX_LEN_MD ${LAB_IPYNB%.ipynb}.md > ~/tmp/nb.longlines.md
-        if [ "$NUM_LONG_LINES" != "0" ]; then
+        #NB_SHOW_LONG_LINES -m $MAX_LEN_MD ${LAB_IPYNB%.ipynb}.md > ~/tmp/nb.longlines.md
+        #NB_SHOW_LONG_CODE_LINES -m $MAX_LEN_MD ${LAB_IPYNB} > ~/tmp/nb.longlines.md
+        NB_SHOW_LONG_CODE_LINES -m $MAX_LEN_MD ${OP_NOTEBOOK} > ~/tmp/nb.longlines.md
+        NUM_LONG_CODE_LINES=$( wc -l < ~/tmp/nb.longlines.md )
+        if [ "$NUM_LONG_CODE_LINES" != "0" ]; then
             echo
-            echo "---- $NUM_LONG_LINES long lines (> $MAX_LEN_MD) in ${LAB_IPYNB%.ipynb}.md: see ~/tmp/nb.longlines.md"
+            #echo "---- $NUM_LONG_CODE_LINES long lines (> $MAX_LEN_MD) in ${LAB_IPYNB%.ipynb}.md: see ~/tmp/nb.longlines.md"
+            echo "---- $NUM_LONG_CODE_LINES long lines (> $MAX_LEN_MD) in ${OP_NOTEBOOK}: see ~/tmp/nb.longlines.md"
+            wc  -l ~/tmp/nb.longlines.md
+            ls -al ~/tmp/nb.longlines.md
         fi
 
         NB_CHECK_FILE_SIZE ${LAB_IPYNB%.ipynb}.md 1000 || {
