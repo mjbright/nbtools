@@ -351,45 +351,45 @@ def SET_NB_CODE_OP(json_data, cell_no, code_op):
         json_data['cells'][cell_no]['outputs']=[]
     json_data['cells'][cell_no]['outputs'].append(code_op)
 
-def REMOVE_NB_DEBUG(json_data, cell_no):
-    op=json_data['cells'][cell_no]['outputs']
+def REMOVE_NB_DEBUG(cells_data, cell_no):
+    op=cells_data[cell_no]['outputs']
 
-    for opno in range(len(json_data['cells'][cell_no]['outputs'])):
-        if 'text' in json_data['cells'][cell_no]['outputs'][opno]:
-            for textno in range(len(json_data['cells'][cell_no]['outputs'][opno]['text'])):
-                if "__NB_DEBUG" in json_data['cells'][cell_no]['outputs'][opno]['text'][textno]:
-                    json_data['cells'][cell_no]['outputs'][opno]['text'][textno] = ''
+    for opno in range(len(cells_data[cell_no]['outputs'])):
+        if 'text' in cells_data[cell_no]['outputs'][opno]:
+            for textno in range(len(cells_data[cell_no]['outputs'][opno]['text'])):
+                if "__NB_DEBUG" in cells_data[cell_no]['outputs'][opno]['text'][textno]:
+                    cells_data[cell_no]['outputs'][opno]['text'][textno] = ''
              
-def CONVERT_ANSI_CODES2TXT(json_data, cell_no):
-    op=json_data['cells'][cell_no]['outputs']
+def CONVERT_ANSI_CODES2TXT(cells_data, cell_no):
+    op=cells_data[cell_no]['outputs']
 
-    for opno in range(len(json_data['cells'][cell_no]['outputs'])):
-        if 'text' in json_data['cells'][cell_no]['outputs'][opno]:
-            for textno in range(len(json_data['cells'][cell_no]['outputs'][opno]['text'])):
-                ansi = json_data['cells'][cell_no]['outputs'][opno]['text'][textno]
+    for opno in range(len(cells_data[cell_no]['outputs'])):
+        if 'text' in cells_data[cell_no]['outputs'][opno]:
+            for textno in range(len(cells_data[cell_no]['outputs'][opno]['text'])):
+                ansi = cells_data[cell_no]['outputs'][opno]['text'][textno]
                 #### if cell_no == 20 and textno == 91: print(f"BEFORE: cell{cell_no} has 'text' element {textno} '{ansi}' in element {opno}")
                 text = raw_ansi2text(ansi)
                 #### if cell_no == 20 and textno == 91: print(f"AFTER2: cell{cell_no} has 'text' element {textno} '{text}' in element {opno}")
 
                 # print("Press <enter>")
                 # sys.stdin.readline()
-                json_data['cells'][cell_no]['outputs'][opno]['text'][textno] = text
+                cells_data[cell_no]['outputs'][opno]['text'][textno] = text
                 #### if text != ansi: print(f"cell{cell_no} has output element {opno} changed\n    text={text}')
 
-def UNUSED_CONVERT_ANSI_CODES2HTML(json_data, cell_no):
+def UNUSED_CONVERT_ANSI_CODES2HTML(cells_data, cell_no):
     return
-    op=json_data['cells'][cell_no]['outputs']
+    op=cells_data[cell_no]['outputs']
     #print(f'cell_no[{cell_no}] op={op}')
-    #ansi = json_data['cells'][cell_no]['outputs'][opno]['text'][textno]
-    for opno in range(len(json_data['cells'][cell_no]['outputs'])):
-        if 'text' in json_data['cells'][cell_no]['outputs'][opno]:
-            for textno in range(len(json_data['cells'][cell_no]['outputs'][opno]['text'])):
-                ansi = json_data['cells'][cell_no]['outputs'][opno]['text'][textno]
+    #ansi = cells_data[cell_no]['outputs'][opno]['text'][textno]
+    for opno in range(len(cells_data[cell_no]['outputs'])):
+        if 'text' in cells_data[cell_no]['outputs'][opno]:
+            for textno in range(len(cells_data[cell_no]['outputs'][opno]['text'])):
+                ansi = cells_data[cell_no]['outputs'][opno]['text'][textno]
                 html = ansi2html_conv.convert(ansi)
                 print(f'Converting {ansi} to {html}')
                 # print("Press <enter>")
                 # sys.stdin.readline()
-                json_data['cells'][cell_no]['outputs'][opno]['text'][textno] = html
+                cells_data[cell_no]['outputs'][opno]['text'][textno] = html
 
 def substitute_vars_in_line(source_line, slno, VARS_SEEN):
     new_line=source_line
@@ -398,13 +398,13 @@ def substitute_vars_in_line(source_line, slno, VARS_SEEN):
         if '$__'+var in source_line:
             vars_seen.append('__'+var)
             DEBUG(f"substitute_vars_in_line([line{slno}] {source_line}")
-            #DEBUG(f"substitute_vars_in_line([line{slno}] {source_line} {json_data['cells'][cell_no]['source'][slno]}")
-            #json_data['cells'][cell_no]['source'][slno]=json_data['cells'][cell_no]['source'][slno].replace('$__'+var, VARS_SEEN[var])
+            #DEBUG(f"substitute_vars_in_line([line{slno}] {source_line} {cells_data[cell_no]['source'][slno]}")
+            #cells_data[cell_no]['source'][slno]=cells_data[cell_no]['source'][slno].replace('$__'+var, VARS_SEEN[var])
             new_line=new_line.replace('$__'+var, VARS_SEEN[var])
             #if DEBUG:
                 #print("=>")
-                #print(json_data['cells'][cell_no]['source'][slno])
-                #print(json_data['cells'][cell_no]['source'][slno])
+                #print(cells_data[cell_no]['source'][slno])
+                #print(cells_data[cell_no]['source'][slno])
 
     if new_line != source_line:
         DEBUG(f"[line{slno}]: {var} seen in '{source_line}' will replace vars [{vars_seen}]")
@@ -414,33 +414,33 @@ def substitute_vars_in_line(source_line, slno, VARS_SEEN):
 def replace_vars_in_line(line, vars_seen):
     return substitute_vars_in_line(line, -1, vars_seen)
 
-def replace_words_in_cell_output_lines(json_data, cell_no, REPLACE_OP_WORDS):
-    if not 'outputs' in json_data['cells'][cell_no]:
+def replace_words_in_cell_output_lines(cells_data, cell_no, REPLACE_OP_WORDS):
+    if not 'outputs' in cells_data[cell_no]:
         return
 
-    for opno in range(len(json_data['cells'][cell_no]['outputs'])):
-        if not 'text' in json_data['cells'][cell_no]['outputs'][opno]:
+    for opno in range(len(cells_data[cell_no]['outputs'])):
+        if not 'text' in cells_data[cell_no]['outputs'][opno]:
             continue
 
-        for textno in range(len(json_data['cells'][cell_no]['outputs'][opno]['text'])):
-            line = json_data['cells'][cell_no]['outputs'][opno]['text'][textno]
+        for textno in range(len(cells_data[cell_no]['outputs'][opno]['text'])):
+            line = cells_data[cell_no]['outputs'][opno]['text'][textno]
 
             for REPLACE_OP_WORD in REPLACE_OP_WORDS:
                 if REPLACE_OP_WORD in line:
                     line = line.replace(REPLACE_OP_WORD, REPLACE_OP_WORDS[REPLACE_OP_WORD])
 
-            json_data['cells'][cell_no]['outputs'][opno]['text'][textno] = line
+            cells_data[cell_no]['outputs'][opno]['text'][textno] = line
 
-def replace_vars_in_cell_output_lines(json_data, cell_no, vars_seen):
-    op=json_data['cells'][cell_no]['outputs']
+def replace_vars_in_cell_output_lines(cells_data, cell_no, vars_seen):
+    op=cells_data[cell_no]['outputs']
 
-    for opno in range(len(json_data['cells'][cell_no]['outputs'])):
-        if 'text' in json_data['cells'][cell_no]['outputs'][opno]:
-            for textno in range(len(json_data['cells'][cell_no]['outputs'][opno]['text'])):
-                line = json_data['cells'][cell_no]['outputs'][opno]['text'][textno]
+    for opno in range(len(cells_data[cell_no]['outputs'])):
+        if 'text' in cells_data[cell_no]['outputs'][opno]:
+            for textno in range(len(cells_data[cell_no]['outputs'][opno]['text'])):
+                line = cells_data[cell_no]['outputs'][opno]['text'][textno]
                 line0 = line
                 line = replace_vars_in_line(line, vars_seen)
-                json_data['cells'][cell_no]['outputs'][opno]['text'][textno] = line
+                cells_data[cell_no]['outputs'][opno]['text'][textno] = line
                 DEBUG(f'CHANGED: {cell_no} {line0} --> {line}')
 
 def get_var_defs_in_cell_output_lines(section_title, cell_no, output_lines):
@@ -647,6 +647,253 @@ def replace_EOF_backticks( section_title, cell_no, source_lines ):
             source_lines[slno] = '\n'
             DEBUG(f'EOF-backticks replaced in section "{section_title}" cell_no {cell_no} in line "{source_lines[slno]}"')
 
+def process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_CODE_CELL, section_title, include_cell, cells, count_sections):
+    for slno in range(len(source_lines)):
+        source_line=source_lines[slno]
+        s_line=source_line.rstrip()
+        DEBUG(f'[{cell_type}][{cell_no} line{slno}] "{s_line}"')
+
+        #if cell_type == 'markdown' and len(s_line) > MAX_LINE_LEN:
+        #    show_long_line( 'MARKDOWN', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+        #
+        #if cell_type == 'output' and len(s_line) > MAX_LINE_LEN:
+        #    show_long_line( 'CODE-op', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+
+        if cell_type == 'code' and not EXCLUDED_CODE_CELL:
+            inc_source_line = source_line
+            if '| NB_' in source_line:
+                inc_source_line = source_line[ : source_line.find('| NB_') ]
+                source_lines[slno] = inc_source_line
+            if 'NB_' in source_line:
+                inc_source_line = ''
+                source_lines[slno] = inc_source_line
+            #if '| EXCL_FN' in source_line:
+                #inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
+            if len(inc_source_line) > MAX_LINE_LEN and \
+                source_lines[slno][0] != '#' and \
+                source_line0.find("NB_FILE") == -1 and \
+                source_line0.find("NB_FILE_M") == -1 and \
+                source_line0.find("NB_FILE_A") == -1:
+                    show_long_line( 'CODE-src', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+
+        insert_line_image=''
+        if source_line.find("# STRETCH-GOALS") == 0 and cell_type == "markdown":
+            # PLACE THICK LINE HERE: Start of Stretch Goals
+            insert_line_image=INSERT_THICK_BAR
+            insert_line_image+=INSERT_THICK_BAR
+            source_line="# Stretch Goals"
+        elif source_line.find("# ") == 0 and cell_type == "markdown":
+            # PLACE MEDIUM LINE HERE:
+            insert_line_image=INSERT_MED_BAR
+        elif source_line.find("## ") == 0 and cell_type == "markdown":
+            # PLACE THIN LINE HERE:
+            insert_line_image=INSERT_THIN_BAR
+
+        # Build up TableOfContents - Count sections headers and retain list for ToC text
+        if source_line.find("#") == 0 and count_sections and cell_type == "markdown":
+            toc_line=''
+            level=0
+            if source_line.find("# ") == 0:    (level, section_num, toc_line) = next_section(current_sections, 0, source_line)
+            if source_line.find("## ") == 0:   (level, section_num, toc_line) = next_section(current_sections, 1, source_line)
+            if source_line.find("### ") == 0:  (level, section_num, toc_line) = next_section(current_sections, 2, source_line)
+            if source_line.find("#### ") == 0: (level, section_num, toc_line) = next_section(current_sections, 3, source_line)
+            sec_cell_no=0
+            section_title=toc_line
+
+            toc_link = f'<a href="#sec{section_num}" /> {toc_line} </a>'
+            if level == 0:
+                toc_text += f'\n<br /> <div id="TOC{section_num}" > <b> {toc_link} </b></div>\n'
+            else:
+                toc_text += f'* {toc_link}\n'
+
+            if "." in section_num:
+                top_section_num = section_num[ : section_num.find(".") ]
+            else:
+                top_section_num = section_num 
+
+            if INCLUDE_TOC:
+                cells_data[cell_no]['source'][slno] =\
+                    f'<a href="#TOC{top_section_num}" > Return to INDEX </a>\n' + \
+                    source_line[ :1+source_line.find(' ') ] + f'<div id="sec{section_num}" > '+toc_line+' </div>'
+
+        if insert_line_image != '':
+            new_lines = '\n\n' + insert_line_image + '\n\n' + cells_data[cell_no]['source'][slno]
+            cells_data[cell_no]['source'][slno] = new_lines
+            insert_line_image=''
+
+        if cell_type == "markdown" and '__' in source_line:
+            o = source_line
+            source_line = replace_vars_in_line(source_line, VARS_SEEN)
+            show_vars_seen(cell_type, source_line, cell_no)
+
+            cells_data[cell_no]['source'][slno] = source_line
+            #print(f"MARKDOWN[cell{cell_no}] {source_line.rstrip()}")
+            #if o != source_line: print(o); die("GOT HERE")
+
+        # Pragma FOREACH (use singular form of variable e.g. __POD_IP which will be populated form __POD_IPS)
+        if source_line.find("FOREACH __") == 0:
+            rest_line=source_line[ len("FOREACH __"): ].lstrip()
+            space_pos=rest_line.find(" ")
+            if space_pos > 1:
+                VAR_NAME=rest_line[:space_pos]
+                VAR_NAME_S=VAR_NAME+'S'
+
+                cmd_line=rest_line[space_pos:].lstrip()
+                new_line=''
+
+                #print(f"Vars seen so far={VARS_SEEN.keys()}")
+                if not VAR_NAME_S in VARS_SEEN:
+                    print(f"Vars seen so far={VARS_SEEN.keys()}")
+                    die(f"Var <{VAR_NAME_S}> not seen")
+                values=VARS_SEEN[VAR_NAME_S].split()
+                for value in values:
+                    new_line+=cmd_line\
+                        .replace('\$__', '$__')\
+                            .replace('\<', '<')\
+                            .replace('\>', '>')\
+                            .replace('$__'+VAR_NAME, value)+'\n'
+                #new_line=substitute_vars_in_line(cmd, slno, VARS_SEEN)
+
+                cells_data[cell_no]['source'][slno]=new_line
+                if new_line != source_line: print(new_line)
+            DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - FOREACH found")
+            continue
+
+        if 'outputs' in cells_data[cell_no]:
+            REMOVE_NB_DEBUG(cells_data, cell_no)
+            CONVERT_ANSI_CODES2TXT(cells_data, cell_no)
+            replace_vars_in_cell_output_lines(cells_data, cell_no, VARS_SEEN)
+            #UNUSED_CONVERT_ANSI_CODES2HTML(cells_data, cell_no)
+                
+        ## # CODE: nbtool.py will replace source_line by first line of output text (which is then removed from output_text)
+        ## # - useful when command is a variable
+        ## # e.g. code cell contents are:  (output set to actual value of $__CMD)
+        ## #    NB_CODE $__CMD # Must be first line in code cell
+        ## #    NB_EXEC $__CMD
+        ## NB_CODE()                    { echo $*;                            return 0;  }
+        ## NB_NO_EXEC()                 {                                     return 0;  }
+        ## NB_EXEC()                    { $*;                                 return $?; }
+
+        # ==== TO TEST:
+        # Pragma | NB_EXEC(command)
+        ''' TO TEST:
+        if source_line.find("NB_CODE ") == 0:
+            cells_data[cell_no]['source'][slno]=''
+            source_line= cells_data[cell_no]['source'][slno]
+            code_op = cells_data[cell_no]['source'][slno][1+len("NB_CODE"):]
+            SET_NB_CODE_OP(cells_data, cell_no, code_op)
+        '''
+
+        # Pragma | NB_EXEC(command)
+        if source_line.find("NB_EXEC ") == 0:
+            cells_data[cell_no]['source'][slno]=''
+            source_line= cells_data[cell_no]['source'][slno]
+
+        # Pragma | NB_NO_EXEC(command)
+        if source_line.find("NB_NO_EXEC ") == 0:
+            debug_save  = source_line
+            source_line = source_line[ 1+len("NB_NO_EXEC"): ]
+            cells_data[cell_no]['source'][slno] = source_line
+            DEBUG(f'source_line: "{debug_save}"\n    ==> "{source_line}"\n')
+
+        # Pragma $__ variables ...
+        # If $__variables seen in source then we modify the source to replace $__var by it's value
+        for var in VARS_SEEN:
+            #if '__' in source_line:
+                #show_vars_seen(f'{cell_type} {cell_no}]', source_line, cell_no)
+            if '$__'+var in source_line:
+                #if '__fqdn' in source_line:
+                #    die(f'__fqdn seen in cell={cell_no} line={slno} {source_line}')
+                new_line=substitute_vars_in_line(source_line, slno, VARS_SEEN)
+                show_vars_seen(f'{cell_type}[$__{var}]', source_line, cell_no)
+                DEBUG(f"{var} seen in {source_line} will replace '$__{var}'")
+                DEBUG(cells_data[cell_no]['source'][slno])
+                cells_data[cell_no]['source'][slno]=new_line
+                DEBUG(f" => { cells_data[cell_no]['source'][slno]}")
+
+                # TODO: generalize line length checking after all replacements (how to hook i on 'continue' ??
+                if len(new_line) > MAX_LINE_LEN:
+                    show_long_line('CODE-src-vars', new_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
+
+        # TODO: extend for multiple replacements (will never happen ? :)
+        REPLACE_CMD = get_longest_matching_key(REPLACE_COMMANDS, source_line)
+        if REPLACE_CMD:
+        #for REPLACE_CMD in REPLACE_COMMANDS:
+        #if REPLACE_CMD in source_line:
+            pos=cells_data[cell_no]['source'][slno].find(REPLACE_CMD)+len(REPLACE_CMD)
+            cells_data[cell_no]['source'][slno] = \
+                REPLACE_COMMANDS[REPLACE_CMD] + ' ' + cells_data[cell_no]['source'][slno][pos:]
+
+        replace_words_in_cell_output_lines(cells_data, cell_no, REPLACE_OP_WORDS)
+
+        # Pragma #EXCLUDE (cell):
+        if EXCLUDED_CODE_CELL:
+            include_cell=False
+            DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - EXCLUDED/include=False")
+            # XXX: still need to process variables though
+            # continue
+
+        # Pragma | __(HIDE_|HIGHLIGHT*)
+        if "NB_HIGHLIGHT" in source_line:
+            if DEBUG:
+                orig=cells_data[cell_no]['source'][slno]
+            cells_data[cell_no]['source'][slno] = \
+                __regex.sub("", cells_data[cell_no]['source'][slno])
+            if DEBUG:
+                new=cells_data[cell_no]['source'][slno]
+                if new != orig:
+                    print(f"{orig.rstrip()} => {new.rstrip()}")
+     
+        # Pragma WAIT:
+        if source_line.find("NB_WAIT")     == 0:
+            include_cell=False
+            DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - NB_WAIT")
+            continue
+
+        # Pragma RETURN:
+        if source_line.find("__RETURN")     == 0:
+            cells_data[cell_no]['source'][slno]=''
+            DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - __RETURN")
+            continue
+
+        if source_line.find("NB_SET_VAR") == -1 and source_line.find("K_GET_") == -1:
+            DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - no NB_SET_VAR (or __K_GET)")
+            continue
+
+        # Pragma NB_SET_VAR:
+        include_cell=False
+        #if source_line.find("NB_SET_VAR") != -1: print(f'======== {source_line} ========')
+
+        # If NB_SET_VAR seen in source, we exclude **this cell** and set the variable
+        #if source_line.find("NB_SET_VAR_") == 0:
+            #VAR_NAME=source_line[len("NB_SET_VAR_"):].rstrip()
+
+        #if " " in VAR_NAME: VAR_NAME=VAR_NAME[:VAR_NAME.find(" ")]
+        #VAR_VALUE="var_value"
+        #VARS_SEEN[VAR_NAME]=VAR_VALUE
+        #DEBUG(f"NB_SET_VAR {VAR_NAME}")
+        #print(f"VAR_NAME={VAR_NAME}")
+        #outputs = cells_data[cell_no]['outputs']
+
+        if cells_data[cell_no]['outputs']:
+            op_vars_seen = get_var_defs_in_cell_output_lines( section_title, cell_no, cells_data[cell_no]['outputs'] )
+            if len(op_vars_seen) > 0:
+                DEBUG(f'NEW VARS_SEEN: "{op_vars_seen}"')
+                VARS_SEEN.update( op_vars_seen )
+                #XXXX
+                show_vars_seen('output', source_line, cell_no)
+            #replace_vars_in_cell_output_lines( cells_data[cell_no]['outputs'], VARS_SEEN )
+            replace_vars_in_cell_output_lines(cells_data, cell_no, VARS_SEEN)
+
+    if include_cell:
+        #if FINAL_CELL_CHECK(copy.deepcopy( cells_data[cell_no]), cell_no, cell_type):
+        if FINAL_CELL_CHECK( cells_data[cell_no], cell_no, cell_type):
+            cells.append(cell_no)
+    #            #if source_lines[0].find("NB_SET_VAR_") == -1:
+    #             if not findInSource(source_lines, "NB_SET_VAR_"):
+    #                 cells.append(cell_no)
+    #                 continue
+
 def filter_nb(json_data, DEBUG=False):
     global VARS_SEEN
     global QUESTIONS, NUM_QUESTIONS
@@ -654,6 +901,7 @@ def filter_nb(json_data, DEBUG=False):
     __regex = re.compile(r"\|?\&?\s*__.*$") #, re.IGNORECASE)
     include=False
     cells=[]
+    cells_data = json_data['cells']
 
     toc_cell_no=-1
     count_sections=False
@@ -670,17 +918,17 @@ def filter_nb(json_data, DEBUG=False):
     for cell_no in range(nb_cells(json_data)):
           sec_cell_no+=1
           #print(cell_no)
-          cell_type=json_data['cells'][cell_no]['cell_type']
+          cell_type=cells_data[cell_no]['cell_type']
           In_cell_no='unknown'
-          source_lines = json_data['cells'][cell_no]['source']
+          source_lines = cells_data[cell_no]['source']
           if cell_type == 'code':
-              In_cell_no=json_data['cells'][cell_no]['execution_count']
+              In_cell_no=cells_data[cell_no]['execution_count']
 
               ### XXX: TODO In_cell_no use this
               if 'NB_SET_VAR' in ' '.join(source_lines):
                   DEBUG(f"[cell={cell_no} section={section_title}] NB_SET_VAR variables seen in cell source_lines")
 
-              #json_data['cells'][cell_no]['source'].append(f'\n\n# Code-Cell[{cell_no}]\n')
+              #cells_data[cell_no]['source'].append(f'\n\n# Code-Cell[{cell_no}]\n')
               #source_lines.append(f'\n# Code-Cell[{cell_no}]\n')
               source_lines.append(f'\n# Code-Cell[{cell_no}] In[{In_cell_no}]\n')
               #source_lines.append(f'\n\n# Code-Cell[{cell_no}]\n')
@@ -794,7 +1042,7 @@ def filter_nb(json_data, DEBUG=False):
                      source_lines[slno]=source_lines[slno].replace("**Blue**", "<div class='alert alert-info'> ")
                      source_lines[slno]=source_lines[slno].replace("**Yellow**", "<div class='alert alert-warning'> ")
                      source_lines[slno]=source_lines[slno] + "</div>"
-                     json_data['cells'][cell_no]['source'][slno] = source_lines[slno]
+                     cells_data[cell_no]['source'][slno] = source_lines[slno]
                      #die(" ===================  OK  ===================")
 
           if cell_type == 'markdown' and not EXCLUDED_CODE_CELL:
@@ -808,22 +1056,22 @@ def filter_nb(json_data, DEBUG=False):
               DEBUG(f'len(source_lines)={len(source_lines)} source_lines="{source_lines}"')
               source_line0 = source_lines[0]
               if source_line0.find("NB_FILE") == 0:
-                  replace_EOF_backticks( section_title, cell_no, json_data['cells'][cell_no]['source'] )
-                  replace_code_cell_by_markdown( json_data['cells'][cell_no], 
+                  replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
+                  replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Create a new file __FILE__ with the following content:")
                   #PRESS(f'-- {source_line0}\n    ')
                   #die("LOOK")
 
               if source_line0.find("NB_FILE_M") == 0:
-                  replace_EOF_backticks( section_title, cell_no, json_data['cells'][cell_no]['source'] )
-                  replace_code_cell_by_markdown( json_data['cells'][cell_no], 
+                  replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
+                  replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Modify the file __FILE__ replacing with the following content:")
                   #PRESS(f'-- {source_line0}\n    ')
                   #die("LOOK")
 
               if source_line0.find("NB_FILE_A") == 0:
-                  replace_EOF_backticks( section_title, cell_no, json_data['cells'][cell_no]['source'] )
-                  replace_code_cell_by_markdown( json_data['cells'][cell_no], 
+                  replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
+                  replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Append the following content to file __FILE__:")
                   #PRESS(f'-- {source_line0}\n    ')
                   #die("LOOK")
@@ -843,282 +1091,37 @@ def filter_nb(json_data, DEBUG=False):
           source_line_0=source_lines[0]
 
           # Pragma | CODE(command)
-          if source_line_0.find("__CODE") == 0 and len(json_data['cells'][cell_no]['outputs']) != 0:
+          if source_line_0.find("__CODE") == 0 and len(cells_data[cell_no]['outputs']) != 0:
               nl='\n'
               print('---- BEFORE ------------------')
-              print(f"{YELLOW}No source_lines={len(json_data['cells'][cell_no]['source'])}")
-              print(f"   source_lines={''.join( json_data['cells'][cell_no]['source'])}")
-              print(f"No outputs={len(json_data['cells'][cell_no]['outputs'][0]['text'])}")
-              print(f"   outputs     ={ json_data['cells'][cell_no]['outputs'][0]['text']}")
+              print(f"{YELLOW}No source_lines={len(cells_data[cell_no]['source'])}")
+              print(f"   source_lines={''.join( cells_data[cell_no]['source'])}")
+              print(f"No outputs={len(cells_data[cell_no]['outputs'][0]['text'])}")
+              print(f"   outputs     ={ cells_data[cell_no]['outputs'][0]['text']}")
 
-              #json_data['cells'][cell_no]['source']  = [ json_data['cells'][cell_no]['outputs'][0]['text'][0], '' ]
-              json_data['cells'][cell_no]['source']  = [ json_data['cells'][cell_no]['outputs'][0]['text'][0] ]
-              source_lines = json_data['cells'][cell_no]['source']
-              json_data['cells'][cell_no]['outputs'][0]['text'] = json_data['cells'][cell_no]['outputs'][0]['text'][1:]
+              #cells_data[cell_no]['source']  = [ cells_data[cell_no]['outputs'][0]['text'][0], '' ]
+              cells_data[cell_no]['source']  = [ cells_data[cell_no]['outputs'][0]['text'][0] ]
+              source_lines = cells_data[cell_no]['source']
+              cells_data[cell_no]['outputs'][0]['text'] = cells_data[cell_no]['outputs'][0]['text'][1:]
               #source_lines.append(f'\n# Code-Cell[{cell_no}]\n')
               source_lines.append(f'# Code-Cell[{cell_no}]\n')
 
               print('---- AFTER  ------------------')
-              print(f"No source_lines={len(json_data['cells'][cell_no]['source'])}")
-              print(f"   source_lines={''.join( json_data['cells'][cell_no]['source'])}")
-              print(f"No outputs={len(json_data['cells'][cell_no]['outputs'][0]['text'])}")
-              print(f"   outputs     ={ json_data['cells'][cell_no]['outputs'][0]['text']}")
+              print(f"No source_lines={len(cells_data[cell_no]['source'])}")
+              print(f"   source_lines={''.join( cells_data[cell_no]['source'])}")
+              print(f"No outputs={len(cells_data[cell_no]['outputs'][0]['text'])}")
+              print(f"   outputs     ={ cells_data[cell_no]['outputs'][0]['text']}")
               print(f"{NORMAL}")
 
-          for slno in range(len(source_lines)):
-              source_line=source_lines[slno]
-              s_line=source_line.rstrip()
-              DEBUG(f'[{cell_type}][{cell_no} line{slno}] "{s_line}"')
+          process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_CODE_CELL, section_title, include_cell, cells, count_sections)
 
-              #if cell_type == 'markdown' and len(s_line) > MAX_LINE_LEN:
-              #    show_long_line( 'MARKDOWN', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
-              #
-              #if cell_type == 'output' and len(s_line) > MAX_LINE_LEN:
-              #    show_long_line( 'CODE-op', s_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
-
-              if cell_type == 'code' and not EXCLUDED_CODE_CELL:
-                  inc_source_line = source_line
-                  if '| NB_' in source_line:
-                      inc_source_line = source_line[ : source_line.find('| NB_') ]
-                      source_lines[slno] = inc_source_line
-                  if 'NB_' in source_line:
-                      inc_source_line = ''
-                      source_lines[slno] = inc_source_line
-                  #if '| EXCL_FN' in source_line:
-                      #inc_source_line = source_line[ : source_line.find('| EXCL_FN') ]
-                  if len(inc_source_line) > MAX_LINE_LEN and \
-                      source_lines[slno][0] != '#' and \
-                      source_line0.find("NB_FILE") == -1 and \
-                      source_line0.find("NB_FILE_M") == -1 and \
-                      source_line0.find("NB_FILE_A") == -1:
-                          show_long_line( 'CODE-src', inc_source_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
-
-              insert_line_image=''
-              if source_line.find("# STRETCH-GOALS") == 0 and cell_type == "markdown":
-                  # PLACE THICK LINE HERE: Start of Stretch Goals
-                  insert_line_image=INSERT_THICK_BAR
-                  insert_line_image+=INSERT_THICK_BAR
-                  source_line="# Stretch Goals"
-              elif source_line.find("# ") == 0 and cell_type == "markdown":
-                  # PLACE MEDIUM LINE HERE:
-                  insert_line_image=INSERT_MED_BAR
-              elif source_line.find("## ") == 0 and cell_type == "markdown":
-                  # PLACE THIN LINE HERE:
-                  insert_line_image=INSERT_THIN_BAR
-
-              # Build up TableOfContents - Count sections headers and retain list for ToC text
-              if source_line.find("#") == 0 and count_sections and cell_type == "markdown":
-                  toc_line=''
-                  level=0
-                  if source_line.find("# ") == 0:    (level, section_num, toc_line) = next_section(current_sections, 0, source_line)
-                  if source_line.find("## ") == 0:   (level, section_num, toc_line) = next_section(current_sections, 1, source_line)
-                  if source_line.find("### ") == 0:  (level, section_num, toc_line) = next_section(current_sections, 2, source_line)
-                  if source_line.find("#### ") == 0: (level, section_num, toc_line) = next_section(current_sections, 3, source_line)
-                  sec_cell_no=0
-                  section_title=toc_line
-
-                  toc_link = f'<a href="#sec{section_num}" /> {toc_line} </a>'
-                  if level == 0:
-                      toc_text += f'\n<br /> <div id="TOC{section_num}" > <b> {toc_link} </b></div>\n'
-                  else:
-                      toc_text += f'* {toc_link}\n'
-
-                  if "." in section_num:
-                      top_section_num = section_num[ : section_num.find(".") ]
-                  else:
-                      top_section_num = section_num 
-
-                  if INCLUDE_TOC:
-                      json_data['cells'][cell_no]['source'][slno] =\
-                          f'<a href="#TOC{top_section_num}" > Return to INDEX </a>\n' + \
-                          source_line[ :1+source_line.find(' ') ] + f'<div id="sec{section_num}" > '+toc_line+' </div>'
-
-              if insert_line_image != '':
-                  new_lines = '\n\n' + insert_line_image + '\n\n' + json_data['cells'][cell_no]['source'][slno]
-                  json_data['cells'][cell_no]['source'][slno] = new_lines
-                  insert_line_image=''
-
-              if cell_type == "markdown" and '__' in source_line:
-                  o = source_line
-                  source_line = replace_vars_in_line(source_line, VARS_SEEN)
-                  show_vars_seen(cell_type, source_line, cell_no)
-
-                  json_data['cells'][cell_no]['source'][slno] = source_line
-                  #print(f"MARKDOWN[cell{cell_no}] {source_line.rstrip()}")
-                  #if o != source_line: print(o); die("GOT HERE")
-
-              # Pragma FOREACH (use singular form of variable e.g. __POD_IP which will be populated form __POD_IPS)
-              if source_line.find("FOREACH __") == 0:
-                  rest_line=source_line[ len("FOREACH __"): ].lstrip()
-                  space_pos=rest_line.find(" ")
-                  if space_pos > 1:
-                      VAR_NAME=rest_line[:space_pos]
-                      VAR_NAME_S=VAR_NAME+'S'
-
-                      cmd_line=rest_line[space_pos:].lstrip()
-                      new_line=''
-
-                      #print(f"Vars seen so far={VARS_SEEN.keys()}")
-                      if not VAR_NAME_S in VARS_SEEN:
-                          print(f"Vars seen so far={VARS_SEEN.keys()}")
-                          die(f"Var <{VAR_NAME_S}> not seen")
-                      values=VARS_SEEN[VAR_NAME_S].split()
-                      for value in values:
-                          new_line+=cmd_line\
-                              .replace('\$__', '$__')\
-                                  .replace('\<', '<')\
-                                  .replace('\>', '>')\
-                                  .replace('$__'+VAR_NAME, value)+'\n'
-                      #new_line=substitute_vars_in_line(cmd, slno, VARS_SEEN)
-
-                      json_data['cells'][cell_no]['source'][slno]=new_line
-                      if new_line != source_line: print(new_line)
-                  DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - FOREACH found")
-                  continue
-
-              if 'outputs' in json_data['cells'][cell_no]:
-                  REMOVE_NB_DEBUG(json_data, cell_no)
-                  CONVERT_ANSI_CODES2TXT(json_data, cell_no)
-                  replace_vars_in_cell_output_lines(json_data, cell_no, VARS_SEEN)
-                  #UNUSED_CONVERT_ANSI_CODES2HTML(json_data, cell_no)
-                      
-              ## # CODE: nbtool.py will replace source_line by first line of output text (which is then removed from output_text)
-              ## # - useful when command is a variable
-              ## # e.g. code cell contents are:  (output set to actual value of $__CMD)
-              ## #    NB_CODE $__CMD # Must be first line in code cell
-              ## #    NB_EXEC $__CMD
-              ## NB_CODE()                    { echo $*;                            return 0;  }
-              ## NB_NO_EXEC()                 {                                     return 0;  }
-              ## NB_EXEC()                    { $*;                                 return $?; }
-
-              # ==== TO TEST:
-              # Pragma | NB_EXEC(command)
-              ''' TO TEST:
-              if source_line.find("NB_CODE ") == 0:
-                  json_data['cells'][cell_no]['source'][slno]=''
-                  source_line= json_data['cells'][cell_no]['source'][slno]
-                  code_op = json_data['cells'][cell_no]['source'][slno][1+len("NB_CODE"):]
-                  SET_NB_CODE_OP(json_data, cell_no, code_op)
-              '''
-
-              # Pragma | NB_EXEC(command)
-              if source_line.find("NB_EXEC ") == 0:
-                  json_data['cells'][cell_no]['source'][slno]=''
-                  source_line= json_data['cells'][cell_no]['source'][slno]
-
-              # Pragma | NB_NO_EXEC(command)
-              if source_line.find("NB_NO_EXEC ") == 0:
-                  debug_save  = source_line
-                  source_line = source_line[ 1+len("NB_NO_EXEC"): ]
-                  json_data['cells'][cell_no]['source'][slno] = source_line
-                  DEBUG(f'source_line: "{debug_save}"\n    ==> "{source_line}"\n')
-
-              # Pragma $__ variables ...
-              # If $__variables seen in source then we modify the source to replace $__var by it's value
-              for var in VARS_SEEN:
-                  #if '__' in source_line:
-                      #show_vars_seen(f'{cell_type} {cell_no}]', source_line, cell_no)
-                  if '$__'+var in source_line:
-                      #if '__fqdn' in source_line:
-                      #    die(f'__fqdn seen in cell={cell_no} line={slno} {source_line}')
-                      new_line=substitute_vars_in_line(source_line, slno, VARS_SEEN)
-                      show_vars_seen(f'{cell_type}[$__{var}]', source_line, cell_no)
-                      DEBUG(f"{var} seen in {source_line} will replace '$__{var}'")
-                      DEBUG(json_data['cells'][cell_no]['source'][slno])
-                      json_data['cells'][cell_no]['source'][slno]=new_line
-                      DEBUG(f" => { json_data['cells'][cell_no]['source'][slno]}")
-
-                      # TODO: generalize line length checking after all replacements (how to hook i on 'continue' ??
-                      if len(new_line) > MAX_LINE_LEN:
-                          show_long_line('CODE-src-vars', new_line, MAX_LINE_LEN, cell_no, cell_type, section_title, EXCLUDED_CODE_CELL )
-
-              # TODO: extend for multiple replacements (will never happen ? :)
-              REPLACE_CMD = get_longest_matching_key(REPLACE_COMMANDS, source_line)
-              if REPLACE_CMD:
-              #for REPLACE_CMD in REPLACE_COMMANDS:
-              #if REPLACE_CMD in source_line:
-                  pos=json_data['cells'][cell_no]['source'][slno].find(REPLACE_CMD)+len(REPLACE_CMD)
-                  json_data['cells'][cell_no]['source'][slno] = \
-                      REPLACE_COMMANDS[REPLACE_CMD] + ' ' + json_data['cells'][cell_no]['source'][slno][pos:]
-
-              replace_words_in_cell_output_lines(json_data, cell_no, REPLACE_OP_WORDS)
-
-              # Pragma #EXCLUDE (cell):
-              if EXCLUDED_CODE_CELL:
-                  include_cell=False
-                  DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - EXCLUDED/include=False")
-                  # XXX: still need to process variables though
-                  # continue
-
-              # Pragma | __(HIDE_|HIGHLIGHT*)
-              if "NB_HIGHLIGHT" in source_line:
-                  if DEBUG:
-                      orig=json_data['cells'][cell_no]['source'][slno]
-                  json_data['cells'][cell_no]['source'][slno] = \
-                      __regex.sub("", json_data['cells'][cell_no]['source'][slno])
-                  if DEBUG:
-                      new=json_data['cells'][cell_no]['source'][slno]
-                      if new != orig:
-                          print(f"{orig.rstrip()} => {new.rstrip()}")
-           
-              # Pragma WAIT:
-              if source_line.find("NB_WAIT")     == 0:
-                  include_cell=False
-                  DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - NB_WAIT")
-                  continue
-
-              # Pragma RETURN:
-              if source_line.find("__RETURN")     == 0:
-                  json_data['cells'][cell_no]['source'][slno]=''
-                  DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - __RETURN")
-                  continue
-
-              if source_line.find("NB_SET_VAR") == -1 and source_line.find("K_GET_") == -1:
-                  DEBUG(f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - no NB_SET_VAR (or __K_GET)")
-                  continue
-
-              # Pragma NB_SET_VAR:
-              include_cell=False
-              #if source_line.find("NB_SET_VAR") != -1: print(f'======== {source_line} ========')
-
-              # If NB_SET_VAR seen in source, we exclude **this cell** and set the variable
-              #if source_line.find("NB_SET_VAR_") == 0:
-                  #VAR_NAME=source_line[len("NB_SET_VAR_"):].rstrip()
-
-              #if " " in VAR_NAME: VAR_NAME=VAR_NAME[:VAR_NAME.find(" ")]
-              #VAR_VALUE="var_value"
-              #VARS_SEEN[VAR_NAME]=VAR_VALUE
-              #DEBUG(f"NB_SET_VAR {VAR_NAME}")
-              #print(f"VAR_NAME={VAR_NAME}")
-              #outputs = json_data['cells'][cell_no]['outputs']
-
-              if json_data['cells'][cell_no]['outputs']:
-                  op_vars_seen = get_var_defs_in_cell_output_lines( section_title, cell_no, json_data['cells'][cell_no]['outputs'] )
-                  if len(op_vars_seen) > 0:
-                      DEBUG(f'NEW VARS_SEEN: "{op_vars_seen}"')
-                      VARS_SEEN.update( op_vars_seen )
-                      #XXXX
-                      show_vars_seen('output', source_line, cell_no)
-                  #replace_vars_in_cell_output_lines( json_data['cells'][cell_no]['outputs'], VARS_SEEN )
-                  replace_vars_in_cell_output_lines(json_data, cell_no, VARS_SEEN)
-
-          if include_cell:
-              #if FINAL_CELL_CHECK(copy.deepcopy( json_data['cells'][cell_no]), cell_no, cell_type):
-              if FINAL_CELL_CHECK( json_data['cells'][cell_no], cell_no, cell_type):
-                  cells.append(cell_no)
-    #            #if source_lines[0].find("NB_SET_VAR_") == -1:
-    #             if not findInSource(source_lines, "NB_SET_VAR_"):
-    #                 cells.append(cell_no)
-    #                 continue
-
-           
     # Patch TableOfContents:
     toc_text+='</div>'
     DEBUG(f"ToC set to <{toc_text}>")
     if INCLUDE_TOC:
-        json_data['cells'][toc_cell_no]['source'] = [ toc_text ]
+        cells_data[toc_cell_no]['source'] = [ toc_text ]
     else:
-        json_data['cells'][toc_cell_no]['source'] = [ '' ]
+        cells_data[toc_cell_no]['source'] = [ '' ]
 
     DEBUG()
     DEBUG(f"cells to include[#{len(cells)}]=[{cells}]")
@@ -1128,7 +1131,7 @@ def filter_nb(json_data, DEBUG=False):
         #print(cell_no)
         if not cell_no in cells:
             DEBUG(f"del(cells[{cell_no}])")
-            del(json_data['cells'][cell_no])
+            del(cells_data[cell_no])
 
     if NUM_QUESTIONS > 0:
         questions_text = '<hr><h1> Answers to Questions:</h1>'
@@ -1140,7 +1143,7 @@ def filter_nb(json_data, DEBUG=False):
             detail = question_entry[1]
             questions_text += f'\n<b>{q}. {summary}</b>\n\n{detail}\n\n'
 
-        json_data['cells'].append( markdown_cell( id, [ questions_text ] ) )
+        cells_data.append( markdown_cell( id, [ questions_text ] ) )
 
     DEBUG(f"cells to include[#{len(cells)}]=[{cells}]")
     DEBUG(f"included markdown cells={incl_md_cells}")
