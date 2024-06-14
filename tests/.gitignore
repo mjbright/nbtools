@@ -1,3 +1,6 @@
 **/README.md
 **/.dir
 **/*filtered*
+!**/*REFERENCE*
+**/*.ipynb
+**/*.ipynb.fmt
