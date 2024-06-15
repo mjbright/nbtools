@@ -21,6 +21,16 @@ function NB_SET_ENV {
     [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
 }
 
+# Usage: place this function call in a cell alone before NB_QUIET cell
+#        stops execution (return 1) and prompts user to save notebook before we call NB_QUIET
+function NB_SAVE {
+    echo
+    echo   $*
+    START_S=$NB_START
+    TIMER_STOP "Execution stopped: SAVE NOTEBOOK BEFORE EXECUTING NB_QUIET CELL"
+    return 1
+}
+
 #echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"
 
 which banner >/dev/null && {
@@ -496,6 +506,12 @@ function NB_ARCHIVE_SOLUTIONS {
 function NB_QUIET {
     # Quiet except on failure --> __FILTER
     pwd
+
+    LAST_MOD_S=$(date -r $NB_DIR/$LAB_IPYNB +%s)
+    NOW_S=$(date +%s)
+    let AGE_S=NOW_S-LAST_MOD_S
+    echo "[$AGE_S secs old] $NB_DIR/$LAB_IPYNB"
+
     TIMER_START
     NB_QUIET_FILTER_NOTEBOOK $* || __FILTER
     TIMER_STOP "Notebook filtering/conversion"

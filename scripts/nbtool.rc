@@ -4,11 +4,27 @@ set +x
 SCRIPT=${BASH_SOURCE[0]}
 SCRIPT_DIR=$(dirname $SCRIPT)
 
-# Assume main lab file is called README.ipynb
-[ ! -f README.ipynb ] && {
-    echo "[$PWD] $SCRIPT: No README.ipynb in working directory"
+NB_START=$( date +%s )
+
+[ "$1" = "-x" ] && { shift; set -x; }
+
+# LAB_IPYNB defaults to README.ipynb ... or to 4th argument if .ipynb:
+export LAB_IPYNB=README.ipynb
+[ ! -z "${JPY_SESSION_NAME}" ] && export LAB_IPYNB=${JPY_SESSION_NAME##*/}
+case "$4" in
+    *.ipynb) export LAB_IPYNB=$4;;
+esac
+
+### NO # Assume main lab file is called README.ipynb
+[ ! -f $LAB_IPYNB ] && {
+    echo "[$PWD] $SCRIPT: No $LAB_IPYNB in working directory"
     exit 1
 }
+
+#[ ! -f README.ipynb ] && {
+#    echo "[$PWD] $SCRIPT: No README.ipynb in working directory"
+#    exit 1
+#}
 
 ## TODO: If need to reactivate
 [ -f ~/.venv/TRAINING/bin/activate ] && {
@@ -32,11 +48,10 @@ export NBTOOL_TF_FN=$ABS_SCRIPT_DIR/nbtool.tf.fn
 export NBTOOL_DO_FN=$ABS_SCRIPT_DIR/nbtool.do.fn
 export NBTOOL_OPA_FN=$ABS_SCRIPT_DIR/nbtool.opa.fn
 
-[ "$1" = "-x" ] && { shift; set -x; }
-
 if [ -z "$STUDENT" ]; then
-    echo "STUDENT must be set before starting Jupyter - even is set to unknown"
-    exit 1
+    export STUDENT=student
+    #echo "STUDENT must be set before starting Jupyter - even is set to unknown"
+    #exit 1
 fi
 echo "STUDENT='$STUDENT'"
 
@@ -51,14 +66,9 @@ if [ ! -z "$1" ]; then
     export LAB_MODE="$1"; shift
     export LAB_NAME="$1"; shift
 
-    # LAB_IPYNB defaults to README.ipynb ... or to 4th argument if .ipynb:
-    export LAB_IPYNB=README.ipynb
-
-    [ ! -z "${JPY_SESSION_NAME}" ] && export LAB_IPYNB=${JPY_SESSION_NAME##*/}
-
-    case "$1" in
-        *.ipynb) LAB_IPYNB=$1; shift;;
-    esac
+    #case "$1" in
+        #*.ipynb) LAB_IPYNB=$1; shift;;
+    #esac
 
     export LAB_TAG="${PWD##*/}"; shift
     # ----------------------------------------------
