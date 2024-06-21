@@ -79,3 +79,6 @@ function TF_DESTROY {
     __RETURN
 }
 
+function AZ_RESOURCES {
+    az resource list | jq -rc '.[] | { type, name }'
+}
