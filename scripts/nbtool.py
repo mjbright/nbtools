@@ -494,7 +494,7 @@ def replace_code_cell_by_markdown(cell, format_string):
     file_name =    file_name[ 1 : file_name.rfind("<<")-1 ]
 
     file_type=''
-    file_type='txt'
+    # file_type='txt' -> But get's printed - by Firefox at least
 
     format_string = format_string.replace("__FILE__", f"**{file_name}**")
     output_cell_content=f"""{format_string}
@@ -615,6 +615,8 @@ def replace_EOF_backticks( section_title, cell_no, source_lines ):
             DEBUG(f'EOF-backticks replaced in section "{section_title}" cell_no {cell_no} in line "{source_lines[slno]}"')
 
 def process_source_lines(source_lines, cells_data, cell_no, cell_type, EXCLUDED_CODE_CELL, section_title, include_cell, cells, count_sections):
+    source_line0=source_lines[0]
+
     for slno in range(len(source_lines)):
         source_line=source_lines[slno]
         s_line=source_line.rstrip()
