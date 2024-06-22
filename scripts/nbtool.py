@@ -607,7 +607,7 @@ def replace_EOF_backticks( section_title, cell_no, source_lines ):
             source_lines[slno] = '\n'
             DEBUG(f'EOF-backticks replaced in section "{section_title}" cell_no {cell_no} in line "{source_lines[slno]}"')
 
-def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells, count_sections):
+def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells):
     source_line0=source_lines[0]
 
     for slno in range(len(source_lines)):
@@ -772,7 +772,7 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
         if FINAL_CODE_CELL_CHECK( cells_data[cell_no], cell_no):
             cells.append(cell_no)
 
-def process_markdown_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells, count_sections):
+def process_markdown_cell(source_lines, cells_data, cell_no, section_title, include_cell, cells, count_sections):
     source_line0=source_lines[0]
 
     for slno in range(len(source_lines)):
@@ -1030,9 +1030,9 @@ def filter_nb(json_data, DEBUG=False):
               print(f"{NORMAL}")
 
           if cell_type == 'code':
-              process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells, count_sections)
+              process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells)
           elif cell_type == 'markdown':
-              process_markdown_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells, count_sections)
+              process_markdown_cell(source_lines, cells_data, cell_no, section_title, include_cell, cells, count_sections)
           else:
               die(f'Unknown cell_type "{cell_type}"')
 
