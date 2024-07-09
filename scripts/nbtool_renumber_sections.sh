@@ -41,7 +41,7 @@ if [ "$CK1" = "$CK2" ]; then
     exit
 fi
 
-read -p "Overwrite $IPYNB ... (yes)" YES
+read -p "Overwrite $IPYNB (type 'yes') ..." YES
 if [ "$YES" = "yes" ]; then
     set -x
         mv $IPYNB ${IPYNB}.bak
