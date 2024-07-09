@@ -10,7 +10,8 @@ die() { echo -e "$0: die - $*" >&2; exit 1; }
 
 [ -z "${IPYNB}" ] && die "IPYNB parameter missing\n\n\tUsage: $SCRIPT <ipynb> <old_num> <new_num>"
 [ ! -f ${IPYNB} ] && die "No such file '$IPYNB'"
-jq '.' $IPYNB >/dev/null || die "Input $IPYNB is not valid json"
+jq '.' $IPYNB >/dev/null || die "Invalid json: Input file $IPYNB"
+echo "Valid json: $IPYNB"
 [ -z "$OLD_NUM" ] && die "OLD_NUM parameter missing\n\n\tUsage: $SCRIPT <ipynb> <old_num> <new_num>"
 [ -z "$NEW_NUM" ] && die "NEW_NUM parameter missing\n\n\tUsage: $SCRIPT <ipynb> <old_num> <new_num>"
 
@@ -32,7 +33,8 @@ grep -v NB_DEBUG < $IPYNB > ~/tmp/original.nodebug.ipynb
 grep -v NB_DEBUG < $OPYNB > ~/tmp/renumbered.nodebug.ipynb
 #diff $IPYNB ~/tmp/renumbered.ipynb | grep -v NB_DEBUG | less
 diff ~/tmp/original.nodebug.ipynb ~/tmp/renumbered.nodebug.ipynb | less
-jq '.' $OPYNB >/dev/null || die "Output $OPYNB is not valid json"
+jq '.' $OPYNB >/dev/null || die "Invalid json: Output file $OPYNB"
+echo "Valid json: $OPYNB"
 
 CK1=$( cksum < $IPYNB )
 CK2=$( cksum < $OPYNB )
