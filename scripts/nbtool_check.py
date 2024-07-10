@@ -89,15 +89,24 @@ def summarize_nb(ipfile, DEBUG=False):
     #print(f'i/p file={ ipfile } has { len(cells_data) } cells')
     seen = {}
     for cell in cells_data:
-          cell_type=cell['cell_type']
-          if cell_type in seen:
-              seen[ cell_type ] += 1
-          else:
-              seen[ cell_type ] = 1
+        cell_type=cell['cell_type']
+        if cell_type in seen:
+            seen[ cell_type ] += 1
+        else:
+            seen[ cell_type ] = 1
+
+        if cell_type == 'code':
+            if 'outputs' in cell:
+                cell_type = 'outputs'
+                if cell_type in seen:
+                    seen[ cell_type ] += 1
+                else:
+                    seen[ cell_type ] = 1
 
     cell_info=f'{ len(cells_data) } cells:'
     for cell_type in seen:
         cell_info += f' { seen[cell_type] } { cell_type },'
+           
     cell_info = cell_info[:-1]
     print(f'[{ cell_info }] { ipfile }')
     return

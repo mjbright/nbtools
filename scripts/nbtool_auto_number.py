@@ -70,8 +70,11 @@ def main():
     PROG=sys.argv[0]
     a=1
 
+    #print(sys.argv)
     for ipfile in sys.argv[a:]:
-        summarize_nb(ipfile)
+        if not '.ipynb_checkpoints' in ipfile:
+            summarize_nb(ipfile)
+    sys.exit(0)
           
 def PRESS(label):
     print(f'DEBUG[{label} - press enter to continue')
@@ -83,17 +86,30 @@ def summarize_nb(ipfile, DEBUG=False):
     #__regex = re.compile(r"\|?\&?\s*__.*$") #, re.IGNORECASE)
     cells=[]
     cells_data = json_data['cells']
-    print(f'i/p file={ ipfile } has { len(cells_data) } cells')
+    #print(f'i/p file={ ipfile } has { len(cells_data) } cells')
     seen = {}
     for cell in cells_data:
-          cell_type=cell['cell_type']
-          if cell_type in seen:
-              seen[ cell_type ] += 1
-          else:
-              seen[ cell_type ] = 1
+        cell_type=cell['cell_type']
+        if cell_type in seen:
+            seen[ cell_type ] += 1
+        else:
+            seen[ cell_type ] = 1
 
+        if cell_type == 'code':
+            if 'outputs' in cell:
+                cell_type = 'outputs'
+                if cell_type in seen:
+                    seen[ cell_type ] += 1
+                else:
+                    seen[ cell_type ] = 1
+
+    cell_info=f'{ len(cells_data) } cells:'
     for cell_type in seen:
-        print(f'{ seen[cell_type] } { cell_type } cells')
+        cell_info += f' { seen[cell_type] } { cell_type },'
+           
+    cell_info = cell_info[:-1]
+    print(f'[{ cell_info }] { ipfile }')
+    return
 
     #cell_type=cells_data[cell_no]['cell_type']
     
