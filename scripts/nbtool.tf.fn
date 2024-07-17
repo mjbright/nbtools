@@ -82,3 +82,16 @@ function TF_DESTROY {
 function AZ_RESOURCES {
     az resource list | jq -rc '.[] | { type, name }'
 }
+
+function AZ_check {
+    # Check we're studentN !!
+    echo "(visible) Resource groups=$( az group list | jq -rc '.[].name' )"
+
+    RGs=$( az group list | jq -rc '.[].name' )
+
+    if [ "$RGs" != "studentN" ]; then
+        echo "Error: Make sure to copy studentN credentials into ~/.azure"
+        exit 1
+    fi
+    echo "OK"
+}
