@@ -516,6 +516,7 @@ function NB_QUIET {
     NB_QUIET_FILTER_NOTEBOOK $* || __FILTER
     TIMER_STOP "Notebook filtering/conversion"
 }
+
 function NB_FILTER {
     pwd
     NB_FILTER_NOTEBOOK $*
@@ -539,6 +540,10 @@ function NB_QUIET_FILTER_NOTEBOOK {
       CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $R_NB)
       MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $R_NB)
       printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${R_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
+
+      grep -q NB_DEBUG: ${R_NB} &&
+          echo "Warning NB_DEBUG entries seen - $( grep -c NB_DEBUG: ${R_NB} ) in $R_NB"
+          # || echo "OK: No NB_DEBUG entries seen in $R_NB"
     )
 
     # Show die errors though:
@@ -584,6 +589,12 @@ function NB_FILTER_NOTEBOOK {
     __CHECK_NB_DIR
 
     OP_NOTEBOOK=$(ls -1tr $NB_DIR/ | grep filtered.ipynb$ | tail -1)
+    [ `which jq` ] && {
+        set -x
+        jq . < $OP_NOTEBOOK > ${OP_NOTEBOOK}.tmp
+        mv ${OP_NOTEBOOK}.tmp $OP_NOTEBOOK
+        set +x
+    }
     [ -z "$OP_NOTEBOOK" ] && {
         which python3
         echo "[$PWD] Error: failed to find filtered *.ipynb in directory '$NB_DIR'"
