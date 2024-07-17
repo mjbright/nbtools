@@ -356,7 +356,7 @@ def REMOVE_NB_DEBUG(cells_data, cell_no):
     for opno in range(len(cells_data[cell_no]['outputs'])):
         if 'text' in cells_data[cell_no]['outputs'][opno]:
             for textno in range(len(cells_data[cell_no]['outputs'][opno]['text'])):
-                if "__NB_DEBUG" in cells_data[cell_no]['outputs'][opno]['text'][textno]:
+                if "NB_DEBUG: " in cells_data[cell_no]['outputs'][opno]['text'][textno]:
                     cells_data[cell_no]['outputs'][opno]['text'][textno] = ''
              
 def CONVERT_ANSI_CODES2TXT(cells_data, cell_no):
@@ -864,7 +864,7 @@ def filter_nb(json_data, DEBUG=False):
               if 'NB_SET_VAR' in ' '.join(source_lines):
                   DEBUG(f"[cell={cell_no} section={section_title}] NB_SET_VAR variables seen in cell source_lines")
 
-              source_lines.append(f'\n# Code-Cell[{cell_no}] In[{In_cell_no}]\n')
+              source_lines.append(f'\n# Code-Cell[{cell_no}] In[{In_cell_no}]')
 
               # CHECK for empty code cells:
               if len(source_lines) == 0:
