@@ -223,7 +223,7 @@ typeset -f > $FN_0_LIST
 # Source .jupyer.profile, then demonstrate kubectl working:
 
 function DIE {
-    echo "[$PWD] die - $*" | NB_HIGHLIGHT
+    echo "[$PWD] ${BASH_SOURCE[1]##*/}:${FUNCNAME[1]}[${BASH_LINENO[0]}]: die - $*" |& NB_HIGHLIGHT
     env | grep -E "NBTOOL|LAB"
     exit 1
 }
@@ -616,7 +616,7 @@ function NB_FILTER_NOTEBOOK {
 
     # Attempt line-wrapped cells:
     #   based on https://medium.com/znippet/adding-word-wrap-to-jupyter-notebooks-97040d131784
-    OP_NOTEBOOK_LINEWRAPPED=$OP_DIR/${OP_NOTEBOOK%.ipynb}.LineWrapped.ipynb
+    OP_NOTEBOOK_LINEWRAPPED=${OP_NOTEBOOK%.ipynb}.LineWrapped.ipynb
     jq '. + { "MarkdownCell": { "cm_config": { "lineWrapping": true } }, "CodeCell": { "cm_config": { "lineWrapping": true } } }' \
         ${OP_NOTEBOOK} > ${OP_NOTEBOOK_LINEWRAPPED}
 
@@ -699,14 +699,15 @@ function NB_CONVERT {
         CMD="jupyter-nbconvert --to html $OP_NOTEBOOK"
         echo "-- $CMD"; $CMD
 
-        echo "$FRONTMATTER"           > ${LAB_IPYNB%.ipynb}.md
         OP_NOTEBOOK_MD=${OP_NOTEBOOK%.ipynb}.md
+        OP_NOTEBOOK_FM_MD=${OP_NOTEBOOK%.ipynb}.fm.md
+        echo "$FRONTMATTER"           > $OP_NOTEBOOK_FM_MD
         sed \
             -e 's?\.\./\.\./\.\./static/images/?/images/?' \
             -e 's?\.\./images/?/images/?' \
-            $OP_NOTEBOOK_MD >> ${LAB_IPYNB%.ipynb}.md
-        mv     $OP_NOTEBOOK_MD ${OP_NOTEBOOK_MD}.bak
-        cp -a  $OP_NOTEBOOK ${OP_NOTEBOOK}.bak
+            $OP_NOTEBOOK_MD >> $OP_NOTEBOOK_FM_MD
+        # mv     $OP_NOTEBOOK_MD ${OP_NOTEBOOK_MD}.bak
+        # cp -a  $OP_NOTEBOOK ${OP_NOTEBOOK}.bak
 
         NB_CHECK_FILE_SIZE $OP_NOTEBOOK 1000 || {
             #ls -altr $OP_NOTEBOOK
@@ -725,8 +726,9 @@ function NB_CONVERT {
             ls -al ~/tmp/nb.longlines.md
         fi
 
-        NB_CHECK_FILE_SIZE ${LAB_IPYNB%.ipynb}.md 1000 || {
-            DIE "File ${LAB_IPYNB%.ipynb}.md is too small - supsicious"
+        #NB_CHECK_FILE_SIZE ${LAB_IPYNB%.ipynb}.md 1000 || { }
+        NB_CHECK_FILE_SIZE $OP_NOTEBOOK_MD 1000 || {
+            DIE "File $OP_NOTEBOOK_MD is too small - supsicious"
         }
 
         # Sanitize notebook/markdown filename:
@@ -737,7 +739,8 @@ function NB_CONVERT {
         #  Disabled - messes up output cells under Hugo (no black background)
 
         # FILTER_OK_CHECK:
-        echo; ls -altr ${LAB_IPYNB%.ipynb}.md ${NAME}.*  | NB_COLOUR green
+        #echo; ls -altr ${LAB_IPYNB%.ipynb}.md ${NAME}.*  | NB_COLOUR green
+        echo; ls -altr *.ipynb | NB_COLOUR green
         #ls -altr *.md
     )
 }
