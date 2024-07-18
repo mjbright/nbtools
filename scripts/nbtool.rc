@@ -9,8 +9,8 @@ SCRIPT_DIR=$(dirname $SCRIPT)
 
 NB_START=$( date +%s )
 
-# LAB_IPYNB defaults to README.ipynb ... or to 4th argument if .ipynb:
-export LAB_IPYNB=README.ipynb
+# LAB_IPYNB defaults to IP_README.ipynb ... or to 4th argument if .ipynb:
+export LAB_IPYNB=IP_README.ipynb
 [ ! -z "${JPY_SESSION_NAME}" ] && {
      export LAB_IPYNB=${JPY_SESSION_NAME##*/}
      echo "Setting LAB_IPYNB to '$LAB_IPYNB' from \$JPY_SESSION_NAME"
@@ -19,7 +19,7 @@ case "$4" in
     *.ipynb) export LAB_IPYNB=$4;;
 esac
 
-### NO # Assume main lab file is called README.ipynb
+### NO # Assume main lab file is called IP_README.ipynb
 [ ! -f $LAB_IPYNB ] && {
     echo "[$PWD] $SCRIPT: No $LAB_IPYNB in working directory"
     echo "Maybe you renamed a running notebook?"
@@ -27,8 +27,8 @@ esac
     exit 1
 }
 
-#[ ! -f README.ipynb ] && {
-#    echo "[$PWD] $SCRIPT: No README.ipynb in working directory"
+#[ ! -f IP_README.ipynb ] && {
+#    echo "[$PWD] $SCRIPT: No IP_README.ipynb in working directory"
 #    exit 1
 #}
 
