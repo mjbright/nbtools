@@ -8,6 +8,8 @@ import json, sys, re, os
    write_nb(opfile, new_data)
 '''
 
+OP_DIR='other'
+
 # TODO:
 # - add option to put cell_no/type as a comment in cell (only for code cells)
 
@@ -298,7 +300,7 @@ def main():
         for ipfile in sys.argv[a:]:
             print(nb_info('ip', ipfile))
             new_data = filter_nb( read_json(ipfile), DEBUG )
-            opfile=ipfile+'.filtered.ipynb'
+            opfile=OP_DIR+'/'+ipfile+'.filtered.ipynb'
             write_nb(opfile, new_data)
             print(nb_info('op', opfile))
 
@@ -1104,7 +1106,8 @@ def split_nb(json_data, DEBUG=False):
     section_title='UNKNOWN'
     os.mkdir('md')
     markdown_file=f'section_{section_no}.md'
-    markdown_file_path=f'md/{markdown_file}'
+    #markdown_file_path=f'md/{markdown_file}'
+    markdown_file_path=f'{OP_DIR}/{markdown_file}'
 
     sec_cell_no=0
 
@@ -1171,7 +1174,7 @@ def split_nb(json_data, DEBUG=False):
     if current_section_text != '':
         write_markdown(markdown_file_path, cell_no+1, cell_type, section_title, current_section_text)
 
-    writefile('md/index.txt', 'w', md_files_index)
+    writefile(f'{OP_DIR}/index.txt', 'w', md_files_index)
 
 
 if __name__ == "__main__":

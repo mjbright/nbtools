@@ -3,6 +3,9 @@
 # In practice 74 seems to be a good limit for the PDF output (tested using Safari/macOS):
 MAX_LEN_MD=80
 
+# Put intermediate processing files here: in $NB_DIR/
+OP_DIR=other
+
 # Default for SSH functions
 SSH_NODE=worker
 
@@ -483,7 +486,7 @@ function NB_ARCHIVE_SOLUTIONS {
     LAB_NAME="$*"
 
     # set -x
-    LAB_NUM=$( echo $LAB_NAME | sed -e 's/^lab//i' -e 's/ .*//' -e 's/\..*//' )
+    LAB_NUM=$( echo $LAB_NAME | sed -e 's/^lab//i' -e 's/_lab//i' -e 's/ .*//' -e 's/\..*//' )
     # set +x
     #echo "LAB_NUM='$LAB_NUM'"
 
@@ -529,22 +532,26 @@ function NB_QUIET_FILTER_NOTEBOOK {
     ( cd $NB_DIR;
       ls -altrd ${LAB_IPYNB%.ipynb}.md *.ipynb | tail -2 | NB_COLOUR green;
 
-      R_NB=${LAB_IPYNB}
-      TOTAL_CELLS=$(jq -rc '.cells    | length' $R_NB )
-      CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $R_NB)
-      MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $R_NB)
-      printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${R_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
+      IP_NB=${LAB_IPYNB}
+      TOTAL_CELLS=$(jq -rc '.cells    | length' $IP_NB )
+      CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $IP_NB)
+      MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $IP_NB)
+      printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${IP_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
 
-      R_NB=$( ls -1tr *.ipynb | grep -v ${LAB_IPYNB%.ipynb} | tail -1)
-      TOTAL_CELLS=$(jq -rc '.cells    | length' $R_NB )
-      CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $R_NB)
-      MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $R_NB)
-      printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${R_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
+      OP_NB=$( ls -1tr $OP_DIR/*.OP.*.ipynb | grep -v ${LAB_IPYNB%.ipynb} | tail -1)
+      mv $OP_NB .
+      OP_NB=$( filename $OP_NB )
+      TOTAL_CELLS=$(jq -rc '.cells    | length' $OP_NB )
+      CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $OP_NB)
+      MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $OP_NB)
+      printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${OP_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
 
-      grep -q NB_DEBUG: ${R_NB} &&
-          echo "Warning NB_DEBUG entries seen - $( grep -c NB_DEBUG: ${R_NB} ) in $R_NB"
-          # || echo "OK: No NB_DEBUG entries seen in $R_NB"
+      grep -q NB_DEBUG: ${OP_NB} &&
+          echo "Warning NB_DEBUG entries seen - $( grep -c NB_DEBUG: ${OP_NB} ) in $OP_NB"
+          # || echo "OK: No NB_DEBUG entries seen in $OP_NB"
     )
+
+    mv *.sh $OP_DIR/ 2>/dev/null
 
     # Show die errors though:
     grep      " die "       ~/tmp/quiet.filter.notebook.op && __RETURN 1
@@ -557,13 +564,15 @@ function NB_QUIET_FILTER_NOTEBOOK {
 function __CHECK_NB_DIR {
     [ -z "$NB_DIR" ] && NB_DIR=$(cat .dir)
     [ -z "$NB_DIR" ] && DIE "NB_DIR is unset"
-    env | grep ^NB_DIR= || DIE "NB_DIR is not exported"
+    env | grep -q ^NB_DIR= || DIE "NB_DIR is not exported"
     echo "NB_DIR='$NB_DIR'"
 }
 
 function NB_FILTER_NOTEBOOK {
     __CHECK_NB_DIR
     ( cd $NB_DIR;
+
+    mkdir -p $OP_DIR
     
     echo "======== Filtering current notebook [$LAB_IPYNB] ========"
     echo "**** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"
@@ -588,23 +597,26 @@ function NB_FILTER_NOTEBOOK {
     echo "======== FILTERING DONE ========================================================"
     __CHECK_NB_DIR
 
-    OP_NOTEBOOK=$(ls -1tr $NB_DIR/ | grep filtered.ipynb$ | tail -1)
+    OP_NOTEBOOK=$(ls -1tr $NB_DIR/$OP_DIR | grep filtered.ipynb$ | tail -1)
+    OP_NOTEBOOK=$OP_DIR/$OP_NOTEBOOK
+    [ -z "$OP_NOTEBOOK" ] && {
+        which python3
+        echo "[$PWD] Error: failed to find filtered *.ipynb in directory '$NB_DIR/$OP_DIR'"
+        ls -1tr $NB_DIR/$OP_DIR | grep .ipynb$ | NB_REPLACE_HOME_STDIN | sed 's/^/::/'
+        exit 1
+    }
+    echo OP_NOTEBOOK=$OP_NOTEBOOK
+
     [ `which jq` ] && {
         set -x
         jq . < $OP_NOTEBOOK > ${OP_NOTEBOOK}.tmp
         mv ${OP_NOTEBOOK}.tmp $OP_NOTEBOOK
         set +x
     }
-    [ -z "$OP_NOTEBOOK" ] && {
-        which python3
-        echo "[$PWD] Error: failed to find filtered *.ipynb in directory '$NB_DIR'"
-        ls -1tr $NB_DIR/ | grep .ipynb$ | NB_REPLACE_HOME_STDIN | sed 's/^/::/'
-        exit 1
-    }
 
     # Attempt line-wrapped cells:
     #   based on https://medium.com/znippet/adding-word-wrap-to-jupyter-notebooks-97040d131784
-    OP_NOTEBOOK_LINEWRAPPED=${OP_NOTEBOOK%.ipynb}.LineWrapped.ipynb
+    OP_NOTEBOOK_LINEWRAPPED=$OP_DIR/${OP_NOTEBOOK%.ipynb}.LineWrapped.ipynb
     jq '. + { "MarkdownCell": { "cm_config": { "lineWrapping": true } }, "CodeCell": { "cm_config": { "lineWrapping": true } } }' \
         ${OP_NOTEBOOK} > ${OP_NOTEBOOK_LINEWRAPPED}
 
@@ -627,7 +639,7 @@ function NB_FILTER_NOTEBOOK {
             grep -nE -A 5 "EXCLUDE|FN_EXCL" ${OP_NOTEBOOK%.ipynb}.sh # filtered
         fi
 
-        ls -altr ${LAB_IPYNB}  ${LAB_IPYNB%.ipynb}.sh
+        ls -altr ${LAB_IPYNB}  $OP_DIR/${LAB_IPYNB%.ipynb}.sh
         echo "-------------------------------------------------"
     }
 
