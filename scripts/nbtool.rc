@@ -1,16 +1,20 @@
 
-set +x
+# set +x
+
+[ "$1" = "-x" ] && { shift; set -x; }
+[ "$1" = "+x" ] && { shift; set +x; }
 
 SCRIPT=${BASH_SOURCE[0]}
 SCRIPT_DIR=$(dirname $SCRIPT)
 
 NB_START=$( date +%s )
 
-[ "$1" = "-x" ] && { shift; set -x; }
-
 # LAB_IPYNB defaults to README.ipynb ... or to 4th argument if .ipynb:
 export LAB_IPYNB=README.ipynb
-[ ! -z "${JPY_SESSION_NAME}" ] && export LAB_IPYNB=${JPY_SESSION_NAME##*/}
+[ ! -z "${JPY_SESSION_NAME}" ] && {
+     export LAB_IPYNB=${JPY_SESSION_NAME##*/}
+     echo "Setting LAB_IPYNB to '$LAB_IPYNB' from \$JPY_SESSION_NAME"
+}
 case "$4" in
     *.ipynb) export LAB_IPYNB=$4;;
 esac
@@ -18,6 +22,8 @@ esac
 ### NO # Assume main lab file is called README.ipynb
 [ ! -f $LAB_IPYNB ] && {
     echo "[$PWD] $SCRIPT: No $LAB_IPYNB in working directory"
+    echo "Maybe you renamed a running notebook?"
+    echo "  -> Try saving/closing/reopening notebook"
     exit 1
 }
 
