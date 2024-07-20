@@ -71,6 +71,7 @@ if [ ! -z "$1" ]; then
     export LAB_WEIGHT="$1"; shift
     export LAB_MODE="$1"; shift
     export LAB_NAME="$1"; shift
+    echo $LAB_NAME | grep "\.OP\." || die "Bad name for o/p file: should be *.OP.*.ipynb"
 
     #case "$1" in
         #*.ipynb) LAB_IPYNB=$1; shift;;
