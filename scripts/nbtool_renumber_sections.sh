@@ -46,7 +46,8 @@ fi
 read -p "Overwrite $IPYNB (type 'yes') ..." YES
 if [ "$YES" = "yes" ]; then
     set -x
-        mv $IPYNB ${IPYNB}.bak
+        mkdir -p other/
+        mv $IPYNB other/${IPYNB}.bak
         mv $OPYNB $IPYNB
     set +x
 fi
