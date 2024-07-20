@@ -539,8 +539,17 @@ function NB_QUIET_FILTER_NOTEBOOK {
       printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${IP_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
 
       OP_NB=$( ls -1tr $OP_DIR/*.OP.*.ipynb | grep -v ${LAB_IPYNB%.ipynb} | tail -1)
+      [ -z "$OP_NB" ] && {
+          echo "Failed to find output notebook"
+          set -x
+              ls -1tr $OP_DIR/ | grep -v ^IP_
+              ls -1tr $OP_DIR/*.OP.*.ipynb 
+              ls -1tr $OP_DIR/*.OP.*.ipynb | grep -v ${LAB_IPYNB%.ipynb} | tail -1
+              return
+          set +x
+      }
       mv $OP_NB .
-      OP_NB=$( filename $OP_NB )
+      OP_NB=$( basename $OP_NB )
       TOTAL_CELLS=$(jq -rc '.cells    | length' $OP_NB )
       CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $OP_NB)
       MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $OP_NB)
