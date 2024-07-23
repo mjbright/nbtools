@@ -34,6 +34,16 @@ function NB_SAVE {
     return 1
 }
 
+function NB_SAVE_LAB_STEP {
+    STEP=$1; shift
+
+    mkdir -p $STEP/
+    rm -rf $STEP/* 2>/dev/null
+
+    cp -a *.tf *.tfvars tpl/ *.cfg $STEP/ 2>/dev/null
+    ls -al $STEP/
+}
+
 #echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"
 
 which banner >/dev/null && {
