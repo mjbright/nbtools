@@ -1,5 +1,5 @@
 
-# Terraform-specific:
+## -- Terraform functions: -----------------------------------
 
 function TF_INIT {
     NB_DEBUG terraform init $*
@@ -79,6 +79,112 @@ function TF_DESTROY {
     __RETURN
 }
 
+## -- Terragrunt functions: -----------------------------------
+
+function TG_RUN_ALL {
+    SUBCOMMAND=$1; shift
+    if [ "$SUBCOMMAND" = "state" ]; then
+        #echo "STATE-sub='$1'"
+        case "$1" in
+            list) SUBCOMMAND="state list";;
+            show) SUBCOMMAND="state show";;
+        esac
+        shift
+    fi
+    #AUTO="-auto-approve"
+    AUTO="--terragrunt-non-interactive"
+
+    TIME=""
+    local QUIET=0
+    NB_DEBUG terragrunt run-all $SUBCOMMAND $*
+
+    [ -z "$1"     ] && TIME="time "
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-q" ] && { QUIET=1; shift; }
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-qt" ] && { QUIET=1; TIME="time "; shift; }
+    TIME=""; TIMER_START
+
+    #set -x
+    if [ $QUIET -ne 0 ]; then
+        ${TIME}terragrunt run-all $SUBCOMMAND $AUTO $* |
+            tee ~/tmp/TG_runall_$SUBCOMMAND.op |& grep -iE "complet|fail|error| to add|No changes"
+    else
+        ${TIME}terragrunt run-all $SUBCOMMAND $AUTO $*
+    fi
+    #set +x
+    NB_DEBUG $( TIMER_STOP 'terragrunt $SUBCOMMAND' )
+    __RETURN
+}
+
+function TG_PLAN {
+    TIME=""
+    local QUIET=0
+    NB_DEBUG terragrunt plan $*
+
+    [ -z "$1"     ] && TIME="time "
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-q" ] && { QUIET=1; shift; }
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-qt" ] && { QUIET=1; TIME="time "; shift; }
+    TIME=""; TIMER_START
+
+    if [ $QUIET -ne 0 ]; then
+        ${TIME}terragrunt plan $* |
+            tee ~/tmp/TG_plan.op |& grep -iE "complet|fail|error| to add|No changes"
+    else
+        ${TIME}terragrunt plan $*
+    fi
+    NB_DEBUG $( TIMER_STOP 'terragrunt plan' )
+    __RETURN
+}
+
+function TG_APPLY {
+    TIME=""
+    local QUIET=0
+    NB_DEBUG terragrunt apply $*
+
+    [ -z "$1"     ] && TIME="time "
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-q" ] && { QUIET=1; shift; }
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-qt" ] && { QUIET=1; TIME="time "; shift; }
+    TIME=""; TIMER_START
+
+    if [ $QUIET -ne 0 ]; then
+        ${TIME}terragrunt apply -auto-approve $* |
+            tee ~/tmp/TG_apply.op |& grep -iE "complet|fail|error| to add|No changes"
+    else
+        ${TIME}terragrunt apply -auto-approve $*
+    fi
+    NB_DEBUG $( TIMER_STOP 'terragrunt apply' )
+    __RETURN
+}
+
+function TG_DESTROY {
+    TIME=""
+    local QUIET=0
+    NB_DEBUG terragrunt destroy $*
+
+    [ -z "$1"     ] && TIME="time "
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-q" ] && { QUIET=1; shift; }
+    [ "$1" = "-t" ] && { TIME="time "; shift; }
+    [ "$1" = "-qt" ] && { QUIET=1; TIME="time "; shift; }
+    TIME=""; TIMER_START
+
+    if [ $QUIET -ne 0 ]; then
+        ${TIME}terragrunt destroy -auto-approve $* |
+            tee ~/tmp/TG_destroy.op |& grep -iE "complet|fail|error| to add|No changes"
+    else
+        ${TIME}terragrunt destroy -auto-approve $*
+    fi
+    NB_DEBUG $( TIMER_STOP 'terragrunt destroy' )
+    __RETURN
+}
+
+## -- Azure functions: -----------------------------------
+
 function AZ_RESOURCES {
     az resource list | jq -rc '.[] | { type, name }'
 }
@@ -95,3 +201,4 @@ function AZ_check {
     fi
     echo "OK"
 }
+
