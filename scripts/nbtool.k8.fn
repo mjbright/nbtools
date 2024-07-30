@@ -198,7 +198,7 @@ function K_WAIT_CMD {
 # 
 # See - https://mrkaran.dev/posts/kubectl-wait/
 
-_K_WAIT_DEPLOY() {
+function K_WAIT_DEPLOY {
     if [ "$1" = "-n" ]; then
         shift; K_SET_NAMESPACE $1; shift
     else
@@ -317,6 +317,27 @@ function K_WAIT_NO_PODS {
 #WAIT_PODS quiz
 #WAIT_PODS quiz
 #WAIT_PODS quiz "ContainerCreating|Running"
+
+function K_CLEANUP {
+    K_SET_NAMESPACE "$1"
+    echo
+    echo "======== CLEANUP namespace($NS) ==========================="
+    #kubectl get ns
+    #kubectl delete ns frontend
+    echo -n "Deployments: "
+    kubectl -n $NS delete deploy --all
+    echo -n "Services:    "
+    kubectl -n $NS delete service --all
+    sleep 2
+    echo -n "Pods:        "
+    kubectl -n $NS delete pods --all
+
+    #kubectl taint node master node-role.kubernetes.io/master:NoSchedule
+    echo
+    echo "======== Remaining pods across all namespaces ==========================="
+    kubectl get pods -A
+    K_WAIT_NO_PODS
+}
 
 # MISC ....... FUNCTIONS: ---------------------------------------------
 
