@@ -332,6 +332,10 @@ function NB_INIT_NOTEBOOK {
     # To be used in markdown front-matter, picked up by Hugo/Printing to give PDF filename ...
     TITLE_MODE=""
     case $LAB_MODE in
+        Ansible)
+            echo "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN
+            TITLE_MODE="ANS"
+            ;;
         Terraform)
             echo "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN
             TITLE_MODE="TF"
