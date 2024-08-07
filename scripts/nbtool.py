@@ -610,6 +610,9 @@ def replace_EOF_backticks( section_title, cell_no, source_lines ):
             DEBUG(f'EOF-backticks replaced in section "{section_title}" cell_no {cell_no} in line "{source_lines[slno]}"')
 
 def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells):
+    # ??
+    CELL_regex = re.compile(r"\|?\&?\s*__.*$") #, re.IGNORECASE)
+
     source_line0=source_lines[0]
 
     for slno in range(len(source_lines)):
@@ -738,7 +741,7 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
             if DEBUG:
                 orig=cells_data[cell_no]['source'][slno]
             cells_data[cell_no]['source'][slno] = \
-                __regex.sub("", cells_data[cell_no]['source'][slno])
+                CELL_regex.sub("", cells_data[cell_no]['source'][slno])
             if DEBUG:
                 new=cells_data[cell_no]['source'][slno]
                 if new != orig:
@@ -836,7 +839,6 @@ def filter_nb(json_data, DEBUG=False):
     global VARS_SEEN
     global QUESTIONS, NUM_QUESTIONS
 
-    __regex = re.compile(r"\|?\&?\s*__.*$") #, re.IGNORECASE)
     include=False
     cells=[]
     cells_data = json_data['cells']
