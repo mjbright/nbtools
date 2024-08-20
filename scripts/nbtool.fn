@@ -425,6 +425,11 @@ function NB_LAB_ENV {
 
     INFO="Unknown LAB_MODE"
     case $LAB_MODE in
+        Ansible)
+            __ANS_VERSION=$( ansible --version | grep -m1 core | sed -e 's/.*core //' -e 's/]//' )
+            INFO="Ansible $__ANS_VERSION"
+            TITLE_MODE+="_$__ANS_VERSION"
+            ;;
         Terraform)
             #__TF_VERSION=$( which terraform >/dev/null && terraform --version || echo No terraform )
             __TF_VERSION=$( which terraform >/dev/null && terraform version -json | jq -rc '.terraform_version' || echo missing )
