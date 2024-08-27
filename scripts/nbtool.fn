@@ -560,7 +560,7 @@ function NB_QUIET_FILTER_NOTEBOOK {
       #OP_NB=$( ls -1tr $OP_DIR/*.OP.*.ipynb | grep -v ${LAB_IPYNB%.ipynb} | tail -1)
       OP_NB=$( ls -1tr $OP_DIR/OP_*.ipynb | grep -v ${LAB_IPYNB%.ipynb} | tail -1)
       [ -z "$OP_NB" ] && {
-          echo "Failed to find output notebook"
+          echo "NB_QUIET_FILTER_NOTEBOOK: Failed to find output notebook"
           set -x
               ls -1tr $OP_DIR/ | grep -v ^IP_
               ls -1tr $OP_DIR/OP_*.ipynb 
@@ -626,6 +626,9 @@ function NB_FILTER_NOTEBOOK {
     echo "======== FILTERING DONE ========================================================"
     __CHECK_NB_DIR
 
+    set -x 
+    ls -1tr $NB_DIR/$OP_DIR | grep filtered.ipynb$
+    set +x
     OP_NOTEBOOK=$(ls -1tr $NB_DIR/$OP_DIR | grep filtered.ipynb$ | tail -1)
     OP_NOTEBOOK=$OP_DIR/$OP_NOTEBOOK
     [ -z "$OP_NOTEBOOK" ] && {
@@ -634,7 +637,12 @@ function NB_FILTER_NOTEBOOK {
         ls -1tr $NB_DIR/$OP_DIR | grep .ipynb$ | NB_REPLACE_HOME_STDIN | sed 's/^/::/'
         exit 1
     }
+    [ ! -f "$OP_NOTEBOOK" ] && {
+        echo; echo "Notebook processing failed"
+        DIE "Not a file: OP_NOTEBOOK='$OP_NOTEBOOK'"
+    }
     echo OP_NOTEBOOK=$OP_NOTEBOOK
+    # DIE "OK?"
 
     [ `which jq` ] && {
         set -x
