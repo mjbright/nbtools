@@ -30,7 +30,7 @@ function NB_SAVE {
     echo
     echo   $*
     START_S=$NB_START
-    TIMER_STOP "Execution stopped: SAVE NOTEBOOK BEFORE EXECUTING NB_QUIET CELL"
+    TIMER_STOP "[$(date)] Execution stopped: SAVE NOTEBOOK BEFORE EXECUTING NB_QUIET CELL"
     return 1
 }
 
