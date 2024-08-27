@@ -637,9 +637,19 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
 
             if '__' in source_line:
                 o = source_line
+                # NB_FILE & $__IP debugging because? ( num_cell_source_lines != num_source_lines ) ?
+                # TODO: DEBUG print(f'old source_line="{ source_line }"')
                 source_line = replace_vars_in_line(source_line, VARS_SEEN)
+                # TODO: DEBUG print(f'new source_line="{ source_line }"')
                 show_vars_seen('CODE --', source_line, cell_no)
 
+                num_cell_source_lines=len(cells_data[cell_no]['source'])
+                num_source_lines=len(source_lines)
+                if slno >= num_cell_source_lines:
+                    print(f'INFO: num_source_lines={ num_source_lines } num_cell_source_lines={ num_cell_source_lines }')
+                    print(f'ERROR: [cell_no={cell_no}] source_lines={len(cells_data[cell_no]['source'])} slno={slno}\n')
+                    print( '\n\t' + '\n\t'.join( cells_data[cell_no]['source']) )
+                    #sys.exit(1) XXXXXX
                 cells_data[cell_no]['source'][slno] = source_line
 
         # Pragma FOREACH (use singular form of variable e.g. __POD_IP which will be populated form __POD_IPS)
