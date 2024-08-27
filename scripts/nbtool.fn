@@ -557,8 +557,7 @@ function NB_QUIET_FILTER_NOTEBOOK {
       MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $IP_NB)
       printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${IP_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
 
-      #OP_NB=$( ls -1tr $OP_DIR/*.OP.*.ipynb | grep -v ${LAB_IPYNB%.ipynb} | tail -1)
-      OP_NB=$( ls -1tr $OP_DIR/OP_*.ipynb | grep -v ${LAB_IPYNB%.ipynb} | tail -1)
+      OP_NB=$( ls -1tr $NB_DIR/OP_*.ipynb | tail -1 )
       [ -z "$OP_NB" ] && {
           echo "NB_QUIET_FILTER_NOTEBOOK: Failed to find output notebook"
           set -x
@@ -568,7 +567,6 @@ function NB_QUIET_FILTER_NOTEBOOK {
               return
           set +x
       }
-      mv $OP_NB .
       OP_NB=$( basename $OP_NB )
       TOTAL_CELLS=$(jq -rc '.cells    | length' $OP_NB )
       CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $OP_NB)
@@ -647,6 +645,7 @@ function NB_FILTER_NOTEBOOK {
     [ `which jq` ] && {
         set -x
         jq . < $OP_NOTEBOOK > ${OP_NOTEBOOK}.tmp
+        echo "-------- mv ${OP_NOTEBOOK}.tmp $OP_NOTEBOOK"
         mv ${OP_NOTEBOOK}.tmp $OP_NOTEBOOK
         set +x
     }
@@ -770,7 +769,9 @@ function NB_CONVERT {
 
         # Sanitize notebook/markdown filename:
         NAME=$( echo $LAB_NAME | sed -e 's/  */_/g' -e 's/_-_/-/g' -e 's/\._/\./' )
+        set -x
         mv $OP_NOTEBOOK ${NAME}.ipynb
+        set +x
 
         ## Remove leading spaces from markdown file:
         #  Disabled - messes up output cells under Hugo (no black background)
