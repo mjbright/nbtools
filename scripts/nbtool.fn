@@ -769,8 +769,11 @@ function NB_CONVERT {
 
         # Sanitize notebook/markdown filename:
         NAME=$( echo $LAB_NAME | sed -e 's/  */_/g' -e 's/_-_/-/g' -e 's/\._/\./' )
+
+        # MOVE FINAL OP_NOTEBOOK and OP_MARKDOWN into place:
         set -x
-        mv $OP_NOTEBOOK ${NAME}.ipynb
+            mv $OP_NOTEBOOK_FM_MD ./${NAME}.md
+            mv $OP_NOTEBOOK ${NAME}.ipynb
         set +x
 
         ## Remove leading spaces from markdown file:
