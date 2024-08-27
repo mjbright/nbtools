@@ -1,7 +1,12 @@
 
 # nbtool
 
+# Possible problems with variable replacement
+
+- replaces value surrounded by single quotes ... probably OK everywhere ... probably ...
+
 # ENV VAR BASED filtering / conditionals
+
 
 ## Outside of cells
 - EXCLUDE_SECTION & INCLUDE_SECTION to include variable, e.g.  "shared" or "individual"

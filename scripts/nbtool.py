@@ -396,6 +396,9 @@ def substitute_vars_in_line(source_line, slno, VARS_SEEN):
             new_line=new_line.replace('$__'+var, VARS_SEEN[var])
 
     if new_line != source_line:
+        print(f"[line{slno}]: {var} seen in '{source_line}' will replace vars [{vars_seen}]")
+        print(f"    BEFORE: '{source_line}'")
+        print(f"    AFTER:  '{new_line}'")
         DEBUG(f"[line{slno}]: {var} seen in '{source_line}' will replace vars [{vars_seen}]")
         DEBUG(f"===> '{new_line}'")
     return new_line
@@ -474,6 +477,11 @@ def replace_code_cell_by_markdown(cell, format_string):
 
     slno_to_delete=0
     for slno in range(len(source_lines)):
+        # FIX for NB_FILE /$__var replacement bug ...
+        # replace variables in markdown here ...
+        if '$__' in source_lines[slno]:
+            source_lines[slno] = replace_vars_in_line( source_lines[slno], VARS_SEEN)
+
         if '>>tofile:' in source_lines[slno]:
             source_lines[slno]='____TO_REMOVE____'
             slno_to_delete+=1
