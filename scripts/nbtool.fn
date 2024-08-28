@@ -186,6 +186,16 @@ function NB_FILE_A {
     __NB_FILE_COMMON -a $FILE
 }
 
+function NB_FILE_M {
+    # NOTE: nbtool.py to replace this code_cell with markdown cell to say append file with these contents
+    FILE="$1"; shift
+    local LOG=/tmp/__FILE_M
+
+    # Same treatment as NB_FILE, just create file (but nbtool.py inserts a "modify" message):
+    echo "[$PWD] Modifying file '$FILE'" >$LOG
+    __NB_FILE_COMMON $FILE
+}
+
 #function NB_COLOUR { grep --color always ''; }
 #function NB_COLOUR { sed -e 's/^/\\01b[1;34m/' -e 's/$/\\01b[0m/'; }
 
