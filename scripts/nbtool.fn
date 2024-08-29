@@ -345,6 +345,10 @@ function NB_INIT_NOTEBOOK {
         Ansible)
             echo "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN
             TITLE_MODE="ANS"
+            # To avoid annoying warning messages:
+            export ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3
+            # To avoid key check prompts (from ansible, not ssh):
+            export ANSIBLE_HOST_KEY_CHECKING=False
             ;;
         Terraform)
             echo "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN
