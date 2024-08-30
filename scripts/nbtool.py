@@ -512,8 +512,8 @@ def replace_code_cell_by_markdown(cell, format_string):
     cell['cell_type']='markdown'
 
     # Remove keys from cell:
-    cell.pop('outputs')
-    cell.pop('execution_count')
+    if 'outputs'         in cell: cell.pop('outputs')
+    if 'execution_count' in cell: cell.pop('execution_count')
 
     cell['source'] = [ output_cell_content ]
     DEBUG(f"cell type/keys AFTER: { cell['cell_type'] }, { cell.keys() }")
