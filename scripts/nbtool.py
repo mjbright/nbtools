@@ -1015,7 +1015,7 @@ def filter_nb(json_data, DEBUG=False):
               if source_line0.find("NB_FILE") == 0:
                   replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
                   replace_code_cell_by_markdown( cells_data[cell_no], 
-                      "Create a new file __FILE__ with the following content:")
+                      "Create a new file (or modify existing) __FILE__ with the following content:")
 
               if source_line0.find("NB_FILE_M") == 0:
                   replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
