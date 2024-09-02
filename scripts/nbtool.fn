@@ -421,9 +421,8 @@ function NB_INIT_NOTEBOOK {
     PDF_NAME=$( echo "$LAB_NAME" | sed -e 's/  */_/g' -e "s/^/${TITLE_MODE}_/" -e 's/_-_/-/g' )
     MD_SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
 
-    echo "NB_DIR=$NB_DIR"
-    echo "NB=$NB"
-    NB_FILTER_NOTEBOOK $NB
+    echo "[NB=$( basename NB )] in NB_DIR=$NB_DIR"
+    # NB_FILTER_NOTEBOOK $NB
 }
 
 function NB_LAB_ENV {
