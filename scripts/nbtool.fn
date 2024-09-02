@@ -243,8 +243,20 @@ typeset -f > $FN_0_LIST
 # Source .jupyer.profile, then demonstrate kubectl working:
 
 function DIE {
-    echo "[$PWD] ${BASH_SOURCE[1]##*/}:${FUNCNAME[1]}[${BASH_LINENO[0]}]: die - $*" |& NB_HIGHLIGHT
+    echo "==== START_DIE"
+    #echo "====" |& NB_HIGHLIGHT
+    #echo "====" >&2
+    echo "[$PWD]" |& NB_HIGHLIGHT
+    echo "${BASH_SOURCE[1]##*/}:${FUNCNAME[1]}[${BASH_LINENO[0]}]: DIE - $*" |& NB_HIGHLIGHT
+    ls -al ~/tmp/quiet.filter.notebook.op
+    if [ -f ~/tmp/quiet.filter.notebook.op ]; then
+        echo "... filtering notebook - refer to ~/tmp/quiet.filter.notebook.op"
+        ls -altr ~/tmp/quiet.filter.notebook.op
+        wc -l    ~/tmp/quiet.filter.notebook.op
+        awk '/==== FILTERING NOTEBOOK/,/==== FILTERING DONE/ { print $0; }' ~/tmp/quiet.filter.notebook.op
+    fi >&2
     env | grep -E "NBTOOL|LAB"
+    echo "==== END_DIE"
     exit 1
 }
 
@@ -326,7 +338,7 @@ function NB_INIT_NOTEBOOK {
         if [ -f .dir ]; then
             # Detect moved dir with out of date ~/.dir
             [ "$PWD" != "$(cat .dir)" ] && DIE ".dir out of date";
-            echo "Setting NB_DIR=$PWD"
+            echo "NB_INIT_NOTEBOOK: Setting NB_DIR=$PWD"
             NB_DIR=$PWD
         else
             echo $PWD > .dir
@@ -336,7 +348,7 @@ function NB_INIT_NOTEBOOK {
         #NB_DIR=$(cat .dir)
         export NB_DIR
         NB=$NB_DIR/$NB
-        echo "NB_DIR=$NB_DIR" | NB_HIGHLIGHT
+        echo "NB_INIT_NOTEBOOK: NB_DIR=$NB_DIR" | NB_HIGHLIGHT
     fi
 
     # To be used in markdown front-matter, picked up by Hugo/Printing to give PDF filename ...
@@ -421,7 +433,7 @@ function NB_INIT_NOTEBOOK {
     PDF_NAME=$( echo "$LAB_NAME" | sed -e 's/  */_/g' -e "s/^/${TITLE_MODE}_/" -e 's/_-_/-/g' )
     MD_SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
 
-    echo "[NB=$( basename NB )] in NB_DIR=$NB_DIR"
+    echo "[NB=$( basename $NB )] in NB_DIR=$NB_DIR"
     # NB_FILTER_NOTEBOOK $NB
 }
 
@@ -462,6 +474,7 @@ function __NB_LAB_ENV {
             __ANS_VERSION=$( ansible --version | grep -m1 core | sed -e 's/.*core //' -e 's/]//' )
             INFO="Ansible $__ANS_VERSION"
             TITLE_MODE+="_$__ANS_VERSION"
+            TOOL_VERSION="$__ANS_VERSION"
             ;;
         Terraform)
             #__TF_VERSION=$( which terraform >/dev/null && terraform --version || echo No terraform )
@@ -469,23 +482,28 @@ function __NB_LAB_ENV {
             # terraform version | awk '/^Terraform / { print $2; }'
             INFO="terraform $__TF_VERSION"
             TITLE_MODE+="_$__TF_VERSION"
+            TOOL_VERSION="$__TF_VERSION"
             ;;
         Docker)
             if which docker >/dev/null; then
                 INFO=$( docker version --format '{{.Server.Version}}' | grep -A 1 Engine | awk '/ Version:/ { print $2; }' )
                 TITLE_MODE+="_$INFO"
+                TOOL_VERSION="$INFO"
             else
                 echo "************ NO DOCKER ***************"
                 INFO="No-Docker"
+                TOOL_VERSION=""
             fi
             ;;
         Rego)
             if which opa >/dev/null; then
                 INFO=$( opa version | awk '/^Version: / { print $2; exit(0); }' )
                 TITLE_MODE+="_opa_$INFO"
+                TOOL_VERSION="$INFO"
             else
                 echo "************ NO OPA ***************"
                 INFO="No-OPA"
+                TOOL_VERSION=""
             fi
             ;;
         Kubernetes)
@@ -497,6 +515,7 @@ function __NB_LAB_ENV {
  kubectl version -o json |& jq -rc '{ client: .clientVersion.gitVersion, server: .serverVersion.gitVersion } | values[]' |& sed -e '1s/^/Client /' -e '2s/^/Server /' )
             INFO=$K8S_VERSION
             TITLE_MODE+="_$K8S_VERSION"
+            TOOL_VERSION="$K8S_VERSION"
             ;;
     esac
                   
@@ -522,6 +541,7 @@ function MD_SET_FRONTMATTER {
 title:  $__TITLE
 date:   $__DATE
 weight: $__WEIGHT
+toolversion: $TOOL_VERSION
 ---
 
 EOF
@@ -574,12 +594,22 @@ function NB_FILTER {
     NB_FILTER_NOTEBOOK $*
 }
 
+function SAVE_NB_SECTIONS {
+    jq '.cells[] | select(.cell_type == "markdown") | .source ' $OP_NB |
+        grep "# " | sed -e 's/^ *"//' -e 's/.*\\n# /# /' | grep "^#* [1-9]" | sed -e 's/\\n"//' -e 's/,$//'
+}
+
 function NB_QUIET_FILTER_NOTEBOOK {
     pwd
+    rm -f ~/tmp/quiet.filter.notebook.op
     NB_FILTER_NOTEBOOK $* > ~/tmp/quiet.filter.notebook.op 2>&1
+    ls -al ~/tmp/quiet.filter.notebook.op | NB_COLOUR red
     __CHECK_NB_DIR
     ( cd $NB_DIR;
-      ls -altrd ${LAB_IPYNB%.ipynb}.md *.ipynb | tail -2 | NB_COLOUR green;
+      #ls -altrd ${LAB_IPYNB%.ipynb}.md *.ipynb | tail -2 | NB_COLOUR green;
+      # echo HERE | NB_COLOUR blue
+      ls -altrd ${LAB_IPYNB%.ipynb}.md *.ipynb | NB_COLOUR green;
+      # echo HERE | NB_COLOUR blue
 
       IP_NB=${LAB_IPYNB}
       TOTAL_CELLS=$(jq -rc '.cells    | length' $IP_NB )
@@ -597,6 +627,12 @@ function NB_QUIET_FILTER_NOTEBOOK {
               return
           set +x
       }
+
+      SECTIONS_FILE=$( basename $OP_NB )
+      SECTIONS_FILE=${SECTIONS_FILE%.ipynb}
+      SECTIONS_FILE=SECTIONS_${SECTIONS_FILE#OP_}.list
+      SAVE_NB_SECTIONS $OP_NB > $NB_DIR/$SECTIONS_FILE
+
       OP_NB=$( basename $OP_NB )
       TOTAL_CELLS=$(jq -rc '.cells    | length' $OP_NB )
       CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $OP_NB)
@@ -610,8 +646,9 @@ function NB_QUIET_FILTER_NOTEBOOK {
 
     mv *.sh $OP_DIR/ 2>/dev/null
 
-    # Show die errors though:
-    grep      " die "       ~/tmp/quiet.filter.notebook.op && __RETURN 1
+    # Show DIE errors though:
+    awk '/==== START_DIE/,/==== END_DIE/ { print $0; }' ~/tmp/quiet.filter.notebook.op | NB_COLOUR red
+    grep -i   " DIE "       ~/tmp/quiet.filter.notebook.op && __RETURN 1
     grep -A30 "^Traceback " ~/tmp/quiet.filter.notebook.op && __RETURN 1
 
     grep "long lines"       ~/tmp/quiet.filter.notebook.op
@@ -627,7 +664,7 @@ function __CHECK_NB_DIR {
     [ -z "$NB_DIR" ] && NB_DIR=$(cat .dir)
     [ -z "$NB_DIR" ] && DIE "NB_DIR is unset"
     env | grep -q ^NB_DIR= || DIE "NB_DIR is not exported"
-    echo "NB_DIR='$NB_DIR'"
+    echo "__CHECK_NB_DIR: NB_DIR='$NB_DIR'"
 }
 
 function NB_FILTER_NOTEBOOK {
@@ -766,7 +803,7 @@ function NB_CONVERT {
         #   command | TREAT_OUTPUT
         #   command | TREAT_OUTPUT yaml
 
-        [ ! -f $OP_NOTEBOOK ] && die "No such 'output' notebook '$OP_NOTEBOOK' as input to nbconvert"
+        [ ! -f $OP_NOTEBOOK ] && DIE "No such 'output' notebook '$OP_NOTEBOOK' as input to nbconvert"
         ls -al $OP_NOTEBOOK
         CMD="jupyter-nbconvert --to markdown $OP_NOTEBOOK"
         echo "-- $CMD"; $CMD
@@ -774,7 +811,7 @@ function NB_CONVERT {
         #echo "-- $CMD"; $CMD
 
         OP_NOTEBOOK_MD=${OP_NOTEBOOK%.ipynb}.md
-        [ ! -f $OP_NOTEBOOK_MD ] && die "No such 'output' notebook '$OP_NOTEBOOK_MD' from nbconvert"
+        [ ! -f $OP_NOTEBOOK_MD ] && DIE "No such 'output' notebook '$OP_NOTEBOOK_MD' from nbconvert"
         ls -al $OP_NOTEBOOK_MD
         OP_NOTEBOOK_FM_MD=${OP_NOTEBOOK%.ipynb}.fm.md
         echo "$FRONTMATTER"           > $OP_NOTEBOOK_FM_MD
