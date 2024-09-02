@@ -623,6 +623,17 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
 
     source_line0=source_lines[0]
 
+    # TODO: Write a create cell function: createCell(type, source, outputs)
+    # Pragma NB_LAB_ENV: remove code cell, keep only output ...
+    if source_line0.find("NB_LAB_ENV")  == 0:
+        if 'outputs' in cells_data[cell_no]:
+            cells_data[cell_no]['source']  = cells_data[cell_no]['outputs'][0]['text']
+            cells_data[cell_no]['cell_type'] = 'markdown'
+            cells_data[cell_no].pop('execution_count')
+            cells_data[cell_no].pop('outputs')
+        cells.append(cell_no)
+        return
+
     for slno in range(len(source_lines)):
         source_line=source_lines[slno]
         s_line=source_line.rstrip()
@@ -1031,6 +1042,7 @@ def filter_nb(json_data, DEBUG=False):
           source_line_0=source_lines[0]
 
           # TODO: REMOVE/REPLACE/CHANGE-NAME?? Pragma | CODE(command)
+          # TODO: What was '__CODE', is it now NB_CODE ??
           if source_line_0.find("__CODE") == 0 and len(cells_data[cell_no]['outputs']) != 0:
               nl='\n'
               print('---- BEFORE ------------------')

@@ -425,7 +425,27 @@ function NB_INIT_NOTEBOOK {
     # NB_FILTER_NOTEBOOK $NB
 }
 
+# Old code cell version:
+function NB_LAB_ENV_CODE {
+    __NB_LAB_ENV
+
+    echo "# OLD_VERSION: Notebook last generation:"
+    echo "# OLD_VERSION: - $(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
+    [ ! -z "$REPO" ] && echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
+}
+
+# New markdown cell version:
 function NB_LAB_ENV {
+    __NB_LAB_ENV
+
+    echo "<pre> <code class='labenv'>"
+    echo "Notebook last generation:"
+    echo "- $(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
+    [ ! -z "$REPO" ] && echo "- git repo ${REPO} last commit ${DATE}: ${SHA}"
+    echo "</code> </pre>"
+}
+
+function __NB_LAB_ENV {
     #set -x
     local REPO=""
     local SHA=""
@@ -481,9 +501,6 @@ function NB_LAB_ENV {
     esac
                   
     NB_SET_ENV
-    echo "# Notebook initial generation:"
-    echo "# - $(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
-    [ ! -z "$REPO" ] && echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
     return 0
 }
 
@@ -598,6 +615,11 @@ function NB_QUIET_FILTER_NOTEBOOK {
     grep -A30 "^Traceback " ~/tmp/quiet.filter.notebook.op && __RETURN 1
 
     grep "long lines"       ~/tmp/quiet.filter.notebook.op
+
+    # Search for BlueBar lines in code cells: NO PROBLEM is comments markdown/bacticks -> ThinBlueBar
+    ### jq '.cells[] | select(.cell_type=="code") | .source'
+    ### grep -E "images/(ThickBlueBar|ThinBlueBar)" $OP_NB
+    ###
     __RETURN 0
 }
 
@@ -636,6 +658,7 @@ function NB_FILTER_NOTEBOOK {
     $CMD
     echo "======== FILTERING DONE ========================================================"
     __CHECK_NB_DIR
+    #DIE "TODO: check nbtool.py output - TESTING"
 
     set -x 
     ls -1tr $NB_DIR/$OP_DIR | grep filtered.ipynb$
