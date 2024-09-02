@@ -766,12 +766,16 @@ function NB_CONVERT {
         #   command | TREAT_OUTPUT
         #   command | TREAT_OUTPUT yaml
 
+        [ ! -f $OP_NOTEBOOK ] && die "No such 'output' notebook '$OP_NOTEBOOK' as input to nbconvert"
+        ls -al $OP_NOTEBOOK
         CMD="jupyter-nbconvert --to markdown $OP_NOTEBOOK"
         echo "-- $CMD"; $CMD
-        CMD="jupyter-nbconvert --to html $OP_NOTEBOOK"
-        echo "-- $CMD"; $CMD
+        #CMD="jupyter-nbconvert --to html $OP_NOTEBOOK"
+        #echo "-- $CMD"; $CMD
 
         OP_NOTEBOOK_MD=${OP_NOTEBOOK%.ipynb}.md
+        [ ! -f $OP_NOTEBOOK_MD ] && die "No such 'output' notebook '$OP_NOTEBOOK_MD' from nbconvert"
+        ls -al $OP_NOTEBOOK_MD
         OP_NOTEBOOK_FM_MD=${OP_NOTEBOOK%.ipynb}.fm.md
         echo "$FRONTMATTER"           > $OP_NOTEBOOK_FM_MD
         sed \
@@ -819,7 +823,7 @@ function NB_CONVERT {
         #echo; ls -altr ${LAB_IPYNB%.ipynb}.md ${NAME}.*  | NB_COLOUR green
         echo; ls -altr *.ipynb | NB_COLOUR green
         #ls -altr *.md
-    )
+    ) || exit $?
 }
 
 # Special   FUNCTIONS: ------------------------------------------------
