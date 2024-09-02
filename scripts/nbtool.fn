@@ -438,7 +438,8 @@ function NB_LAB_ENV_CODE {
 function NB_LAB_ENV {
     __NB_LAB_ENV
 
-    echo "<pre> <code class='labenv'>"
+    # (class=nooutputtab): Tell css not to put an 'Output:' tab/tag before the block:
+    echo "<pre> <code class=nooutputtab>"
     echo "Notebook last generation:"
     echo "- $(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
     [ ! -z "$REPO" ] && echo "- git repo ${REPO} last commit ${DATE}: ${SHA}"

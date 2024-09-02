@@ -470,6 +470,7 @@ def show_long_code_line( label, source_line, MAX_LINE_LEN, cell_no, section_titl
         print(f'  len(line)={len(source_line)} != {len(source_line.rstrip())}')
 
 def replace_code_cell_by_markdown(cell, format_string):
+    """ Only used by NB_FILE_*, so use <pre><code class="nooutputtab"> ... </pre></code>"
     global  REPLACE_OP_WORD, REPLACE_OP_WORDS
 
     source_lines=cell['source']
@@ -504,10 +505,10 @@ def replace_code_cell_by_markdown(cell, format_string):
     # file_type='txt' -> But get's printed - by Firefox at least
 
     format_string = format_string.replace("__FILE__", f"**{file_name}**")
-    output_cell_content=f"""{format_string}
-```{file_type}
-{file_content}```
-"""
+
+    # output_cell_content=f"""{format_string} ```{file_type} {file_content}``` """
+    output_cell_content=f"""<pre><code class="nooutputtab"> ${file_content} </pre></code>"""
+
     DEBUG(f"cell type/keys BEFORE: { cell['cell_type'] }, { cell.keys() }")
     cell['cell_type']='markdown'
 
