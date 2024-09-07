@@ -627,11 +627,16 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
     # TODO: Write a create cell function: createCell(type, source, outputs)
     # Pragma NB_LAB_ENV: remove code cell, keep only output ...
     if source_line0.find("NB_LAB_ENV")  == 0:
-        if 'outputs' in cells_data[cell_no]:
+        if 'outputs' in cells_data[cell_no] and len( cells_data[cell_no]['outputs'] ) > 0:
             cells_data[cell_no]['source']  = cells_data[cell_no]['outputs'][0]['text']
             cells_data[cell_no]['cell_type'] = 'markdown'
             cells_data[cell_no].pop('execution_count')
             cells_data[cell_no].pop('outputs')
+            #    print(f"NB_LAB_ENV: cell {cell_no} has empty 'outputs'")
+            #    ofile=f'/home/student/tmp/NB_LAB_ENV.empty'
+            #    print(f"Writing {ofile}")
+            #    writefile(ofile, text=''.join(source_lines) )
+            #    sys.exit(1)
         cells.append(cell_no)
         return
 
