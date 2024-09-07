@@ -914,7 +914,8 @@ def filter_nb(json_data, DEBUG=False):
               if 'NB_SET_VAR' in ' '.join(source_lines):
                   DEBUG(f"[cell={cell_no} section={section_title}] NB_SET_VAR variables seen in cell source_lines")
 
-              source_lines.append(f'\n# Code-Cell[{cell_no}] In[{In_cell_no}]')
+              # ADD Code-Cell comment line at end of cell source lines:
+              #source_lines.append(f'\n# Code-Cell[{cell_no}] In[{In_cell_no}]')
 
               # CHECK for empty code cells:
               if len(source_lines) == 0:
@@ -1105,6 +1106,17 @@ def filter_nb(json_data, DEBUG=False):
         if not cell_no in cells:
             DEBUG(f"del(cells[{cell_no}])")
             del(cells_data[cell_no])
+
+    op_code_cell_no=0
+    for cell_no in range(nb_cells(json_data)):
+          # cells_data = json_data['cells']
+          cell_type=cells_data[cell_no]['cell_type']
+          if cell_type == 'code':
+              op_code_cell_no+=1
+
+              # ADD Code-Cell comment line at beginning of cell source lines:
+              source_lines = cells_data[cell_no]['source']
+              source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}]\n\n')
 
     if NUM_QUESTIONS > 0:
         questions_text = '<hr><h1> Answers to Questions:</h1>'
