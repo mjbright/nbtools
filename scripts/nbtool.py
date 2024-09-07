@@ -674,8 +674,19 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
                     print(f'INFO: num_source_lines={ num_source_lines } num_cell_source_lines={ num_cell_source_lines }')
                     print(f'ERROR: [cell_no={cell_no}] source_lines={len(cells_data[cell_no]['source'])} slno={slno}\n')
                     print( '\n\t' + '\n\t'.join( cells_data[cell_no]['source']) )
+                    ofile='/home/student/tmp/source_lines'
+                    print(f"Writing {ofile}")
+                    #writefile(ofile, text='\n'.join(source_lines))
+                    writefile(ofile, text=''.join(source_lines) )
+
+                    ofile=f'/home/student/tmp/cells_data_{cell_no}'
+                    print(f"Writing {ofile}")
+                    writefile(ofile, text=''.join( cells_data[cell_no]['source'] ))
                     #sys.exit(1) XXXXXX
-                cells_data[cell_no]['source'][slno] = source_line
+                #if slno >= num_source_lines:
+                    #sys.exit(1)
+                #cells_data[cell_no]['source'][slno] = source_line
+                source_lines[slno] = source_line
 
         # Pragma FOREACH (use singular form of variable e.g. __POD_IP which will be populated form __POD_IPS)
         if source_line.find("FOREACH __") == 0:
