@@ -471,7 +471,8 @@ function __NB_LAB_ENV {
     INFO="Unknown LAB_MODE"
     case $LAB_MODE in
         Ansible)
-            __ANS_VERSION=$( ansible --version | grep -m1 core | sed -e 's/.*core //' -e 's/]//' )
+            __ANS_VERSION=$( ansible --version 2>/dev/null | grep -m1 core | sed -e 's/.*core //' -e 's/]//' )
+            [ -z "$__ANS_VERSION" ] && __ANS_VERSION="not-installed"
             INFO="Ansible $__ANS_VERSION"
             TITLE_MODE+="_$__ANS_VERSION"
             TOOL_VERSION="$__ANS_VERSION"
