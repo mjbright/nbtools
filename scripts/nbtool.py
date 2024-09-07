@@ -623,6 +623,7 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
     CELL_regex = re.compile(r"\|?\&?\s*__.*$") #, re.IGNORECASE)
 
     source_line0=source_lines[0]
+    cells_data[cell_no]['section_title']=section_title
 
     # TODO: Write a create cell function: createCell(type, source, outputs)
     # Pragma NB_LAB_ENV: remove code cell, keep only output ...
@@ -845,6 +846,13 @@ def process_markdown_cell(source_lines, cells_data, cell_no, section_title, incl
             insert_line_image=INSERT_THIN_BAR
 
         # Build up TableOfContents - Count sections headers and retain list for ToC text
+        if source_line.find("#") == 0:
+            section_title=source_line[ source_line.find(" ") : ]
+            #section_title=source_line
+            section_title = f'[section "{ section_title.rstrip().lstrip() }"]'
+            cells_data[cell_no]['section_title'] = section_title
+            print(f"process_markdown_cell: Setting section_title to {section_title}\n")
+
         if source_line.find("#") == 0 and count_sections:
             toc_line=''
             level=0
@@ -854,6 +862,7 @@ def process_markdown_cell(source_lines, cells_data, cell_no, section_title, incl
             if source_line.find("#### ") == 0: (level, section_num, toc_line) = next_section(current_sections, 3, source_line)
             sec_cell_no=0
             section_title=toc_line
+            print(f"process_markdown_cell: [count_sections] Setting section_title to {section_title}\n")
 
             toc_link = f'<a href="#sec{section_num}" /> {toc_line} </a>'
             if level == 0:
@@ -880,6 +889,8 @@ def process_markdown_cell(source_lines, cells_data, cell_no, section_title, incl
 
     if include_cell:
         cells.append(cell_no)
+
+    return section_title
 
 def filter_nb(json_data, DEBUG=False):
     global VARS_SEEN
@@ -1084,7 +1095,7 @@ def filter_nb(json_data, DEBUG=False):
           if cell_type == 'code':
               process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells)
           elif cell_type == 'markdown':
-              process_markdown_cell(source_lines, cells_data, cell_no, section_title, include_cell, cells, count_sections)
+              section_title = process_markdown_cell(source_lines, cells_data, cell_no, section_title, include_cell, cells, count_sections)
           else:
               die(f'Unknown cell_type "{cell_type}"')
 
@@ -1116,7 +1127,14 @@ def filter_nb(json_data, DEBUG=False):
 
               # ADD Code-Cell comment line at beginning of cell source lines:
               source_lines = cells_data[cell_no]['source']
-              source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}]\n\n')
+              if 'section_title' in cells_data[cell_no]:
+                  source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]['section_title'] }\n\n')
+              else:
+                  source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}]\n\n')
+
+          if 'section_title' in cells_data[cell_no]:
+              del( cells_data[cell_no]['section_title'] )
+
 
     if NUM_QUESTIONS > 0:
         questions_text = '<hr><h1> Answers to Questions:</h1>'
