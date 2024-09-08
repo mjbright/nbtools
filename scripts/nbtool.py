@@ -517,7 +517,8 @@ def replace_code_cell_by_markdown(cell, format_string):
     file_name = source_line0[ source_line0.find(" ") : ].lstrip()
     file_name =    file_name[ : file_name.rfind("<<")-1 ]
 
-    file_content = escape_markdown(file_content)
+    # A PRIORI NOT NEEEDED (as long as <pre><code ...> appears on a new line !)
+    # file_content = escape_markdown(file_content)
 
     file_type=''
     # file_type='txt' -> But get's printed - by Firefox at least
@@ -526,7 +527,7 @@ def replace_code_cell_by_markdown(cell, format_string):
 
     # output_cell_content=f"""{format_string} ```{file_type} {file_content}``` """
     # output_cell_content=f'''{ format_string } <pre><code class="nooutputtab">{file_content}</pre></code>'''
-    output_cell_content=f'''{ format_string } <pre><code class="nbfile">{file_content}</pre></code>'''
+    output_cell_content=f'''{ format_string }\n<pre><code class="nbfile">{file_content}\n</code></pre>\n'''
     if VERBOSE_NB_FILE: print(f'NB_FILE*: format_string => {format_string}')
     if VERBOSE_NB_FILE: print(f'NB_FILE*: {file_name} => {file_content}')
 
