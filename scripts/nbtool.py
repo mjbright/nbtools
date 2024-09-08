@@ -473,6 +473,18 @@ def show_long_code_line( label, source_line, MAX_LINE_LEN, cell_no, section_titl
     if len(source_line) != len(source_line.rstrip()):
         print(f'  len(line)={len(source_line)} != {len(source_line.rstrip())}')
 
+def escape_markdown(text):
+    lines   = text.split('\n')
+    op_text = ''
+
+    for line in lines:
+        if line.find('#') == 0: line='\\' + line
+        if line.find('-') == 0: line='\\' + line
+        if line.find('*') == 0: line='\\' + line
+        if line.find('`') == 0: line='\\' + line
+        op_text += line+'\n'
+    return op_text.rstrip()
+
 def replace_code_cell_by_markdown(cell, format_string):
     """ Only used by NB_FILE_*, so use <pre><code class="nooutputtab"> ... </pre></code>"""
     global  REPLACE_OP_WORD, REPLACE_OP_WORDS
@@ -502,8 +514,10 @@ def replace_code_cell_by_markdown(cell, format_string):
         if REPLACE_OP_WORD in file_content:
             file_content = file_content.replace(REPLACE_OP_WORD, REPLACE_OP_WORDS[REPLACE_OP_WORD])
 
-    file_name = source_line0[ source_line0.find(" ") : ]
-    file_name =    file_name[ 1 : file_name.rfind("<<")-1 ]
+    file_name = source_line0[ source_line0.find(" ") : ].lstrip()
+    file_name =    file_name[ : file_name.rfind("<<")-1 ]
+
+    file_content = escape_markdown(file_content)
 
     file_type=''
     # file_type='txt' -> But get's printed - by Firefox at least
