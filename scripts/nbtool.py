@@ -618,12 +618,13 @@ def replace_EOF_backticks( section_title, cell_no, source_lines ):
             source_lines[slno] = '\n'
             DEBUG(f'EOF-backticks replaced in section "{section_title}" cell_no {cell_no} in line "{source_lines[slno]}"')
 
-def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells):
+def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_number, section_title, include_cell, cells):
     # ??
     CELL_regex = re.compile(r"\|?\&?\s*__.*$") #, re.IGNORECASE)
 
     source_line0=source_lines[0]
     cells_data[cell_no]['section_title']=section_title
+    cells_data[cell_no]['section_number']=section_number
 
     # TODO: Write a create cell function: createCell(type, source, outputs)
     # Pragma NB_LAB_ENV: remove code cell, keep only output ...
@@ -824,7 +825,7 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
         if FINAL_CODE_CELL_CHECK( cells_data[cell_no], cell_no):
             cells.append(cell_no)
 
-def process_markdown_cell(source_lines, cells_data, cell_no, section_title, include_cell, cells, count_sections):
+def process_markdown_cell(source_lines, cells_data, cell_no, section_number, section_title, include_cell, cells, count_sections):
     source_line0=source_lines[0]
 
     for slno in range(len(source_lines)):
@@ -846,12 +847,30 @@ def process_markdown_cell(source_lines, cells_data, cell_no, section_title, incl
             insert_line_image=INSERT_THIN_BAR
 
         # Build up TableOfContents - Count sections headers and retain list for ToC text
+        previous_section_title  = section_title
+        previous_section_number = section_number
         if source_line.find("#") == 0:
-            section_title=source_line[ source_line.find(" ") : ]
-            #section_title=source_line
-            section_title = f'[section "{ section_title.rstrip().lstrip() }"]'
-            cells_data[cell_no]['section_title'] = section_title
-            print(f"process_markdown_cell: Setting section_title to {section_title}\n")
+            # Remove '#' before title:
+            section_title=source_line.rstrip()
+            print(f'INITIAL section_title="{section_title}"')
+            section_title=section_title[ section_title.find(" ") : ].lstrip()
+            print(f'2nd section_title="{section_title}"')
+            if len(section_title) > 0:
+                # Remove all but section number if present
+                section_number=section_title[ : section_title.find(" ") ]
+                print(f'3rd section_title="{section_title}"')
+                if len(section_number) > 0 and section_number[0] in '0123456789':
+                    #section_title=source_line
+                    #section_title = f'[section "{ section_title.rstrip().lstrip() }"]'
+                    section_title  = f'[section { section_title.rstrip().lstrip() }]'
+                    section_number = f'[section { section_number.rstrip().lstrip() }]'
+                    cells_data[cell_no]['section_title']  = section_title
+                    cells_data[cell_no]['section_number'] = section_number
+                    print(f"process_markdown_cell: Setting section_title to {section_title}")
+                    print(f"process_markdown_cell: Setting section_number to {section_number}")
+                else:
+                    section_title  = previous_section_title
+                    section_number = previous_section_number
 
         if source_line.find("#") == 0 and count_sections:
             toc_line=''
@@ -890,7 +909,7 @@ def process_markdown_cell(source_lines, cells_data, cell_no, section_title, incl
     if include_cell:
         cells.append(cell_no)
 
-    return section_title
+    return ( section_number, section_title )
 
 def filter_nb(json_data, DEBUG=False):
     global VARS_SEEN
@@ -907,6 +926,7 @@ def filter_nb(json_data, DEBUG=False):
     sec_cell_no=0
     In_cell_no='unknown'
     section_title=''
+    section_number=''
 
     exclude_cells=[]
     incl_code_cells=[]
@@ -1093,9 +1113,9 @@ def filter_nb(json_data, DEBUG=False):
               print(f"{NORMAL}")
 
           if cell_type == 'code':
-              process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells)
+              process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_number, section_title, include_cell, cells)
           elif cell_type == 'markdown':
-              section_title = process_markdown_cell(source_lines, cells_data, cell_no, section_title, include_cell, cells, count_sections)
+              (section_number, section_title) = process_markdown_cell(source_lines, cells_data, cell_no, section_number, section_title, include_cell, cells, count_sections)
           else:
               die(f'Unknown cell_type "{cell_type}"')
 
@@ -1127,14 +1147,17 @@ def filter_nb(json_data, DEBUG=False):
 
               # ADD Code-Cell comment line at beginning of cell source lines:
               source_lines = cells_data[cell_no]['source']
-              if 'section_title' in cells_data[cell_no]:
-                  source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]['section_title'] }\n\n')
+              #if 'section_title' in cells_data[cell_no]:
+              if 'section_number' in cells_data[cell_no]:
+                  #source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]['section_title'] }\n\n')
+                  source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]['section_number'] }\n\n')
               else:
                   source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}]\n\n')
 
           if 'section_title' in cells_data[cell_no]:
               del( cells_data[cell_no]['section_title'] )
-
+          if 'section_number' in cells_data[cell_no]:
+              del( cells_data[cell_no]['section_number'] )
 
     if NUM_QUESTIONS > 0:
         questions_text = '<hr><h1> Answers to Questions:</h1>'
