@@ -10,6 +10,10 @@ import json, sys, re, os
 
 OP_DIR='other'
 
+VERBOSE_sections=False
+VERBOSE_NB_FILE=True
+#VERBOSE_NB_FILE=False
+
 # TODO:
 # - add option to put cell_no/type as a comment in cell (only for code cells)
 
@@ -507,7 +511,10 @@ def replace_code_cell_by_markdown(cell, format_string):
     format_string = format_string.replace("__FILE__", f"**{file_name}**")
 
     # output_cell_content=f"""{format_string} ```{file_type} {file_content}``` """
-    output_cell_content=f'''<pre><code class="nooutputtab"> {file_content} </pre></code>'''
+    # output_cell_content=f'''{ format_string } <pre><code class="nooutputtab">{file_content}</pre></code>'''
+    output_cell_content=f'''{ format_string } <pre><code class="nbfile">{file_content}</pre></code>'''
+    if VERBOSE_NB_FILE: print(f'NB_FILE*: format_string => {format_string}')
+    if VERBOSE_NB_FILE: print(f'NB_FILE*: {file_name} => {file_content}')
 
     DEBUG(f"cell type/keys BEFORE: { cell['cell_type'] }, { cell.keys() }")
     cell['cell_type']='markdown'
@@ -852,13 +859,13 @@ def process_markdown_cell(source_lines, cells_data, cell_no, section_number, sec
         if source_line.find("#") == 0:
             # Remove '#' before title:
             section_title=source_line.rstrip()
-            print(f'INITIAL section_title="{section_title}"')
+            if VERBOSE_sections: print(f'INITIAL section_title="{section_title}"')
             section_title=section_title[ section_title.find(" ") : ].lstrip()
-            print(f'2nd section_title="{section_title}"')
+            if VERBOSE_sections: print(f'2nd section_title="{section_title}"')
             if len(section_title) > 0:
                 # Remove all but section number if present
                 section_number=section_title[ : section_title.find(" ") ]
-                print(f'3rd section_title="{section_title}"')
+                if VERBOSE_sections: print(f'3rd section_title="{section_title}"')
                 if len(section_number) > 0 and section_number[0] in '0123456789':
                     #section_title=source_line
                     #section_title = f'[section "{ section_title.rstrip().lstrip() }"]'
@@ -866,8 +873,8 @@ def process_markdown_cell(source_lines, cells_data, cell_no, section_number, sec
                     section_number = f'[section { section_number.rstrip().lstrip() }]'
                     cells_data[cell_no]['section_title']  = section_title
                     cells_data[cell_no]['section_number'] = section_number
-                    print(f"process_markdown_cell: Setting section_title to {section_title}")
-                    print(f"process_markdown_cell: Setting section_number to {section_number}")
+                    if VERBOSE_sections: print(f"process_markdown_cell: Setting section_title to {section_title}")
+                    if VERBOSE_sections: print(f"process_markdown_cell: Setting section_number to {section_number}")
                 else:
                     section_title  = previous_section_title
                     section_number = previous_section_number
