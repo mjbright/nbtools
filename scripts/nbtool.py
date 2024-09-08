@@ -1082,11 +1082,6 @@ def filter_nb(json_data, DEBUG=False):
               # Pragma | NB_FILE | NB_FILE_M | NB_FILE_A
               DEBUG(f'len(source_lines)={len(source_lines)} source_lines="{source_lines}"')
               source_line0 = source_lines[0]
-              if source_line0.find("NB_FILE") == 0:
-                  replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
-                  replace_code_cell_by_markdown( cells_data[cell_no], 
-                      "Create a new file (or modify existing) __FILE__ with the following content:")
-
               if source_line0.find("NB_FILE_M") == 0:
                   replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
                   replace_code_cell_by_markdown( cells_data[cell_no], 
@@ -1096,6 +1091,12 @@ def filter_nb(json_data, DEBUG=False):
                   replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
                   replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Append the following content to file __FILE__:")
+
+              if source_line0.find("NB_FILE_") == -1 and source_line0.find("NB_FILE") == 0:
+                  replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
+                  replace_code_cell_by_markdown( cells_data[cell_no], 
+                      "Create a file __FILE__ with the following content:")
+                      #"Create a new file (or modify existing) __FILE__ with the following content:")
 
           include_cell=True
 
