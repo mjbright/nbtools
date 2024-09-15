@@ -10,6 +10,10 @@ import json, sys, re, os
 
 OP_DIR='other'
 
+VERBOSE_sections=False
+VERBOSE_NB_FILE=True
+#VERBOSE_NB_FILE=False
+
 # TODO:
 # - add option to put cell_no/type as a comment in cell (only for code cells)
 
@@ -469,6 +473,18 @@ def show_long_code_line( label, source_line, MAX_LINE_LEN, cell_no, section_titl
     if len(source_line) != len(source_line.rstrip()):
         print(f'  len(line)={len(source_line)} != {len(source_line.rstrip())}')
 
+def escape_markdown(text):
+    lines   = text.split('\n')
+    op_text = ''
+
+    for line in lines:
+        if line.find('#') == 0: line='\\' + line
+        if line.find('-') == 0: line='\\' + line
+        if line.find('*') == 0: line='\\' + line
+        if line.find('`') == 0: line='\\' + line
+        op_text += line+'\n'
+    return op_text.rstrip()
+
 def replace_code_cell_by_markdown(cell, format_string):
     """ Only used by NB_FILE_*, so use <pre><code class="nooutputtab"> ... </pre></code>"""
     global  REPLACE_OP_WORD, REPLACE_OP_WORDS
@@ -498,8 +514,11 @@ def replace_code_cell_by_markdown(cell, format_string):
         if REPLACE_OP_WORD in file_content:
             file_content = file_content.replace(REPLACE_OP_WORD, REPLACE_OP_WORDS[REPLACE_OP_WORD])
 
-    file_name = source_line0[ source_line0.find(" ") : ]
-    file_name =    file_name[ 1 : file_name.rfind("<<")-1 ]
+    file_name = source_line0[ source_line0.find(" ") : ].lstrip()
+    file_name =    file_name[ : file_name.rfind("<<")-1 ]
+
+    # A PRIORI NOT NEEEDED (as long as <pre><code ...> appears on a new line !)
+    # file_content = escape_markdown(file_content)
 
     file_type=''
     # file_type='txt' -> But get's printed - by Firefox at least
@@ -507,7 +526,10 @@ def replace_code_cell_by_markdown(cell, format_string):
     format_string = format_string.replace("__FILE__", f"**{file_name}**")
 
     # output_cell_content=f"""{format_string} ```{file_type} {file_content}``` """
-    output_cell_content=f'''<pre><code class="nooutputtab"> {file_content} </pre></code>'''
+    # output_cell_content=f'''{ format_string } <pre><code class="nooutputtab">{file_content}</pre></code>'''
+    output_cell_content=f'''{ format_string }\n<pre><code class="nbfile">{file_content}\n</code></pre>\n'''
+    if VERBOSE_NB_FILE: print(f'NB_FILE*: format_string => {format_string}')
+    if VERBOSE_NB_FILE: print(f'NB_FILE*: {file_name} => {file_content}')
 
     DEBUG(f"cell type/keys BEFORE: { cell['cell_type'] }, { cell.keys() }")
     cell['cell_type']='markdown'
@@ -618,20 +640,27 @@ def replace_EOF_backticks( section_title, cell_no, source_lines ):
             source_lines[slno] = '\n'
             DEBUG(f'EOF-backticks replaced in section "{section_title}" cell_no {cell_no} in line "{source_lines[slno]}"')
 
-def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells):
+def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_number, section_title, include_cell, cells):
     # ??
     CELL_regex = re.compile(r"\|?\&?\s*__.*$") #, re.IGNORECASE)
 
     source_line0=source_lines[0]
+    cells_data[cell_no]['section_title']=section_title
+    cells_data[cell_no]['section_number']=section_number
 
     # TODO: Write a create cell function: createCell(type, source, outputs)
     # Pragma NB_LAB_ENV: remove code cell, keep only output ...
     if source_line0.find("NB_LAB_ENV")  == 0:
-        if 'outputs' in cells_data[cell_no]:
+        if 'outputs' in cells_data[cell_no] and len( cells_data[cell_no]['outputs'] ) > 0:
             cells_data[cell_no]['source']  = cells_data[cell_no]['outputs'][0]['text']
             cells_data[cell_no]['cell_type'] = 'markdown'
             cells_data[cell_no].pop('execution_count')
             cells_data[cell_no].pop('outputs')
+            #    print(f"NB_LAB_ENV: cell {cell_no} has empty 'outputs'")
+            #    ofile=f'/home/student/tmp/NB_LAB_ENV.empty'
+            #    print(f"Writing {ofile}")
+            #    writefile(ofile, text=''.join(source_lines) )
+            #    sys.exit(1)
         cells.append(cell_no)
         return
 
@@ -669,8 +698,19 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
                     print(f'INFO: num_source_lines={ num_source_lines } num_cell_source_lines={ num_cell_source_lines }')
                     print(f'ERROR: [cell_no={cell_no}] source_lines={len(cells_data[cell_no]['source'])} slno={slno}\n')
                     print( '\n\t' + '\n\t'.join( cells_data[cell_no]['source']) )
+                    ofile='/home/student/tmp/source_lines'
+                    print(f"Writing {ofile}")
+                    #writefile(ofile, text='\n'.join(source_lines))
+                    writefile(ofile, text=''.join(source_lines) )
+
+                    ofile=f'/home/student/tmp/cells_data_{cell_no}'
+                    print(f"Writing {ofile}")
+                    writefile(ofile, text=''.join( cells_data[cell_no]['source'] ))
                     #sys.exit(1) XXXXXX
-                cells_data[cell_no]['source'][slno] = source_line
+                #if slno >= num_source_lines:
+                    #sys.exit(1)
+                #cells_data[cell_no]['source'][slno] = source_line
+                source_lines[slno] = source_line
 
         # Pragma FOREACH (use singular form of variable e.g. __POD_IP which will be populated form __POD_IPS)
         if source_line.find("FOREACH __") == 0:
@@ -807,7 +847,7 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
         if FINAL_CODE_CELL_CHECK( cells_data[cell_no], cell_no):
             cells.append(cell_no)
 
-def process_markdown_cell(source_lines, cells_data, cell_no, section_title, include_cell, cells, count_sections):
+def process_markdown_cell(source_lines, cells_data, cell_no, section_number, section_title, include_cell, cells, count_sections):
     source_line0=source_lines[0]
 
     for slno in range(len(source_lines)):
@@ -829,6 +869,31 @@ def process_markdown_cell(source_lines, cells_data, cell_no, section_title, incl
             insert_line_image=INSERT_THIN_BAR
 
         # Build up TableOfContents - Count sections headers and retain list for ToC text
+        previous_section_title  = section_title
+        previous_section_number = section_number
+        if source_line.find("#") == 0:
+            # Remove '#' before title:
+            section_title=source_line.rstrip()
+            if VERBOSE_sections: print(f'INITIAL section_title="{section_title}"')
+            section_title=section_title[ section_title.find(" ") : ].lstrip()
+            if VERBOSE_sections: print(f'2nd section_title="{section_title}"')
+            if len(section_title) > 0:
+                # Remove all but section number if present
+                section_number=section_title[ : section_title.find(" ") ]
+                if VERBOSE_sections: print(f'3rd section_title="{section_title}"')
+                if len(section_number) > 0 and section_number[0] in '0123456789':
+                    #section_title=source_line
+                    #section_title = f'[section "{ section_title.rstrip().lstrip() }"]'
+                    section_title  = f'[section { section_title.rstrip().lstrip() }]'
+                    section_number = f'[section { section_number.rstrip().lstrip() }]'
+                    cells_data[cell_no]['section_title']  = section_title
+                    cells_data[cell_no]['section_number'] = section_number
+                    if VERBOSE_sections: print(f"process_markdown_cell: Setting section_title to {section_title}")
+                    if VERBOSE_sections: print(f"process_markdown_cell: Setting section_number to {section_number}")
+                else:
+                    section_title  = previous_section_title
+                    section_number = previous_section_number
+
         if source_line.find("#") == 0 and count_sections:
             toc_line=''
             level=0
@@ -838,6 +903,7 @@ def process_markdown_cell(source_lines, cells_data, cell_no, section_title, incl
             if source_line.find("#### ") == 0: (level, section_num, toc_line) = next_section(current_sections, 3, source_line)
             sec_cell_no=0
             section_title=toc_line
+            print(f"process_markdown_cell: [count_sections] Setting section_title to {section_title}\n")
 
             toc_link = f'<a href="#sec{section_num}" /> {toc_line} </a>'
             if level == 0:
@@ -865,6 +931,8 @@ def process_markdown_cell(source_lines, cells_data, cell_no, section_title, incl
     if include_cell:
         cells.append(cell_no)
 
+    return ( section_number, section_title )
+
 def filter_nb(json_data, DEBUG=False):
     global VARS_SEEN
     global QUESTIONS, NUM_QUESTIONS
@@ -880,6 +948,7 @@ def filter_nb(json_data, DEBUG=False):
     sec_cell_no=0
     In_cell_no='unknown'
     section_title=''
+    section_number=''
 
     exclude_cells=[]
     incl_code_cells=[]
@@ -898,7 +967,8 @@ def filter_nb(json_data, DEBUG=False):
               if 'NB_SET_VAR' in ' '.join(source_lines):
                   DEBUG(f"[cell={cell_no} section={section_title}] NB_SET_VAR variables seen in cell source_lines")
 
-              source_lines.append(f'\n# Code-Cell[{cell_no}] In[{In_cell_no}]')
+              # ADD Code-Cell comment line at end of cell source lines:
+              #source_lines.append(f'\n# Code-Cell[{cell_no}] In[{In_cell_no}]')
 
               # CHECK for empty code cells:
               if len(source_lines) == 0:
@@ -1013,11 +1083,6 @@ def filter_nb(json_data, DEBUG=False):
               # Pragma | NB_FILE | NB_FILE_M | NB_FILE_A
               DEBUG(f'len(source_lines)={len(source_lines)} source_lines="{source_lines}"')
               source_line0 = source_lines[0]
-              if source_line0.find("NB_FILE") == 0:
-                  replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
-                  replace_code_cell_by_markdown( cells_data[cell_no], 
-                      "Create a new file (or modify existing) __FILE__ with the following content:")
-
               if source_line0.find("NB_FILE_M") == 0:
                   replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
                   replace_code_cell_by_markdown( cells_data[cell_no], 
@@ -1027,6 +1092,12 @@ def filter_nb(json_data, DEBUG=False):
                   replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
                   replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Append the following content to file __FILE__:")
+
+              if source_line0.find("NB_FILE_") == -1 and source_line0.find("NB_FILE") == 0:
+                  replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
+                  replace_code_cell_by_markdown( cells_data[cell_no], 
+                      "Create a file __FILE__ with the following content:")
+                      #"Create a new file (or modify existing) __FILE__ with the following content:")
 
           include_cell=True
 
@@ -1065,9 +1136,9 @@ def filter_nb(json_data, DEBUG=False):
               print(f"{NORMAL}")
 
           if cell_type == 'code':
-              process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_title, include_cell, cells)
+              process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, section_number, section_title, include_cell, cells)
           elif cell_type == 'markdown':
-              process_markdown_cell(source_lines, cells_data, cell_no, section_title, include_cell, cells, count_sections)
+              (section_number, section_title) = process_markdown_cell(source_lines, cells_data, cell_no, section_number, section_title, include_cell, cells, count_sections)
           else:
               die(f'Unknown cell_type "{cell_type}"')
 
@@ -1089,6 +1160,27 @@ def filter_nb(json_data, DEBUG=False):
         if not cell_no in cells:
             DEBUG(f"del(cells[{cell_no}])")
             del(cells_data[cell_no])
+
+    op_code_cell_no=0
+    for cell_no in range(nb_cells(json_data)):
+          # cells_data = json_data['cells']
+          cell_type=cells_data[cell_no]['cell_type']
+          if cell_type == 'code':
+              op_code_cell_no+=1
+
+              # ADD Code-Cell comment line at beginning of cell source lines:
+              source_lines = cells_data[cell_no]['source']
+              #if 'section_title' in cells_data[cell_no]:
+              if 'section_number' in cells_data[cell_no]:
+                  #source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]['section_title'] }\n\n')
+                  source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]['section_number'] }\n\n')
+              else:
+                  source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}]\n\n')
+
+          if 'section_title' in cells_data[cell_no]:
+              del( cells_data[cell_no]['section_title'] )
+          if 'section_number' in cells_data[cell_no]:
+              del( cells_data[cell_no]['section_number'] )
 
     if NUM_QUESTIONS > 0:
         questions_text = '<hr><h1> Answers to Questions:</h1>'
