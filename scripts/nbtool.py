@@ -696,7 +696,7 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
                 num_source_lines=len(source_lines)
                 if slno >= num_cell_source_lines:
                     print(f'INFO: num_source_lines={ num_source_lines } num_cell_source_lines={ num_cell_source_lines }')
-                    print(f'ERROR: [cell_no={cell_no}] source_lines={len(cells_data[cell_no]['source'])} slno={slno}\n')
+                    print(f'ERROR: [cell_no={cell_no}] source_lines={len(cells_data[cell_no]["source"])} slno={slno}\n')
                     print( '\n\t' + '\n\t'.join( cells_data[cell_no]['source']) )
                     ofile='/home/student/tmp/source_lines'
                     print(f"Writing {ofile}")
@@ -1172,8 +1172,8 @@ def filter_nb(json_data, DEBUG=False):
               source_lines = cells_data[cell_no]['source']
               #if 'section_title' in cells_data[cell_no]:
               if 'section_number' in cells_data[cell_no]:
-                  #source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]['section_title'] }\n\n')
-                  source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]['section_number'] }\n\n')
+                  #source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]["section_title"] }\n\n')
+                  source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]["section_number"] }\n\n')
               else:
                   source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}]\n\n')
 
