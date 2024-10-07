@@ -9,6 +9,8 @@ SCRIPT_DIR=$(dirname $SCRIPT)
 
 NB_START=$( date +%s )
 
+mkdir -p ~/tmp
+
 # LAB_IPYNB defaults to IP_README.ipynb ... or to 4th argument if .ipynb:
 export LAB_IPYNB=IP_README.ipynb
 [ ! -z "${JPY_SESSION_NAME}" ] && {
