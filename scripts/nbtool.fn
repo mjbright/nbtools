@@ -543,6 +543,9 @@ title:  $__TITLE
 date:   $__DATE
 weight: $__WEIGHT
 toolversion: $TOOL_VERSION
+hide:
+#  - navigation
+- toc
 ---
 
 EOF
