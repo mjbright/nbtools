@@ -171,33 +171,39 @@ def raw_ansi2text(ansi):
 
 def raw_ansi2text(ansi):
     #return "ANSI: " + ansi.replace('\u001b[0m', ''). \
-    return ansi.replace('\u001b[0m', ''). \
-                replace('\u001b[1m', ''). \
-                replace('\u001b[2m', ''). \
-                replace('\u001b[3m', ''). \
-                replace('\u001b[4m', ''). \
-                replace('\u001b[30m', ''). \
-                replace('\u001b[31m', ''). \
-                replace('\u001b[32m', ''). \
-                replace('\u001b[33m', ''). \
-                replace('\u001b[34m', ''). \
-                replace('\u001b[35m', ''). \
-                replace('\u001b[36m', ''). \
-                replace('\u001b[37m', ''). \
-                replace('\u001b[90m', ''). \
-                replace('\u001b[91m', ''). \
-                replace('\u001b[92m', ''). \
-                replace('\u001b[93m', ''). \
-                replace('\u001b[0;0m', ''). \
-                replace('\u001b[0;31m', ''). \
-                replace('\u001b[0;32m', ''). \
-                replace('\u001b[0;33m', ''). \
-                replace('\u001b[0;34m', ''). \
-                replace('\u001b[0;35m', ''). \
-                replace('\u001b[0;36m', ''). \
-                replace('\u001b[0;37m', ''). \
-                replace('\u001b[1;34m', ''). \
+    M=10 # Max number of replacements
+    return ansi.\
+                replace('\u001b[01;31m\u001b[K','',M).replace('\u001b[m\u001b[K','',M). \
+                \
+                replace('\u001b[0m','',M).replace('\u001b[1m','',M).replace('\u001b[2m','',M).replace('\u001b[3m','',M).replace('\u001b[4m','',M). \
+                replace('\u001b[30m','',M).replace('\u001b[31m','',M).replace('\u001b[32m','',M).replace('\u001b[33m','',M). \
+                replace('\u001b[34m','',M).replace('\u001b[35m','',M).replace('\u001b[36m','',M).replace('\u001b[37m','',M). \
+                replace('\u001b[90m','',M).replace('\u001b[91m','',M).replace('\u001b[92m','',M).replace('\u001b[93m','',M). \
+                replace('\u001b[0;0m','',M). \
+                replace('\u001b[0;31m','',M).replace('\u001b[0;32m','',M).replace('\u001b[0;33m','',M).replace('\u001b[0;34m','',M). \
+                replace('\u001b[0;35m','',M).replace('\u001b[0;36m','',M).replace('\u001b[0;37m','',M). \
+                replace('\u001b[1;31m','',M).replace('\u001b[1;32m','',M).replace('\u001b[1;33m','',M).replace('\u001b[1;34m','',M). \
+                replace('\u001b[1;35m','',M).replace('\u001b[1;36m','',M).replace('\u001b[1;37m','',M). \
+                \
                 replace('NEVER_REPLACE_OK', '')
+
+
+"""
+    FILTERING of terraform plan/apply/destroy:
+
+                replace('\u001b[0m\u001b[m','',M).
+0x00: 1b 5b 30 6d 1b 5b 31 6d 64 6f 63 6b 65 72 5f 63  .[0m.[1mdocker_c
+0x10: 6f 6e 74 61 69 6e 65 72 2e 74 65 73 74 31 5b 35  ontainer.test1[5
+0x20: 5d 3a 20 44 65 73 74 72 75 63 74 69 6f 6e 20 1b  ]: Destruction .
+                replace('\u001b[01;31m\u001b[K','',M).
+0x30: 5b 30 31 3b 33 31 6d 1b 5b 4b 63 6f 6d 70 6c 65  [01;31m.[Kcomple
+                replace('\u001b[m\u001b[K','',M).
+0x40: 74 1b 5b 6d 1b 5b 4b 65 20 61 66 74 65 72 20 30  t.[m.[Ke after 0
+0x50: 73 1b 5b 30 6d 0a                                s.[0m.
+"""
+# PREVIOUS TRIES !                                                         
+#replace('\u001b[01;31m[K','',M).replace('\u001b[m[K','',M). \
+#replace('[01;31m[K','',M).replace('[m[K','',M). \
 
 
 def writefile(path, mode='w', text='hello world\n'):
@@ -381,6 +387,12 @@ def CONVERT_ANSI_CODES2TXT(cells_data, cell_no):
                 ansi = cells_data[cell_no]['outputs'][opno]['text'][textno]
                 #### if cell_no == 20 and textno == 91: print(f"BEFORE: cell{cell_no} has 'text' element {textno} '{ansi}' in element {opno}")
                 text = raw_ansi2text(ansi)
+                # TO DEBUG:
+                """
+                if text != ansi:
+                    print(f"DEBUG_ANSI CHANGE from '{ansi}'")
+                    print(f"DEBUG_ANSI        to   '{text}'")
+                """
                 #### if cell_no == 20 and textno == 91: print(f"AFTER2: cell{cell_no} has 'text' element {textno} '{text}' in element {opno}")
 
                 cells_data[cell_no]['outputs'][opno]['text'][textno] = text
