@@ -555,8 +555,8 @@ function NB_REPLACE_HOME_STDIN {
     sed -e "s?${HOME}/?~/?g"
 }
 
-function NB_ARCHIVE_LABS {
-    # e.g.  NB_ARCHIVE_LABS lab1
+function NB_ARCHIVE_LAB {
+    # e.g.  NB_ARCHIVE_LAB lab1
     LAB=$1; shift
     
     mkdir -p ~/labs.old

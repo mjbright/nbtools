@@ -787,7 +787,7 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
             cells_data[cell_no]['source'][slno]=''
             source_line= cells_data[cell_no]['source'][slno]
 
-        if source_line.find("NB_ARCHIVE_LABS") == 0:
+        if source_line.find("NB_ARCHIVE_LAB") == 0:
             cells_data[cell_no]['source'][slno]=''
             source_line= cells_data[cell_no]['source'][slno]
 
