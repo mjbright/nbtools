@@ -24,6 +24,14 @@ function NB_SET_ENV {
     [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
 }
 
+function NB_ARCHIVE_LABS {
+    LAB=$1; shift
+    
+    mkdir -p ~/labs.old
+    [ -d ~/labs/lab$LAB ] && mv ~/labs/lab$LAB ~/labs.old/
+    #rm -rf ~/labs/lab$LAB/* ~/labs/lab$LAB/.terraform.lock.hcl
+}
+
 # Usage: place this function call in a cell alone before NB_QUIET cell
 #        stops execution (return 1) and prompts user to save notebook before we call NB_QUIET
 function NB_SAVE {
