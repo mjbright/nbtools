@@ -653,7 +653,13 @@ function NB_QUIET_FILTER_NOTEBOOK {
 
       grep -q NB_DEBUG: ${OP_NB} &&
           echo "Warning NB_DEBUG entries seen - $( grep -c NB_DEBUG: ${OP_NB} ) in $OP_NB"
+
+      OP_MD=${OP_NB%.ipynb}.md
+      [ ! -f "$OP_MD" ] && echo "Warning: No md file '$OP_MD'"
+      ESCAPES=$( grep -c $'\x1b' $OP_MD )
+      [ "$ESCAPES" != "0" ] && echo "Warning $ESCAPES escape code lines seen in markdown ($OP_MD)"
           # || echo "OK: No NB_DEBUG entries seen in $OP_NB"
+      echo "Warning $ESCAPES escape code lines seen in markdown ($OP_MD)"
     )
 
     mv *.sh $OP_DIR/ 2>/dev/null
