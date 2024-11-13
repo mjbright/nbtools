@@ -608,7 +608,11 @@ function NB_FILTER {
 
 function SAVE_NB_SECTIONS {
     jq '.cells[] | select(.cell_type == "markdown") | .source ' $OP_NB |
-        grep "# " | sed -e 's/^ *"//' -e 's/.*\\n# /# /' | grep "^#* [1-9]" | sed -e 's/\\n"//' -e 's/,$//'
+        grep "# " | sed -e 's/^ *"//' -e 's/.*\\n# /# /' |
+        grep -E "^#* (Exercise? *)[1-9]" |
+        # grep "^#* [1-9]" |
+        sed -e 's/\\n"//' -e 's/,$//'
+        #grep "# " | sed -e 's/^ *"//' -e 's/.*\\n# /# /' | grep "^#* [1-9]" | sed -e 's/\\n"//' -e 's/,$//'
 }
 
 function NB_QUIET_FILTER_NOTEBOOK {
