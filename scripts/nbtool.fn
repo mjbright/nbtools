@@ -40,7 +40,11 @@ function NB_SAVE_LAB_STEP {
     mkdir -p $STEP/
     rm -rf $STEP/* 2>/dev/null
 
-    cp -a *.tf *.tfvars tpl/ *.cfg $STEP/ 2>/dev/null
+    case $LAB_MODE in
+        Terraform)  cp -a *.tf *.tfvars tpl/ *.cfg $STEP/ 2>/dev/null;;
+        Kubernetes) cp -a *.yaml *.yml *.json      $STEP/ 2>/dev/null;;
+    esac
+
     ls -al $STEP/
 }
 
