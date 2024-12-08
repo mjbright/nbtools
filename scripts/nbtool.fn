@@ -34,6 +34,14 @@ function NB_SAVE {
     return 1
 }
 
+# NO: want to show these steps
+#function NB_START_LAB {
+#    LAB=$1; shift
+#
+#    mkdir -p ~/labs/$LAB
+#    cd       ~/labs/$LAB
+#}
+
 function NB_SAVE_LAB_STEP {
     STEP=$1; shift
 
@@ -41,8 +49,18 @@ function NB_SAVE_LAB_STEP {
     rm -rf $STEP/* 2>/dev/null
 
     case $LAB_MODE in
-        Terraform)  cp -a *.tf *.tfvars tpl/ *.cfg $STEP/ 2>/dev/null;;
-        Kubernetes) cp -a *.yaml *.yml *.json      $STEP/ 2>/dev/null;;
+        Terraform)
+            if [ -z "$1" ]; then
+                cp -a *.tf *.tfvars tpl/ *.cfg $STEP/ 2>/dev/null
+            else
+                cp -a $*                       $STEP/ 2>/dev/null
+            fi;;
+        Kubernetes)
+            if [ -z "$1" ]; then
+                cp -a *.yaml *.yml *.json      $STEP/ 2>/dev/null;;
+            else
+                cp -a $*                       $STEP/ 2>/dev/null
+            fi;;
     esac
 
     ls -al $STEP/
