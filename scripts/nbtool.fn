@@ -42,28 +42,32 @@ function NB_SAVE {
 #    cd       ~/labs/$LAB
 #}
 
-function NB_SAVE_LAB_STEP {
-    STEP=$1; shift
+function NB_SAVE_STEP {
+    local LAB_SECTION=$1; shift
+    local STEP=$1; shift
 
-    mkdir -p $STEP/
-    rm -rf $STEP/* 2>/dev/null
+    #set -x
+    local DIR=${LAB_SECTION}-${STEP}
+    rm   -rf $DIR 2>/dev/null
+    mkdir -p $DIR
 
     case $LAB_MODE in
         Terraform)
             if [ -z "$1" ]; then
-                cp -a *.tf *.tfvars tpl/ *.cfg $STEP/ 2>/dev/null
+                cp -a *.tf *.tfvars tpl/ *.cfg $DIR/ 2>/dev/null
             else
-                cp -a $*                       $STEP/ 2>/dev/null
+                cp -a $*                       $DIR/ 2>/dev/null
             fi;;
         Kubernetes)
             if [ -z "$1" ]; then
-                cp -a *.yaml *.yml *.json      $STEP/ 2>/dev/null;;
+                cp -a *.yaml *.yml *.json      $DIR/ 2>/dev/null
             else
-                cp -a $*                       $STEP/ 2>/dev/null
+                cp -a $*                       $DIR/ 2>/dev/null
             fi;;
     esac
 
-    ls -al $STEP/
+    ls -al $DIR/
+    #set +x
 }
 
 #echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"
