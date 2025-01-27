@@ -730,8 +730,8 @@ function NB_QUIET_FILTER_NOTEBOOK {
 
     # Show DIE errors though:
     awk '/==== START_DIE/,/==== END_DIE/ { print $0; }' ~/tmp/quiet.filter.notebook.op | NB_COLOUR red
-    grep -i   " DIE "       ~/tmp/quiet.filter.notebook.op && __RETURN 1
-    grep -A30 "^Traceback " ~/tmp/quiet.filter.notebook.op && __RETURN 1
+    grep -i   " DIE "       ~/tmp/quiet.filter.notebook.op && { __RETURN 1; return 1; }
+    grep -A30 "^Traceback " ~/tmp/quiet.filter.notebook.op && { __RETURN 1; return 1; }
 
     grep "long lines"       ~/tmp/quiet.filter.notebook.op
 
@@ -1062,8 +1062,17 @@ function NB_WAIT_CMD {
     return 0
 }
 
+# NOTE: use as
+#  ...  { __RETURN 1; return 1; }
 function __RETURN {
-    [ -z "$1" ] && return 0
-    return $1
+    local RET="$1"
+    [ -z "$RET" ] && return 0
+    NB_DEBUG "return $RET"
+    return $RET
 }
+
+# Main: source LAB_MODE specific functions:
+#set -x
+NB_SOURCE_FNS
+#set +x
 
