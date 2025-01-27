@@ -9,6 +9,8 @@ SCRIPT_DIR=$(dirname $SCRIPT)
 
 NB_START=$( date +%s )
 
+die() { echo "$0: die - $*" >&2; exit 1; }
+
 mkdir -p ~/tmp
 
 # LAB_IPYNB defaults to IP_README.ipynb ... or to 4th argument if .ipynb:
@@ -73,6 +75,23 @@ if [ ! -z "$1" ]; then
     export LAB_WEIGHT="$1"; shift
     export LAB_MODE="$1"; shift
     export LAB_NAME="$1"; shift
+
+    OPENTOFU=0
+    [ -f ~/.opentofu ] && OPENTOFU=1
+    [ -f ~/.tofu     ] && OPENTOFU=1
+    if [ $OPENTOFU -ne 0 ]; then
+        echo "******** Selecting TOFU mode"
+        [ "$LAB_MODE" != "Terraform"         ] && die "~/.opentofu: expected LAB_MODE='Terraform'"
+        [ "${LAB_NAME#OP_TF_}" = "$LAB_NAME" ] && die "~/.opentofu: expected LAB_NAME='OP_TF_*'"
+
+        export LAB_MODE="Tofu"
+        export LAB_NAME=OP_OTF_${LAB_NAME#OP_TF_}
+        [ "${LAB_NAME#OP_OTF_}" = "$LAB_NAME" ] && die "~/.opentofu: expected modified LAB_NAME='OP_TOF_*'"
+
+        #echo "OpenTofu Mode:"
+        env | grep ^LAB_ | sed 's/^/    /'
+    fi
+
     echo $LAB_NAME | grep "^OP_" || {
         echo
         echo "error[nbtool.rc]: Bad name for o/p file: should be OP_*.ipynb, LAB_NAME='$LAB_NAME'"
