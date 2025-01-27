@@ -52,7 +52,7 @@ function NB_SAVE_STEP {
     mkdir -p $DIR
 
     case $LAB_MODE in
-        Terraform)
+        Terraform|Tofu)
             if [ -z "$1" ]; then
                 cp -a *.tf *.tfvars tpl/ *.cfg $DIR/ 2>/dev/null
             else
@@ -336,6 +336,15 @@ function TIMER_hhmmss {
 # TIMER_STOP "Sleep test"
 
 # END: TIMER FUNCTIONS ================================================
+#
+function NB_SOURCE_FNS {
+    case $LAB_MODE in
+        Tofu|Terraform) echo "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN;;
+        Docker) echo "-- source $NBTOOL_DO_FN"; source $NBTOOL_DO_FN;;
+        Kubernetes) echo "-- source $NBTOOL_K8_FN"; source $NBTOOL_K8_FN;;
+        Rego) echo "-- source $NBTOOL_OPA_FN"; source $NBTOOL_OPA_FN;;
+    esac
+}
 
 function NB_INIT_NOTEBOOK {
     #set -x
@@ -379,28 +388,41 @@ function NB_INIT_NOTEBOOK {
 
     # To be used in markdown front-matter, picked up by Hugo/Printing to give PDF filename ...
     TITLE_MODE=""
+    NB_SOURCE_FNS
     case $LAB_MODE in
         Ansible)
-            echo "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN
+            # TODO: NBTOOL_ANS_FN
+            # echo "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN
             TITLE_MODE="ANS"
             # To avoid annoying warning messages:
             export ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3
             # To avoid key check prompts (from ansible, not ssh):
             export ANSIBLE_HOST_KEY_CHECKING=False
             ;;
-        Terraform)
-            echo "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN
-            TITLE_MODE="TF"
+        Tofu|Terraform)
+            # Handling OpenTofu:
+            TF="terraform"; _TF="TF"; NB_SET_VAR __VAR_TF="terraform"
+            REPO="https://github.com/hashicorp/terraform"
+            [ "$LAB_MODE" = "Tofu" ] && {
+                TF="tofu"; _TF="OTF"; NB_SET_VAR __VAR_TF="tofu"
+                REPO="https://github.com/opentofu/opentofu"
+            }
+
+            TITLE_MODE=$_TF
             rm -rf ~/tmp/terraform*
-            echo "==== Setting TF_DATA_DIR ===="
-            export TF_DATA_DIR=~/dot.terraform
-            echo "TF_DATA_DIR=$TF_DATA_DIR" | NB_HIGHLIGHT_EOL =
+
+            echo "==== Setting TF_PLUGIN_CACHE_DIR"
+            export TF_PLUGIN_CACHE_DIR=~/.terraform.plugin-cache
+            echo "TF_PLUGIN_CACHE_DIR=$TF_PLUGIN_CACHE_DIR" | NB_HIGHLIGHT_EOL =
+            #echo "==== Setting TF_DATA_DIR ===="
+            #export TF_DATA_DIR=~/dot.terraform
+            #echo "TF_DATA_DIR=$TF_DATA_DIR" | NB_HIGHLIGHT_EOL =
             if [ -f ~/.aws/linked/student20.rc ]; then
                 env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
                 echo "==== Setting AWS vars for student20 account ===="
                 . ~/.aws/linked/student20.rc; env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
                 #env | grep AWS_LINKED_ACCOUNT= | NB_HIGHLIGHT_EOL =
-                TITLE_MODE="TF-AWS"
+                TITLE_MODE="${_TF}-AWS"
             else
                 echo "==== No AWS vars ( ~/.aws/linked/student20.rc )"
             fi
@@ -410,19 +432,17 @@ function NB_INIT_NOTEBOOK {
                 . ~/.student.rc;
                 env | grep AZURE_CONFIG_DIR= | NB_HIGHLIGHT_EOL =
                 env | grep ^ARM_.*=          | NB_HIGHLIGHT_EOL =
-                TITLE_MODE="TF-AZ"
+                TITLE_MODE="${_TF}-AZ"
             else
                 echo "==== No AZURE vars ( ~/.student.rc )"
             fi
             ;;
         Docker)
-            echo "-- source $NBTOOL_DO_FN"; source $NBTOOL_DO_FN
             TITLE_MODE="DO"
             echo "In Docker Mode"
             #exit 1
             ;;
         Kubernetes)
-            echo "-- source $NBTOOL_K8_FN"; source $NBTOOL_K8_FN
             TITLE_MODE="K8S"
             [ -z "$KUBECONFIG" ] && export KUBECONFIG=~/.kube/config
             echo "KUBECONFIG='$KUBECONFIG'"
@@ -439,12 +459,11 @@ function NB_INIT_NOTEBOOK {
             ;;
 
         Rego)
-            echo "-- source $NBTOOL_OPA_FN"; source $NBTOOL_OPA_FN
             TITLE_MODE="REGO"
             ;;
 
         *)
-            echo "Error: Unknown LAB_MODE '$LAB_MODE' - should be one of 'Terraform|Kubernetes|Rego'" | NB_HIGHLIGHT
+            echo "Error: Unknown LAB_MODE '$LAB_MODE' - should be one of 'Ansible|Docker|Terraform|Tofu|Kubernetes|Rego'" | NB_HIGHLIGHT
             banner ERR
             return
             ;;
@@ -503,6 +522,13 @@ function __NB_LAB_ENV {
             TITLE_MODE+="_$__ANS_VERSION"
             TOOL_VERSION="$__ANS_VERSION"
             ;;
+        Tofu)
+            __OTF_VERSION=$( which tofu >/dev/null && tofu version -json | jq -rc '.terraform_version' || echo missing )
+            INFO="$TF $__OTF_VERSION"
+            TITLE_MODE+="_$__OTF_VERSION"
+            TOOL_VERSION="$__OTF_VERSION"
+            ;;
+
         Terraform)
             #__TF_VERSION=$( which terraform >/dev/null && terraform --version || echo No terraform )
             __TF_VERSION=$( which terraform >/dev/null && terraform version -json | jq -rc '.terraform_version' || echo missing )
@@ -588,6 +614,9 @@ function NB_ARCHIVE_LAB {
     mkdir -p ~/labs.old
     [ -d ~/labs/$LAB ] && {
         echo "-- mv ~/labs/$LAB ~/labs.old/"
+        [ -d ~/labs.old/$LAB ] && {
+            mv ~/labs.old/$LAB ~/labs.old/{$LAB}.2 >/dev/null 2>&1
+        }
         mv ~/labs/$LAB ~/labs.old/
         # USELESS - but paranoid:
         [ -d ~/labs/$LAB ] && rm -rf ~/labs/$LAB/* ~/labs/$LAB/.terraform.lock.hcl
@@ -766,6 +795,18 @@ function NB_FILTER_NOTEBOOK {
         DIE "Not a file: OP_NOTEBOOK='$OP_NOTEBOOK'"
     }
     echo OP_NOTEBOOK=$OP_NOTEBOOK
+    [ "$LAB_MODE" = "Terraform" ] && {
+        sed -i.either $OP_NOTEBOOK \
+            -e 's/__EITHER__/Terraform/g' -e 's/__either__/terraform/g'
+    }
+    [ "$LAB_MODE" = "Tofu" ] && {
+        sed -i.either $OP_NOTEBOOK \
+            -e 's/__EITHER__/Tofu/g' -e 's/__either__/tofu/g'
+        sed -i.tofu       -e 's/terraform/tofu/g' $OP_NOTEBOOK
+        sed -i.tofu.upper -e 's/Terraform/Tofu/g' $OP_NOTEBOOK
+        DIFFS=$( diff ${OP_NOTEBOOK} ${OP_NOTEBOOK}.tofu | grep -c '> ' )
+        echo "$DIFFS lines changed reference from Terraform to Tofu"
+    }
     # DIE "OK?"
 
     [ `which jq` ] && {
