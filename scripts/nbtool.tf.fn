@@ -1,9 +1,14 @@
 
+TF_STATE_DIR=~/tmp/TF_state_list
+mkdir -p $TF_STATE_DIR
+
 ## -- Terraform functions: -----------------------------------
 
+#echo "OK-beginning"
+
 function TF_INIT {
-    NB_DEBUG terraform init $*
-    terraform init $*
+    NB_DEBUG $TF init $*
+    $TF init $*
     __RETURN
 }
 
@@ -22,21 +27,23 @@ function __TF_ARGS {
 }
 
 function TF_PLAN {
-    NB_DEBUG terraform plan $*
+    NB_DEBUG $TF plan $*
     #__RETURN
      __TF_ARGS "$1" || shift
 
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        ${TIME}terraform plan $* |
+        ${TIME}$TF plan $* |
             tee /tmp/PLAN.op |& grep -iE "complet|fail|error| to add"
     else
-        ${TIME}terraform plan $*
+        ${TIME}$TF plan $*
     fi
-    NB_DEBUG $( TIMER_STOP 'terraform plan' )
+    NB_DEBUG $( TIMER_STOP "$TF plan" )
     __RETURN
 }
+
+#echo "OK-before TF_APPLY"
 
 function TF_APPLY {
     NB_DEBUG terraform apply $*
@@ -46,10 +53,10 @@ function TF_APPLY {
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        ${TIME}terraform apply -auto-approve $* |
+        ${TIME}$TF apply -auto-approve $* |
             tee /tmp/APPLY.op |& grep -iE "complet|fail|error| to add"
     else
-        ${TIME}terraform apply -auto-approve $*
+        ${TIME}$TF apply -auto-approve $*
     fi
     NB_DEBUG $( TIMER_STOP 'terraform apply' )
     __RETURN
@@ -60,19 +67,43 @@ function TF_APPLY {
     #TF_DESTROY $*
 #}
 
+#echo "OK-half"
+
+function TF_STATE {
+    NB_DEBUG $TF state $*
+     __TF_ARGS "$1" || shift
+    ${TIME}$TF state $*
+    NB_DEBUG $( TIMER_STOP "$TF state" )
+    __RETURN
+}
+
+function TF_OUTPUT {
+    NB_DEBUG $TF output $*
+     __TF_ARGS "$1" || shift
+    ${TIME}$TF state $*
+    NB_DEBUG $( TIMER_STOP "$TF output" )
+    __RETURN
+}
+
 function TF_DESTROY {
-    NB_DEBUG terraform destroy $*
+    NB_DEBUG $TF destroy $*
      __TF_ARGS "$1" || shift
 
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        ${TIME}terraform destroy -auto-approve $* |
+        ${TIME}$TF destroy -auto-approve $* |
             tee /tmp/DESTROY.op |& grep -iE "complet|fail|error| to add"
     else
-        ${TIME}terraform destroy -auto-approve $*
+        ${TIME}$TF destroy -auto-approve $*
     fi
-    NB_DEBUG $( TIMER_STOP 'terraform destroy' )
+    NB_DEBUG $( TIMER_STOP "$TF destroy" )
+
+    local NUM_RESOURCES=$( $TF state list | wc -l )
+    [ $NUM_RESOURCES != "0" ] && {
+        echo "ERROR: $NUM_RESOURCES resources remain $( $TF state list )"
+        __RETURN 1 || return 1
+    }
     __RETURN
 }
 
@@ -176,3 +207,4 @@ function AZ_check {
     echo "OK"
 }
 
+#echo "OK-end"
