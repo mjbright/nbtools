@@ -46,9 +46,17 @@ function TF_PLAN {
 #echo "OK-before TF_APPLY"
 
 function TF_APPLY {
-    NB_DEBUG terraform apply $*
-     __TF_ARGS "$1" || shift
-    NB_DEBUG terraform apply $*
+    NB_DEBUG $TF apply $*
+
+    TF_STATE_FILE=""
+    [ "$1" = "-chk" ] && {
+        NB_DEBUG "TF_APPLY SAW -chk option: -chk $2"
+        shift; TF_STATE_FILE=$1; shift
+        # Save & check state list against saved state list (if present)
+    }
+    
+     __TF_ARGS $* || shift
+    NB_DEBUG $TF apply $*
 
     TIMER_START
 
@@ -58,7 +66,29 @@ function TF_APPLY {
     else
         ${TIME}$TF apply -auto-approve $*
     fi
-    NB_DEBUG $( TIMER_STOP 'terraform apply' )
+    NB_DEBUG $( TIMER_STOP "$TF apply" )
+
+    # Ignore saving state list if TF_STATE_FILE is unset:
+    NB_DEBUG "INFO: \$TF_STATE_FILE= $TF_STATE_FILE"
+    [ -z "$TF_STATE_FILE" ] && NB_DEBUG "WARNING: No -chk option"
+    # Enable/disable for stopping when '-chk' not specified:
+    NB_DEBUG "NB_TF_ENCORCE_CHK=$NB_TF_ENCORCE_CHK"
+    [ ! -z "NB_TF_ENFORCE_CHK" ] && [ -z "$TF_STATE_FILE" ] && {
+         NB_DEBUG "RETURN 1 because NB_TF_ENCORCE_CHK=$NB_TF_ENCORCE_CHK, and no '-chk' option"
+         __RETURN 1 || return 1
+    }
+    [ -z "$TF_STATE_FILE" ] && __RETURN
+
+    # Save state list:
+    $TF state list > $TF_STATE_DIR/${TF_STATE_FILE}.new
+
+    # If existing state list file, compare:
+    [ -f $TF_STATE_DIR/${TF_STATE_FILE} ] && {
+        diff $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE} \
+            > $TF_STATE_DIR/${TF_STATE_FILE}.diff 2>&1
+        [ $? -ne 0 ] && __RETURN 1 || return 1
+    }
+
     __RETURN
 }
 
