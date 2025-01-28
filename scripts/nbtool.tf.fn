@@ -107,10 +107,18 @@ function TF_STATE {
     __RETURN
 }
 
+function TF_SHOW {
+    NB_DEBUG $TF show $*
+     __TF_ARGS "$1" || shift
+    ${TIME}$TF show $*
+    NB_DEBUG $( TIMER_STOP "$TF show" )
+    __RETURN
+}
+
 function TF_OUTPUT {
     NB_DEBUG $TF output $*
      __TF_ARGS "$1" || shift
-    ${TIME}$TF state $*
+    ${TIME}$TF output $*
     NB_DEBUG $( TIMER_STOP "$TF output" )
     __RETURN
 }
