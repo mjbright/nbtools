@@ -678,6 +678,12 @@ function NB_FILTER {
 }
 
 function SAVE_NB_SECTIONS {
+    jq '.cells[] | select(.cell_type == "markdown") | .source ' $1 |
+        grep -E "# [1-9]" |
+        sed -e 's/.*\\n\\n*#/#/' -e 's/\\n"//' -e 's/,$//'
+    return
+        #grep -E "# (Lab)?[1-9]" |
+
     jq '.cells[] | select(.cell_type == "markdown") | .source ' $OP_NB |
         grep "# " | sed -e 's/^ *"//' -e 's/.*\\n# /# /' |
         grep -E "^#* (Exercise? *)[1-9]" |
