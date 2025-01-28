@@ -635,10 +635,7 @@ function NB_ARCHIVE_LAB {
 }
 
 function NB_ARCHIVE_SOLUTIONS {
-    LAB_NAME="$*"
-
     # set -x
-    LAB_NUM=$( echo $LAB_NAME | sed -e 's/^lab//i' -e 's/_lab//i' -e 's/ .*//' -e 's/\..*//' )
     # set +x
     #echo "LAB_NUM='$LAB_NUM'"
 
@@ -768,6 +765,8 @@ function __CHECK_NB_DIR {
 
 function NB_FILTER_NOTEBOOK {
     __CHECK_NB_DIR
+    export LAB_NUM=$( echo $LAB_NAME | sed -e 's/^lab//i' -e 's/_lab//i' -e 's/ .*//' -e 's/\..*//' )
+
     ( cd $NB_DIR;
 
     mkdir -p $OP_DIR
@@ -775,7 +774,7 @@ function NB_FILTER_NOTEBOOK {
     echo "======== Filtering current notebook [$LAB_IPYNB] ========"
     echo "**** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"
 
-    NB_ARCHIVE_SOLUTIONS $LAB_NAME
+    NB_ARCHIVE_SOLUTIONS
 
     # Re-source latest version:
     echo "-- source $NBTOOL_FN" | NB_REPLACE_HOME_STDIN

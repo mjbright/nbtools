@@ -51,7 +51,7 @@ function TF_APPLY {
     TF_STATE_FILE=""
     [ "$1" = "-chk" ] && {
         NB_DEBUG "TF_APPLY SAW -chk option: -chk $2"
-        shift; TF_STATE_FILE=$1; shift
+        shift; TF_STATE_FILE=LAB${LAB_NUM}.${1}; shift
         # Save & check state list against saved state list (if present)
     }
     
