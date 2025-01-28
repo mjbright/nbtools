@@ -960,6 +960,11 @@ def filter_nb(json_data, DEBUG=False):
     global VARS_SEEN
     global QUESTIONS, NUM_QUESTIONS
 
+    VAR_TF = os.getenv('__TF', None)
+    if VAR_TF:
+        VARS_SEEN['TF']=VAR_TF
+        DEBUG(f'Saw TF var "{VAR_TF}"')
+
     include=False
     cells=[]
     cells_data = json_data['cells']
