@@ -72,9 +72,9 @@ function TF_APPLY {
     NB_DEBUG "INFO: \$TF_STATE_FILE= $TF_STATE_FILE"
     [ -z "$TF_STATE_FILE" ] && NB_DEBUG "WARNING: No -chk option"
     # Enable/disable for stopping when '-chk' not specified:
-    NB_DEBUG "NB_TF_ENCORCE_CHK=$NB_TF_ENCORCE_CHK"
+    NB_DEBUG "NB_TF_ENFORCE_CHK=$NB_TF_ENFORCE_CHK"
     [ ! -z "NB_TF_ENFORCE_CHK" ] && [ -z "$TF_STATE_FILE" ] && {
-         NB_DEBUG "RETURN 1 because NB_TF_ENCORCE_CHK=$NB_TF_ENCORCE_CHK, and no '-chk' option"
+         NB_DEBUG "RETURN 1 because NB_TF_ENFORCE_CHK=$NB_TF_ENFORCE_CHK, and no '-chk' option"
          __RETURN 1 || return 1
     }
     [ -z "$TF_STATE_FILE" ] && __RETURN
