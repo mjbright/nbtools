@@ -364,6 +364,7 @@ function NB_INIT_NOTEBOOK {
 
     echo
     NB_SET_ENV
+
     echo "**** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"
     
     #set -x
@@ -401,12 +402,18 @@ function NB_INIT_NOTEBOOK {
             ;;
         Tofu|Terraform)
             # Handling OpenTofu:
-            TF="terraform"; _TF="TF"; NB_SET_VAR __VAR_TF="terraform"
+            TF="terraform"; _TF="TF";
+            # DO $__TF replacement automatically in nbtools.py !
+            NB_SET_VAR TF="terraform"
+            export __TF
             REPO="https://github.com/hashicorp/terraform"
             [ "$LAB_MODE" = "Tofu" ] && {
-                TF="tofu"; _TF="OTF"; NB_SET_VAR __VAR_TF="tofu"
+                TF="tofu"; _TF="OTF";
+                NB_SET_VAR TF="tofu"
+                export __TF
                 REPO="https://github.com/opentofu/opentofu"
             }
+            echo "EXPORTED __TF: $( env | grep __TF )"
 
             TITLE_MODE=$_TF
             rm -rf ~/tmp/terraform*
@@ -588,6 +595,10 @@ function MD_SET_FRONTMATTER {
     #local __DATE=$(date  --iso-8601=seconds)
     local __DATE=$(date +%s)
     #date: 2018-11-28T15:14:39+10:00
+
+    if [ "$LAB_MODE" = "Tofu" ]; then
+        __TITLE=$( echo $__TITLE | sed 's/Terraform/OpenTofu/' )
+    fi
 
     read -r -d '' FRONTMATTER <<EOF
 ---
@@ -773,7 +784,9 @@ function NB_FILTER_NOTEBOOK {
 
     echo "======== FILTERING NOTEBOOK ===================================================="
     CMD="$PYTHON3 $NBTOOL_PY -f $LAB_IPYNB"
+    #echo "-- $CMD" | tee ~/tmp/nbtool.py.op | NB_REPLACE_HOME_STDIN
     echo "-- $CMD" | NB_REPLACE_HOME_STDIN
+    #$CMD | tee ~/tmp/nbtool.py.op
     $CMD
     echo "======== FILTERING DONE ========================================================"
     __CHECK_NB_DIR
@@ -795,19 +808,19 @@ function NB_FILTER_NOTEBOOK {
         DIE "Not a file: OP_NOTEBOOK='$OP_NOTEBOOK'"
     }
     echo OP_NOTEBOOK=$OP_NOTEBOOK
-    [ "$LAB_MODE" = "Terraform" ] && {
-        sed -i.either $OP_NOTEBOOK \
-            -e 's/__EITHER__/Terraform/g' -e 's/__either__/terraform/g'
-    }
+    echo "DEBUG: \$LAB_MODE='$LAB_MODE'" >&2
     [ "$LAB_MODE" = "Tofu" ] && {
-        sed -i.either $OP_NOTEBOOK \
-            -e 's/__EITHER__/Tofu/g' -e 's/__either__/tofu/g'
-        sed -i.tofu       -e 's/terraform/tofu/g' $OP_NOTEBOOK
-        sed -i.tofu.upper -e 's/Terraform/Tofu/g' $OP_NOTEBOOK
-        DIFFS=$( diff ${OP_NOTEBOOK} ${OP_NOTEBOOK}.tofu | grep -c '> ' )
+        echo "DEBUG: sed -i.tf $OP_NOTEBOOK" >&2
+        # Replace terraform by tofu/OpenTofu except for lock/state files:
+        sed -i.tf $OP_NOTEBOOK \
+            -e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
+            -e 's/tofu.lock.hcl/terraform.lock.hcl/g' \
+            -e 's/tofu.tfstate/terraform.tfstate/g' \
+            -e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g'
+        DIFFS=$( diff ${OP_NOTEBOOK} ${OP_NOTEBOOK}.tf | grep -c '> ' )
         echo "$DIFFS lines changed reference from Terraform to Tofu"
+        # TOO EARLY TO RENAME output file (need to do that after filtering)
     }
-    # DIE "OK?"
 
     [ `which jq` ] && {
         set -x
@@ -908,6 +921,8 @@ function NB_CONVERT {
         [ ! -f $OP_NOTEBOOK_MD ] && DIE "No such 'output' notebook '$OP_NOTEBOOK_MD' from nbconvert"
         ls -al $OP_NOTEBOOK_MD
         OP_NOTEBOOK_FM_MD=${OP_NOTEBOOK%.ipynb}.fm.md
+
+        MD_SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
         echo "$FRONTMATTER"           > $OP_NOTEBOOK_FM_MD
         sed \
             -e 's?\.\./\.\./\.\./static/images/?/images/?' \
@@ -940,10 +955,24 @@ function NB_CONVERT {
 
         # Sanitize notebook/markdown filename:
         NAME=$( echo $LAB_NAME | sed -e 's/  */_/g' -e 's/_-_/-/g' -e 's/\._/\./' )
+        NEW=${NAME}.md
+        if [ "$LAB_MODE" = "Tofu" ]; then
+            NAME=$( echo $NAME | sed -e 's/Terraform/OpenTofu/g' -e 's/terraform/opentofu/g' )
+            NEW=${NAME}.md
+            echo "DEBUG[Tofu]: renaming markdown file as $NEW" >&2
+            echo "DEBUG[Tofu]: changing _[Ee]rraform entries to [Tt]erraform in $NEW" >&2
+
+            # Replace terraform by tofu/OpenTofu except for lock/state files:
+            sed -i.bak $OP_NOTEBOOK_FM_MD
+                -e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
+                -e 's/tofu.lock.hcl/terraform.lock.hcl/' \
+                -e 's/tofu.tfstate/terraform.tfstate/' \
+                -e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g'
+        fi
 
         # MOVE FINAL OP_NOTEBOOK and OP_MARKDOWN into place:
         set -x
-            mv $OP_NOTEBOOK_FM_MD ./${NAME}.md
+            mv $OP_NOTEBOOK_FM_MD $NEW
             mv $OP_NOTEBOOK ${NAME}.ipynb
         set +x
 
