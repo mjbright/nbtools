@@ -821,6 +821,7 @@ function NB_FILTER_NOTEBOOK {
             -e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
             -e 's?www.tofu.io/docs/commands/?opentofu.org/docs/cli/commands/?g' \
             -e 's/tofu.lock.hcl/terraform.lock.hcl/g' \
+            -e 's/tofu.tfvars/terraform.tfvars/g' \
             -e 's/tofu.tfstate/terraform.tfstate/g' \
             -e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g'
         DIFFS=$( diff ${OP_NOTEBOOK} ${OP_NOTEBOOK}.tf | grep -c '> ' )
