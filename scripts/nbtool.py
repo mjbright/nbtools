@@ -819,6 +819,11 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
             pos=cells_data[cell_no]['source'][slno].find(REPLACE_CMD)+len(REPLACE_CMD)
             cells_data[cell_no]['source'][slno] = \
                 REPLACE_COMMANDS[REPLACE_CMD] + ' ' + cells_data[cell_no]['source'][slno][pos:]
+            new_line = cells_data[cell_no]['source'][slno]
+            if '-chk' in new_line:
+                pos=new_line.find('-chk')
+                if 'terraform apply' in new_line or 'terraform destroy' in new_line:
+                    cells_data[cell_no]['source'][slno] = cells_data[cell_no]['source'][slno][:pos]
 
         replace_words_in_cell_output_lines(cells_data, cell_no, REPLACE_OP_WORDS)
 
