@@ -406,12 +406,12 @@ function NB_INIT_NOTEBOOK {
             # DO $__TF replacement automatically in nbtools.py !
             NB_SET_VAR TF="terraform"
             export __TF
-            REPO="https://github.com/hashicorp/terraform"
+            ## REPO="https://github.com/hashicorp/terraform"
             [ "$LAB_MODE" = "Tofu" ] && {
                 TF="tofu"; _TF="OTF";
                 NB_SET_VAR TF="tofu"
                 export __TF
-                REPO="https://github.com/opentofu/opentofu"
+                ## REPO="https://github.com/opentofu/opentofu"
             }
             echo "EXPORTED __TF: $( env | grep __TF )"
 
@@ -511,11 +511,15 @@ function NB_LAB_ENV {
 
 function __NB_LAB_ENV {
     #set -x
-    local REPO=""
-    local SHA=""
-    local DATE=""
+    #local REPO=""
+    #local SHA=""
+    #local DATE=""
+    REPO=""
+    SHA=""
+    DATE=""
+    
     git remote -v >/dev/null 2>&1 | grep -q origin && {
-        REPO=$( git remote -v | awk '/fetch/ { print $2; exit; }' | sed -e 's?ssh://?https://?' )
+        REPO=$( git remote -v | awk '/fetch/ { print $2; exit; }' | sed -e 's?ssh://?https://?' -e 's/git@//' )
         SHA=$( git log | awk '{ print $2; exit; }' )
         DATE=$( git log | grep -m1 ^Date: | sed -e 's/Date: *//' )
     }
@@ -537,7 +541,6 @@ function __NB_LAB_ENV {
             ;;
 
         Terraform)
-            #__TF_VERSION=$( which terraform >/dev/null && terraform --version || echo No terraform )
             __TF_VERSION=$( which terraform >/dev/null && terraform version -json | jq -rc '.terraform_version' || echo missing )
             # terraform version | awk '/^Terraform / { print $2; }'
             INFO="terraform $__TF_VERSION"
