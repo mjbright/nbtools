@@ -80,9 +80,9 @@ which banner >/dev/null && {
 HOSTNAME=$(hostname)
 
 function NB_DEBUG {
-    local INFO="${PWD##*/} $(date +'%Y-%b-%d %0Hh%0Mm')"
-    echo "NB_DEBUG: $INFO"
-    echo "NB_DEBUG: $(id -un)@$(hostname):$PWD"
+    #local INFO="DIR=${PWD##*/} $(date +'%Y-%b-%d %0Hh%0Mm')"
+    #echo "NB_DEBUG: $INFO"
+    echo "NB_DEBUG: $(date +'%Y-%b-%d %0Hh%0Mm') $(id -un)@$(hostname):$PWD"
     echo "NB_DEBUG: -- $*"
 }
 
@@ -624,7 +624,7 @@ function NB_ARCHIVE_LAB {
     
     mkdir -p ~/labs.old
     [ -d ~/labs/$LAB ] && {
-        echo "-- mv ~/labs/$LAB ~/labs.old/"
+        # echo "-- mv ~/labs/$LAB ~/labs.old/"
         [ -d ~/labs.old/$LAB ] && {
             mv ~/labs.old/$LAB ~/labs.old/{$LAB}.2 >/dev/null 2>&1
         }
