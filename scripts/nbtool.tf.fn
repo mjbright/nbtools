@@ -55,6 +55,7 @@ function TF_APPLY {
         # Save & check state list against saved state list (if present)
     }
     
+    local BEFORE=$( $TF state list | wc -l )
      __TF_ARGS $* || shift
     NB_DEBUG $TF apply $*
 
@@ -69,9 +70,14 @@ function TF_APPLY {
     NB_DEBUG $( TIMER_STOP "$TF apply" )
 
     # Ignore saving state list if TF_STATE_FILE is unset:
-    NB_DEBUG "INFO: \$TF_STATE_FILE= $TF_STATE_FILE"
+    NB_DEBUG "INFO: \$TF_STATE_FILE=$TF_STATE_FILE"
     [ -z "$TF_STATE_FILE" ] && NB_DEBUG "WARNING: No -chk option"
     # Enable/disable for stopping when '-chk' not specified:
+
+    local AFTER=$( $TF state list | wc -l )
+    let   CREATED=AFTER-BEFORE
+    NB_DEBUG "$CREATED resources created"
+
     NB_DEBUG "NB_TF_ENFORCE_CHK=$NB_TF_ENFORCE_CHK"
     [ ! -z "NB_TF_ENFORCE_CHK" ] && [ -z "$TF_STATE_FILE" ] && {
          NB_DEBUG "RETURN 1 because NB_TF_ENFORCE_CHK=$NB_TF_ENFORCE_CHK, and no '-chk' option"
@@ -129,6 +135,7 @@ function TF_DESTROY {
 
     TIMER_START
 
+    local BEFORE=$( $TF state list | wc -l )
     if [ $QUIET -ne 0 ]; then
         ${TIME}$TF destroy -auto-approve $* |
             tee /tmp/DESTROY.op |& grep -iE "complet|fail|error| to add"
@@ -137,11 +144,12 @@ function TF_DESTROY {
     fi
     NB_DEBUG $( TIMER_STOP "$TF destroy" )
 
-    local NUM_RESOURCES=$( $TF state list | wc -l )
-    [ $NUM_RESOURCES != "0" ] && {
-        echo "ERROR: $NUM_RESOURCES resources remain $( $TF state list )"
+    local AFTER=$( $TF state list | wc -l )
+    [ $AFTER != "0" ] && {
+        echo "ERROR: $AFTER resources remain $( $TF state list )"
         __RETURN 1 || return 1
     }
+    NB_DEBUG "$BEFORE resources destroyed"
     __RETURN
 }
 
