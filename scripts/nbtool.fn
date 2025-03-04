@@ -47,14 +47,14 @@ function NB_SAVE_STEP {
     local STEP=$1; shift
 
     #set -x
-    local DIR=${LAB_SECTION}-${STEP}
+    local DIR=~/LAB_STEPS/${LAB_SECTION}-${STEP}
     rm   -rf $DIR 2>/dev/null
     mkdir -p $DIR
 
     case $LAB_MODE in
         Terraform|Tofu)
             if [ -z "$1" ]; then
-                cp -a *.tf *.tfvars tpl/ *.cfg $DIR/ 2>/dev/null
+                cp -a *.tf *.tfvars *.tpl tpl/ *.cfg $DIR/ 2>/dev/null
             else
                 cp -a $*                       $DIR/ 2>/dev/null
             fi;;
