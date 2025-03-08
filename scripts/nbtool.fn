@@ -47,7 +47,7 @@ function NB_SAVE_STEP {
     local STEP=$1; shift
 
     #set -x
-    local DIR=~/LAB_STEPS/${LAB_SECTION}-${STEP}
+    local DIR=~/LAB_STEPS.${LAB_MODE}.${TOOL_VERSION}/${LAB_SECTION}-${STEP}
     rm   -rf $DIR 2>/dev/null
     mkdir -p $DIR
 
@@ -629,12 +629,12 @@ function NB_ARCHIVE_LAB {
     [ -d ~/labs/$LAB ] && {
         # echo "-- mv ~/labs/$LAB ~/labs.old/"
         [ -d ~/labs.old/$LAB ] && {
-            mv ~/labs.old/$LAB ~/labs.old/{$LAB}.2 >/dev/null 2>&1
+            mv ~/labs.old/$LAB ~/labs.old/{$LAB}.2
         }
         mv ~/labs/$LAB ~/labs.old/
         # USELESS - but paranoid:
         [ -d ~/labs/$LAB ] && rm -rf ~/labs/$LAB/* ~/labs/$LAB/.terraform.lock.hcl
-    }
+    } >/dev/null 2>&1
 }
 
 function NB_ARCHIVE_SOLUTIONS {
@@ -643,8 +643,11 @@ function NB_ARCHIVE_SOLUTIONS {
     #echo "LAB_NUM='$LAB_NUM'"
 
     mkdir -p ~/Solutions/BAK
-    SOLUTION_DIR=~/Solutions/Lab${LAB_NUM}
-    [ -d $SOLUTION_DIR ] && mv $SOLUTION_DIR ~/Solutions/BAK 2>/dev/null
+    SOLUTION_DIR=~/Solutions.${LAB_MODE}.${TOOL_VERSION}/Lab${LAB_NUM}
+    BAK_DIR=${SOLUTION_DIR}.BAK
+    mkdir -p $BAK_DIR
+
+    [ -d $SOLUTION_DIR ] && mv $SOLUTION_DIR $BAK_DIR/ 2>/dev/null
 
     mkdir -p $SOLUTION_DIR
     cp -a *.yml *.yaml *.tf *.tfvars *.json $SOLUTION_DIR/ 2>/dev/null
@@ -777,7 +780,8 @@ function NB_FILTER_NOTEBOOK {
     echo "======== Filtering current notebook [$LAB_IPYNB] ========"
     echo "**** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"
 
-    NB_ARCHIVE_SOLUTIONS
+    ## Disabled in favour of NB_SAVE_STEP:
+    ## NB_ARCHIVE_SOLUTIONS
 
     # Re-source latest version:
     echo "-- source $NBTOOL_FN" | NB_REPLACE_HOME_STDIN
