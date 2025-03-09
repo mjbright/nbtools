@@ -42,12 +42,10 @@ function NB_SAVE {
 #    cd       ~/labs/$LAB
 #}
 
-function NB_SAVE_STEP {
-    local LAB_SECTION=$1; shift
-    local STEP=$1; shift
+function __NB_SAVE_FILES {
+    local DIR=$1; shift
+    DIR=~/LAB_INFO.${LAB_MODE}.${TOOL_VERSION}/$DIR
 
-    #set -x
-    local DIR=~/LAB_STEPS.${LAB_MODE}.${TOOL_VERSION}/${LAB_SECTION}-${STEP}
     rm   -rf $DIR 2>/dev/null
     mkdir -p $DIR
 
@@ -69,6 +67,29 @@ function NB_SAVE_STEP {
     ls -al $DIR/
     #set +x
 }
+
+function NB_SAVE_TEMPLATE {
+    local LAB_SECTION=$1; shift
+    local STEP=$1; shift
+
+    __NB_SAVE_FILES TEMPLATES/${LAB_SECTION}-${STEP} $*
+}
+
+function NB_SAVE_SOLUTION {
+    local LAB_SECTION=$1; shift
+    local STEP=$1; shift
+
+    __NB_SAVE_FILES SOLUTIONS/${LAB_SECTION}-${STEP} $*
+}
+
+function NB_SAVE_STEP {
+    local LAB_SECTION=$1; shift
+    local STEP=$1; shift
+
+    #set -x
+    __NB_SAVE_FILES STEPS/${LAB_SECTION}-${STEP} $*
+}
+
 
 #echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"
 
@@ -399,17 +420,20 @@ function NB_INIT_NOTEBOOK {
             export ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3
             # To avoid key check prompts (from ansible, not ssh):
             export ANSIBLE_HOST_KEY_CHECKING=False
+            NB_SET_VAR TOOL="ansible"
             ;;
         Tofu|Terraform)
             # Handling OpenTofu:
             TF="terraform"; _TF="TF";
             # DO $__TF replacement automatically in nbtools.py !
             NB_SET_VAR TF="terraform"
+            NB_SET_VAR TOOL="terraform"
             export __TF
             ## REPO="https://github.com/hashicorp/terraform"
             [ "$LAB_MODE" = "Tofu" ] && {
                 TF="tofu"; _TF="OTF";
                 NB_SET_VAR TF="tofu"
+                NB_SET_VAR TOOL="tofu"
                 export __TF
                 ## REPO="https://github.com/opentofu/opentofu"
             }
@@ -447,6 +471,7 @@ function NB_INIT_NOTEBOOK {
         Docker)
             TITLE_MODE="DO"
             echo "In Docker Mode"
+            NB_SET_VAR TOOL="docker"
             #exit 1
             ;;
         Kubernetes)
@@ -456,6 +481,7 @@ function NB_INIT_NOTEBOOK {
             KUBEOK=1
             [   -z "$KUBECONFIG" ] && KUBEOK=0
             [ ! -f "$KUBECONFIG" ] && KUBEOK=0
+            NB_SET_VAR TOOL="kubernetes"
             which kubectl >/dev/null 2>&1 && KUBEOK=0
             if [ $KUBEOK -ne 0 ]; then
                 grep current-context "$KUBECONFIG" | grep -q kubernetes-admin && echo "## ASSUMING full cluster admin rights"
@@ -467,6 +493,7 @@ function NB_INIT_NOTEBOOK {
 
         Rego)
             TITLE_MODE="REGO"
+            NB_SET_VAR TOOL="opa"
             ;;
 
         *)
