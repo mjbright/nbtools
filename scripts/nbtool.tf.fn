@@ -13,14 +13,14 @@ function TF_INIT {
 }
 
 function __TF_ARGS {
-    TIME=""
     QUIET=0
 
-    [ -z "$1"      ] && TIME="time "
-    [ "$1" = "-t"  ] && { TIME="time "; return 1; }
+    # Remove use of TIME - always user TIMER_START/TIMER_STOP
     [ "$1" = "-q"  ] && { QUIET=1; return 1; }
-    [ "$1" = "-qt" ] && { QUIET=1; TIME="time "; return 1; }
-    [ "$1" = "-tq" ] && { QUIET=1; TIME="time "; return 1; }
+
+    # Ignore 'legacy' -t argument:
+    [ "$1" = "-qt" ] && { QUIET=1; return 1; }
+    [ "$1" = "-tq" ] && { QUIET=1; return 1; }
 
     # Don't shift
     return 0
@@ -34,10 +34,10 @@ function TF_PLAN {
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        ${TIME}$TF plan $* |
+        $TF plan $* |
             tee /tmp/PLAN.op |& grep -iE "complet|fail|error| to add"
     else
-        ${TIME}$TF plan $*
+        $TF plan $*
     fi
     NB_DEBUG $( TIMER_STOP "$TF plan" )
     __RETURN
@@ -62,10 +62,10 @@ function TF_APPLY {
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        echo yes | ${TIME}$TF apply $* |
+        echo yes | $TF apply $* |
             tee /tmp/APPLY.op |& grep -iE "complet|fail|error| to add"
     else
-        echo yes | ${TIME}$TF apply $*
+        echo yes | $TF apply $*
     fi
     NB_DEBUG $( TIMER_STOP "$TF apply" )
 
@@ -108,7 +108,7 @@ function TF_APPLY {
 function TF_STATE {
     NB_DEBUG $TF state $*
      __TF_ARGS "$1" || shift
-    ${TIME}$TF state $*
+    $TF state $*
     NB_DEBUG $( TIMER_STOP "$TF state" )
     __RETURN
 }
@@ -116,7 +116,7 @@ function TF_STATE {
 function TF_SHOW {
     NB_DEBUG $TF show $*
      __TF_ARGS "$1" || shift
-    ${TIME}$TF show $*
+    $TF show $*
     NB_DEBUG $( TIMER_STOP "$TF show" )
     __RETURN
 }
@@ -124,7 +124,7 @@ function TF_SHOW {
 function TF_OUTPUT {
     NB_DEBUG $TF output $*
      __TF_ARGS "$1" || shift
-    ${TIME}$TF output $*
+    $TF output $*
     NB_DEBUG $( TIMER_STOP "$TF output" )
     __RETURN
 }
@@ -137,10 +137,10 @@ function TF_DESTROY {
 
     local BEFORE=$( $TF state list 2>/dev/null | wc -l )
     if [ $QUIET -ne 0 ]; then
-        echo yes | ${TIME}$TF destroy $* |
+        echo yes | $TF destroy $* |
             tee /tmp/DESTROY.op |& grep -iE "complet|fail|error| to add"
     else
-        echo yes | ${TIME}$TF destroy $*
+        echo yes | $TF destroy $*
     fi
     NB_DEBUG $( TIMER_STOP "$TF destroy" )
 
@@ -175,10 +175,10 @@ function TG_RUN_ALL {
 
     #set -x
     if [ $QUIET -ne 0 ]; then
-        echo yes | ${TIME}terragrunt run-all $SUBCOMMAND $AUTO $* |
+        echo yes | terragrunt run-all $SUBCOMMAND $AUTO $* |
             tee ~/tmp/TG_runall_$SUBCOMMAND.op |& grep -iE "complet|fail|error| to add|No changes"
     else
-        echo yes | ${TIME}terragrunt run-all $SUBCOMMAND $AUTO $*
+        echo yes | terragrunt run-all $SUBCOMMAND $AUTO $*
     fi
     #set +x
     NB_DEBUG $( TIMER_STOP 'terragrunt $SUBCOMMAND' )
@@ -193,10 +193,10 @@ function TG_PLAN {
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        ${TIME}terragrunt plan $* |
+        terragrunt plan $* |
             tee ~/tmp/TG_plan.op |& grep -iE "complet|fail|error| to add|No changes"
     else
-        ${TIME}terragrunt plan $*
+        terragrunt plan $*
     fi
     NB_DEBUG $( TIMER_STOP 'terragrunt plan' )
     __RETURN
@@ -209,10 +209,10 @@ function TG_APPLY {
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        echo yes | ${TIME}terragrunt apply $* |
+        echo yes | terragrunt apply $* |
             tee ~/tmp/TG_apply.op |& grep -iE "complet|fail|error| to add|No changes"
     else
-        echo yes | ${TIME}terragrunt apply $*
+        echo yes | terragrunt apply $*
     fi
     NB_DEBUG $( TIMER_STOP 'terragrunt apply' )
     __RETURN
@@ -225,10 +225,10 @@ function TG_DESTROY {
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        echo yes | ${TIME}terragrunt destroy $* |
+        echo yes | terragrunt destroy $* |
             tee ~/tmp/TG_destroy.op |& grep -iE "complet|fail|error| to add|No changes"
     else
-        echo yes | ${TIME}terragrunt destroy $*
+        echo yes | terragrunt destroy $*
     fi
     NB_DEBUG $( TIMER_STOP 'terragrunt destroy' )
     __RETURN
