@@ -62,10 +62,10 @@ function TF_APPLY {
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        ${TIME}$TF apply -auto-approve $* |
+        echo yes | ${TIME}$TF apply $* |
             tee /tmp/APPLY.op |& grep -iE "complet|fail|error| to add"
     else
-        ${TIME}$TF apply -auto-approve $*
+        echo yes | ${TIME}$TF apply $*
     fi
     NB_DEBUG $( TIMER_STOP "$TF apply" )
 
@@ -137,10 +137,10 @@ function TF_DESTROY {
 
     local BEFORE=$( $TF state list 2>/dev/null | wc -l )
     if [ $QUIET -ne 0 ]; then
-        ${TIME}$TF destroy -auto-approve $* |
+        echo yes | ${TIME}$TF destroy $* |
             tee /tmp/DESTROY.op |& grep -iE "complet|fail|error| to add"
     else
-        ${TIME}$TF destroy -auto-approve $*
+        echo yes | ${TIME}$TF destroy $*
     fi
     NB_DEBUG $( TIMER_STOP "$TF destroy" )
 
@@ -175,10 +175,10 @@ function TG_RUN_ALL {
 
     #set -x
     if [ $QUIET -ne 0 ]; then
-        ${TIME}terragrunt run-all $SUBCOMMAND $AUTO $* |
+        echo yes | ${TIME}terragrunt run-all $SUBCOMMAND $AUTO $* |
             tee ~/tmp/TG_runall_$SUBCOMMAND.op |& grep -iE "complet|fail|error| to add|No changes"
     else
-        ${TIME}terragrunt run-all $SUBCOMMAND $AUTO $*
+        echo yes | ${TIME}terragrunt run-all $SUBCOMMAND $AUTO $*
     fi
     #set +x
     NB_DEBUG $( TIMER_STOP 'terragrunt $SUBCOMMAND' )
@@ -209,10 +209,10 @@ function TG_APPLY {
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        ${TIME}terragrunt apply -auto-approve $* |
+        echo yes | ${TIME}terragrunt apply $* |
             tee ~/tmp/TG_apply.op |& grep -iE "complet|fail|error| to add|No changes"
     else
-        ${TIME}terragrunt apply -auto-approve $*
+        echo yes | ${TIME}terragrunt apply $*
     fi
     NB_DEBUG $( TIMER_STOP 'terragrunt apply' )
     __RETURN
@@ -225,10 +225,10 @@ function TG_DESTROY {
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        ${TIME}terragrunt destroy -auto-approve $* |
+        echo yes | ${TIME}terragrunt destroy $* |
             tee ~/tmp/TG_destroy.op |& grep -iE "complet|fail|error| to add|No changes"
     else
-        ${TIME}terragrunt destroy -auto-approve $*
+        echo yes | ${TIME}terragrunt destroy $*
     fi
     NB_DEBUG $( TIMER_STOP 'terragrunt destroy' )
     __RETURN
