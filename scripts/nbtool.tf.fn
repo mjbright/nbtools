@@ -107,6 +107,7 @@ function TF_APPLY {
 
 function TF_STATE {
     NB_DEBUG $TF state $*
+    TIMER_START
      __TF_ARGS "$1" || shift
     $TF state $*
     NB_DEBUG $( TIMER_STOP "$TF state" )
@@ -115,6 +116,7 @@ function TF_STATE {
 
 function TF_SHOW {
     NB_DEBUG $TF show $*
+    TIMER_START
      __TF_ARGS "$1" || shift
     $TF show $*
     NB_DEBUG $( TIMER_STOP "$TF show" )
@@ -123,6 +125,7 @@ function TF_SHOW {
 
 function TF_OUTPUT {
     NB_DEBUG $TF output $*
+    TIMER_START
      __TF_ARGS "$1" || shift
     $TF output $*
     NB_DEBUG $( TIMER_STOP "$TF output" )

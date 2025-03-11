@@ -806,6 +806,8 @@ function REPLACE_OTF_TF {
         -e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
         -e 's?www.tofu.io/docs/commands/?opentofu.org/docs/cli/commands/?g' \
         -e 's/\.tofu/\.terraform/g' \
+        -e 's/^tofu {/terraform {/' \
+        -e 's/tofu-modules/terraform-modules/g' \
         -e 's/tofu.lock.hcl/terraform.lock.hcl/g' \
         -e 's/tofu.tfvars/terraform.tfvars/g' \
         -e 's/tofu.tfstate/terraform.tfstate/g' \
