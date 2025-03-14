@@ -8,8 +8,11 @@ mkdir -p $TF_STATE_DIR
 
 function TF_INIT {
     NB_DEBUG $TF init $*
+    TIMER_START
     $TF init $*
-    __RETURN
+    RET=$?
+    NB_DEBUG $( TIMER_STOP "$TF plan" )
+    __RETURN $RET
 }
 
 function __TF_ARGS {
@@ -36,11 +39,13 @@ function TF_PLAN {
     if [ $QUIET -ne 0 ]; then
         $TF plan $* |
             tee /tmp/PLAN.op |& grep -iE "complet|fail|error| to add"
+        RET=$?
     else
         $TF plan $*
+        RET=$?
     fi
     NB_DEBUG $( TIMER_STOP "$TF plan" )
-    __RETURN
+    __RETURN $RET
 }
 
 #echo "OK-before TF_APPLY"
@@ -64,8 +69,10 @@ function TF_APPLY {
     if [ $QUIET -ne 0 ]; then
         echo yes | $TF apply $* |
             tee /tmp/APPLY.op |& grep -iE "complet|fail|error| to add"
+        RET=$?
     else
         echo yes | $TF apply $*
+        RET=$?
     fi
     NB_DEBUG $( TIMER_STOP "$TF apply" )
 
@@ -95,7 +102,7 @@ function TF_APPLY {
         [ $? -ne 0 ] && __RETURN 1 || return 1
     }
 
-    __RETURN
+    __RETURN $RET
 }
 
 # What ??
@@ -142,8 +149,10 @@ function TF_DESTROY {
     if [ $QUIET -ne 0 ]; then
         echo yes | $TF destroy $* |
             tee /tmp/DESTROY.op |& grep -iE "complet|fail|error| to add"
+        RET=$?
     else
         echo yes | $TF destroy $*
+        RET=$?
     fi
     NB_DEBUG $( TIMER_STOP "$TF destroy" )
 
@@ -153,7 +162,7 @@ function TF_DESTROY {
         __RETURN 1 || return 1
     }
     NB_DEBUG "$BEFORE resources destroyed"
-    __RETURN
+    __RETURN $RET
 }
 
 ## -- Terragrunt functions: -----------------------------------
@@ -180,12 +189,14 @@ function TG_RUN_ALL {
     if [ $QUIET -ne 0 ]; then
         echo yes | terragrunt run-all $SUBCOMMAND $AUTO $* |
             tee ~/tmp/TG_runall_$SUBCOMMAND.op |& grep -iE "complet|fail|error| to add|No changes"
+        RET=$?
     else
         echo yes | terragrunt run-all $SUBCOMMAND $AUTO $*
+        RET=$?
     fi
     #set +x
     NB_DEBUG $( TIMER_STOP 'terragrunt $SUBCOMMAND' )
-    __RETURN
+    __RETURN $RET
 }
 
 function TG_PLAN {
@@ -198,11 +209,13 @@ function TG_PLAN {
     if [ $QUIET -ne 0 ]; then
         terragrunt plan $* |
             tee ~/tmp/TG_plan.op |& grep -iE "complet|fail|error| to add|No changes"
+        RET=$?
     else
         terragrunt plan $*
+        RET=$?
     fi
     NB_DEBUG $( TIMER_STOP 'terragrunt plan' )
-    __RETURN
+    __RETURN $RET
 }
 
 function TG_APPLY {
@@ -214,11 +227,13 @@ function TG_APPLY {
     if [ $QUIET -ne 0 ]; then
         echo yes | terragrunt apply $* |
             tee ~/tmp/TG_apply.op |& grep -iE "complet|fail|error| to add|No changes"
+        RET=$?
     else
         echo yes | terragrunt apply $*
+        RET=$?
     fi
     NB_DEBUG $( TIMER_STOP 'terragrunt apply' )
-    __RETURN
+    __RETURN $RET
 }
 
 function TG_DESTROY {
@@ -230,11 +245,13 @@ function TG_DESTROY {
     if [ $QUIET -ne 0 ]; then
         echo yes | terragrunt destroy $* |
             tee ~/tmp/TG_destroy.op |& grep -iE "complet|fail|error| to add|No changes"
+        RET=$?
     else
         echo yes | terragrunt destroy $*
+        RET=$?
     fi
     NB_DEBUG $( TIMER_STOP 'terragrunt destroy' )
-    __RETURN
+    __RETURN $RET
 }
 
 ## -- Azure functions: -----------------------------------
