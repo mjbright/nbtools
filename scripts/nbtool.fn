@@ -983,6 +983,7 @@ function NB_CONVERT {
         echo "$FRONTMATTER"           > $OP_NOTEBOOK_FM_MD
         sed \
             -e 's?\.\./\.\./\.\./static/images/?/images/?' \
+            -e 's?studentn?STUDENTN?ig' \
             -e 's?\.\./images/?/images/?' \
             $OP_NOTEBOOK_MD >> $OP_NOTEBOOK_FM_MD
         # mv     $OP_NOTEBOOK_MD ${OP_NOTEBOOK_MD}.bak
