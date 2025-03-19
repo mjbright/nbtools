@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 ./nbjoin.py \
-    -op ~/src/mjbright.labs-terraform-private/tf-intro/FULL.ipynb \
+    -op ~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL.ipynb \
     \
-    -of NBJOIN_HEADER_FOOTER/FOOTER.ipynb \
-    -oh NBJOIN_HEADER_FOOTER/HEADER.ipynb \
+    -oh ~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL_HEADER.ipynb \
+    -of ~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL_FOOTER.ipynb \
     \
     NBJOIN_TEST/IP_TF_Lab1.ipynb \
     NBJOIN_TEST/IP_TF_Lab2.Workflow.ipynb \
