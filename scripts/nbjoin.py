@@ -12,6 +12,7 @@ YELLOW='\x1B[00;33m';   B_YELLOW='\x1B[01;33m';   BG_YELLOW='\x1B[07;33m'
 NORMAL='\x1B[00m'
 
 MODE='VANILLA_COPY'
+
 OP_NOTEBOOK = 'FULL.ipynb'
 OP_HEADER_NOTEBOOK = None
 OP_FOOTER_NOTEBOOK = None
@@ -74,7 +75,17 @@ def count_cells(content, cell_type=None):
 
     die(f'Unrecognized cell type {cell_type}')
 
+def filter_cells(content, op_content):
+    for cell in content["cells"]:
+        op_content["cells"].append( cell )
+
+def copy_cells(content, op_content):
+    for cell in content["cells"]:
+        op_content["cells"].append( cell )
+
 def main():
+    global MODE, OP_NOTEBOOK
+
     PROG=sys.argv[0]
     a=1
 
@@ -86,6 +97,16 @@ def main():
     while a < len(sys.argv):
         arg = sys.argv[a]
         a += 1
+
+        # Change MODE: NBTOOL_COPY
+        #if arg == '-mode':
+            #arg = sys.argv[a]
+            #a += 1
+            #MODE=arg
+            #continue
+        if arg == '-nbtool':
+            MODE='NBTOOL_COPY'
+            continue
 
         # Define output notebook:
         if arg == '-op':
@@ -108,7 +129,6 @@ def main():
             OP_FOOTER_NOTEBOOK = arg
             continue
 
-
         if os.path.exists(arg) and os.path.isdir(arg):
             die(f"TODO: read folder of .ipynb files")
 
@@ -125,13 +145,14 @@ def main():
     print()
     nb=0
 
-    op_content={}
-
     # Handle output header and footer notebooks if specified:
     if OP_HEADER_NOTEBOOK:
         notebooks.insert(0, OP_HEADER_NOTEBOOK)
     if OP_FOOTER_NOTEBOOK:
         notebooks.append(OP_FOOTER_NOTEBOOK)
+
+    op_content={}
+    op_content["cells"]=[]
 
     for notebook in notebooks:
         nb+=1
@@ -154,20 +175,21 @@ def main():
             print(f'\t{num_cells_info}')
         #qkk   new_data = filter_nb( read_json(ipfile), DEBUG )
 
+        # Take metadata from first notebook:
+        if nb == 1:
+            for key in content.keys():
+                print(f'key: {key}')
+                if key != 'cells': op_content[key]=content[key]
+
+        if MODE == 'NBTOOL_COPY':
+            filter_cells(content, op_content)
+
         if MODE == 'VANILLA_COPY':
-            if nb == 1:
-                op_content["cells"]=[]
-
-                for key in content.keys():
-                    print(f'key: {key}')
-                    if key != 'cells': op_content[key]=content[key]
-
-            for cell in content["cells"]:
-                op_content["cells"].append( cell )
-
+            copy_cells(content, op_content)
 
         write_nb(OP_NOTEBOOK, op_content)
                 
+
 
 if __name__ == "__main__":
     main()
