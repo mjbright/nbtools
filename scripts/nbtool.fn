@@ -802,7 +802,8 @@ function REPLACE_OTF_TF {
     echo "DEBUG: sed -i.tf $OP_NOTEBOOK" >&2
     # Replace terraform by tofu/OpenTofu except for lock/state files:
     #sed -i.tf $OP_NOTEBOOK \
-    sed -i.bak $IFILE \
+    if [ "$LAB_MODE" = "Tofu" ]; then
+        sed -i.bak $IFILE \
         -e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
         -e 's?www.tofu.io/docs/commands/?opentofu.org/docs/cli/commands/?g' \
         -e 's/\.tofu/\.terraform/g' \
@@ -812,6 +813,20 @@ function REPLACE_OTF_TF {
         -e 's/tofu.tfvars/terraform.tfvars/g' \
         -e 's/tofu.tfstate/terraform.tfstate/g' \
         -e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g'
+    else
+        sed -i.bak $IFILE \
+        #-e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
+        #-e 's?www.tofu.io/docs/commands/?opentofu.org/docs/cli/commands/?g' \
+        #-e 's/\.tofu/\.terraform/g' \
+        #-e 's/^tofu {/terraform {/' \
+        #-e 's/tofu-modules/terraform-modules/g' \
+        #-e 's/tofu.lock.hcl/terraform.lock.hcl/g' \
+        #-e 's/tofu.tfvars/terraform.tfvars/g' \
+        #-e 's/tofu.tfstate/terraform.tfstate/g' \
+        #-e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g'
+        # NOOP
+        touch /dev/null
+    fi
 
      #sed -i.bak $OP_NOTEBOOK_FM_MD
                 #-e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
@@ -873,11 +888,11 @@ function NB_FILTER_NOTEBOOK {
     echo OP_NOTEBOOK=$OP_NOTEBOOK
     echo "DEBUG: \$LAB_MODE='$LAB_MODE'" >&2
     [ "$LAB_MODE" = "Tofu" ] && {
-        REPLACE_OTF_TF $OP_NOTEBOOK
         DIFFS=$( diff ${OP_NOTEBOOK} ${OP_NOTEBOOK}.tf | grep -c '> ' )
         echo "$DIFFS lines changed reference from Terraform to Tofu"
         # TOO EARLY TO RENAME output file (need to do that after filtering)
     }
+    REPLACE_OTF_TF $OP_NOTEBOOK
 
     [ `which jq` ] && {
         set -x
@@ -1019,10 +1034,9 @@ function NB_CONVERT {
             NEW=${NAME}.md
             echo "DEBUG[Tofu]: renaming markdown file as $NEW" >&2
             echo "DEBUG[Tofu]: changing _[Ee]rraform entries to [Tt]erraform in $NEW" >&2
-
             # Replace terraform by tofu/OpenTofu except for lock/state files:
-            REPLACE_OTF_TF $OP_NOTEBOOK_FM_MD
         fi
+        REPLACE_OTF_TF $OP_NOTEBOOK_FM_MD
 
         # MOVE FINAL OP_NOTEBOOK and OP_MARKDOWN into place:
         set -x
