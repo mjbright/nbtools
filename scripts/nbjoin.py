@@ -13,6 +13,8 @@ NORMAL='\x1B[00m'
 
 MODE='VANILLA_COPY'
 OP_NOTEBOOK = 'FULL.ipynb'
+OP_HEADER_NOTEBOOK = None
+OP_FOOTER_NOTEBOOK = None
 
 def die(msg):
     sys.stdout.write(f"die: {RED}{msg}{NORMAL}\n")
@@ -85,11 +87,27 @@ def main():
         arg = sys.argv[a]
         a += 1
 
+        # Define output notebook:
         if arg == '-op':
             arg = sys.argv[a]
             a += 1
             OP_NOTEBOOK=arg
             continue
+
+        # Define header notebook to use for output notebook:
+        if arg == '-oh':
+            arg = sys.argv[a]
+            a += 1
+            OP_HEADER_NOTEBOOK = arg
+            continue
+
+        # Define footer notebook to use for output notebook:
+        if arg == '-of':
+            arg = sys.argv[a]
+            a += 1
+            OP_FOOTER_NOTEBOOK = arg
+            continue
+
 
         if os.path.exists(arg) and os.path.isdir(arg):
             die(f"TODO: read folder of .ipynb files")
@@ -109,6 +127,12 @@ def main():
 
     op_content={}
 
+    # Handle output header and footer notebooks if specified:
+    if OP_HEADER_NOTEBOOK:
+        notebooks.insert(0, OP_HEADER_NOTEBOOK)
+    if OP_FOOTER_NOTEBOOK:
+        notebooks.append(OP_FOOTER_NOTEBOOK)
+
     for notebook in notebooks:
         nb+=1
         content = read_json(notebook)
@@ -117,7 +141,6 @@ def main():
         num_markdown_cells = count_cells(content, cell_type='markdown')
         num_code_cells = count_cells(content, cell_type='code')
         num_cells_info = f'number of cells: code={num_code_cells} markdown={num_markdown_cells} total={ num_cells }'
-
         if nb == 1:
             print(f'NOTEBOOK{nb} {notebook}')
             print(f'\tkeys: { content.keys() }')
@@ -141,6 +164,7 @@ def main():
 
             for cell in content["cells"]:
                 op_content["cells"].append( cell )
+
 
         write_nb(OP_NOTEBOOK, op_content)
                 
