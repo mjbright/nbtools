@@ -161,24 +161,19 @@ def main():
         num_cells = count_cells(content)
         num_markdown_cells = count_cells(content, cell_type='markdown')
         num_code_cells = count_cells(content, cell_type='code')
-        num_cells_info = f'number of cells: code={num_code_cells} markdown={num_markdown_cells} total={ num_cells }'
+        #num_cells_info = f'number of cells: code={num_code_cells} markdown={num_markdown_cells} total={ num_cells }'
+        num_cells_info = f'[cells: code={num_code_cells} markdown={num_markdown_cells} total={ num_cells }]'
+        print(f'NOTEBOOK{nb} {num_cells_info} {notebook}')
+        #print(f'\tkeys: { content.keys() }')
         if nb == 1:
-            print(f'NOTEBOOK{nb} {notebook}')
-            print(f'\tkeys: { content.keys() }')
-            print(f'\tmetadata: { content["metadata"] }')
+            #print(f'\tmetadata: { content["metadata"] }')
             print(f'\tnbformat: {content["nbformat"]} nbformat_minor: {content["nbformat_minor"]}')
-            print(f'\t{num_cells_info}')
-            print(f'\tcell[0]: { content["cells"][0] }')
-        else:
-            print(f'NOTEBOOK{nb} {notebook}')
-            print(f'\tkeys: { content.keys() }')
-            print(f'\t{num_cells_info}')
-        #qkk   new_data = filter_nb( read_json(ipfile), DEBUG )
+            #print(f'\tcell[0]: { content["cells"][0] }')
 
         # Take metadata from first notebook:
         if nb == 1:
             for key in content.keys():
-                print(f'key: {key}')
+                #print(f'key: {key}')
                 if key != 'cells': op_content[key]=content[key]
 
         if MODE == 'NBTOOL_COPY':
