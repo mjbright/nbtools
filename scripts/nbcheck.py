@@ -56,7 +56,7 @@ EXAMPLE cells from notebook json:
 '''
 
 def die(msg):
-    sys.stdout.write(f"die: {RED}{msg}{NORMAL}\n")
+    sys.stdout.write(f"die: {sys.argv[0]} {RED}{msg}{NORMAL}\n")
     function = stack()[1].function
     lineno   = stack()[1].lineno
     #fname = stack()[1].filename
