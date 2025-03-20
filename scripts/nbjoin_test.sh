@@ -15,3 +15,10 @@ OP=~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL.ipynb
     NBJOIN_TEST/IP_TF_Lab8.Import.ipynb \
     NBJOIN_TEST/IP_TF_Lab10.Revision.ipynb \
 
+
+~/.venv/nbtoolbelt/bin/nbtb validate $OP -v
+
+./nbcheck.py $OP
+./nbcheck.py ${OP}.multiline.py
+
+
