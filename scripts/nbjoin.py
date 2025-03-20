@@ -54,7 +54,7 @@ EXAMPLE cells from notebook json:
 '''
 
 def die(msg):
-    sys.stdout.write(f"die: {RED}{msg}{NORMAL}\n")
+    sys.stdout.write(f"die: {sys.argv[0]} {RED}{msg}{NORMAL}\n")
     function = stack()[1].function
     lineno   = stack()[1].lineno
     #fname = stack()[1].filename
@@ -321,7 +321,8 @@ def main():
         write_nb(OP_NOTEBOOK, op_content)
         if SAVE_MLINE_JSON:
             mline_json = json.dumps(op_content, indent = 2, sort_keys=True)
-            writefile(OP_NOTEBOOK[:-4]+".mu;ltiline.ipynb", op_content)
+            OP_MLINE_NOTEBOOK=OP_NOTEBOOK[:-5]+"multiline.ipynb"
+            writefile(OP_MLINE_NOTEBOOK, mline_json)
 
 
 if __name__ == "__main__":
