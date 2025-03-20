@@ -17,6 +17,41 @@ MODE='VANILLA_COPY'
 OP_NOTEBOOK = 'FULL.ipynb'
 OP_HEADER_NOTEBOOK = None
 OP_FOOTER_NOTEBOOK = None
+SAVE_MLINE_JSON=False
+
+'''
+EXAMPLE cells from notebook json:
+
+    {
+      "cell_type": "markdown",
+      "id": "present-plastic",
+      "metadata": {},
+      "source": [
+        "<hr/>\n",
+        "\n",
+        "<!-- Why does this no longer work ??\n",
+        "<img src=\"../../../static/images/ThickBlueBar.png\" />\n",
+        "<img src=\"../../../static/images/LOGO.jpg\" width=200 />\n",
+        "-->\n",
+        "\n",
+        "<img src=\"../images/ThickBlueBar.png\" />\n",
+        "<img src=\"../images/LOGO.jpg\" width=200 />"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "bbeb14a5",
+      "metadata": {
+        "tags": []
+      },
+      "outputs": [],
+      "source": [
+        "NB_QUIET"
+      ]
+    }
+
+'''
 
 def die(msg):
     sys.stdout.write(f"die: {RED}{msg}{NORMAL}\n")
@@ -76,16 +111,103 @@ def count_cells(content, cell_type=None):
 
     die(f'Unrecognized cell type {cell_type}')
 
-def filter_cells(content, op_content):
-    for cell in content["cells"]:
-        op_content["cells"].append( cell )
+def create_code_cell(nb,    cell_id=None, source_lines=[], metadata={}, execution_count=None, outputs=None):
+    __create_cell(nb, 'code',     cell_id, source_lines, metadata, execution_count, outputs)
 
-def copy_cells(content, op_content):
+def create_markdown_cell(nb,cell_id=None, source_lines=[], metadata={}):
+    __create_cell(nb, 'markdown', cell_id, source_lines, metadata)
+
+def __create_cell(nb, cell_type, source_lines=[], metadata={}, execution_count=None, cell_id=None, outputs=None):
+    #if not cell_id: cell_id = uuid.uuid4()
+    if not cell_id: cell_id = uuid.UUID('{12345678-1234-5678-1234-567812345678}')
+
+    if cell_type == 'markdown':
+        return { "cell_type": "markdown", "id": cell_id, "metadata": metadata, "source": source_lines }
+        
+    if cell_type == 'code':
+      # ?? "metadata": { "tags": [] },
+        return { "nb": "f{nb}", "cell_type": "code", "id": cell_id, "metadata": metadata,
+                 "source": source_lines,
+                 "execution_count": execution_count, "outputs": outputs
+               }
+    die(f'Unknown cell type "{cell_type}"')
+
+def filter_cells(content, op_content, notebook):
+    started=False
+
+    for cell in content["cells"]:
+        #print(f'cell={cell}')
+        #input()
+
+        if not 'source' in cell:
+            if started: op_content["cells"].append( cell )
+            continue
+
+        #if 'source' in cell:
+        source_lines = cell['source']
+        #for cell_no in range(nb_cells(json_data)):
+              #source=json_data['cells'][cell_no]['source']
+              #if len(source) == 0:
+
+        # CAN we start now?
+        if started:
+            # search for 'NB_SAVE' entry:
+            for source_line in source_lines:
+                if source_line.startswith('NB_SAVE'):
+
+                    # return straight away:
+                    cell={ 'cell_type':'markdown', 'id': 'end-cell', 'metadata': {},
+                           'source':[f'#END {notebook}: TODO']  }
+                           #'source':[f'#END {notebook}: {source_line}']  }
+                    op_content["cells"].append( cell )
+                    return
+
+                elif 'NB_SAVE' in source_line:
+                    print("Searching for lines starting with 'NB_SAVE'")
+                    die(f'{notebook}: Possible bad occurence of NB_SAVE in line {source_line}')
+
+            op_content["cells"].append( cell )
+            continue
+
+        # NOT started, so search for 'nbtool.rc' entry:
+        for source_line in source_lines:
+            print("Searching for '. ~/scripts/nbtool.rc'")
+            print(source_line)
+            #input()
+
+            if 'MODE_FULL' in source_line:
+                started=True
+                #continue
+
+            elif source_line.startswith('. ~/scripts/nbtool.rc'):
+
+                started=True
+                cell={ 'cell_type':'markdown', 'id': 'start-cell', 'metadata': {},
+                       #'source': [f'#START {notebook}: source_line']  }
+                           'source':[f'#START {notebook}: TODO']  }
+                op_content["cells"].append( cell )
+
+                '''
+                    { "cell_type": "markdown",
+                      "id": "766a77d2-3ba3-454e-a7f6-f77898796c06",
+                      "metadata": {},
+                      "source": [ "# HEADER: FULL" ]
+                    },
+                '''
+
+            elif 'nbtool.rc' in source_line:
+                print("Searching for lines starting with '. ~/scripts/nbtool.rc'")
+                die(f'{notebook}: Possible bad occurence of nbtool.rc in line {source_line}')
+
+    die(f'{notebook}: Never started ...')
+    
+
+def copy_cells(content, op_content, notebook):
     for cell in content["cells"]:
         op_content["cells"].append( cell )
 
 def main():
-    global MODE, OP_NOTEBOOK
+    global MODE, OP_NOTEBOOK, SAVE_MLINE_JSON
 
     PROG=sys.argv[0]
     a=1
@@ -110,6 +232,10 @@ def main():
             continue
 
         # Define output notebook:
+        if arg == '-oN':
+            SAVE_MLINE_JSON=True
+            continue
+
         if arg == '-op':
             arg = sys.argv[a]
             a += 1
@@ -178,13 +304,24 @@ def main():
                 if key != 'cells': op_content[key]=content[key]
 
         if MODE == 'NBTOOL_COPY':
-            filter_cells(content, op_content)
+            nb_file = notebook.split('/')[-1]
+            #print(f'nb_file={nb_file}')
+            if nb_file.startswith("IP_"):
+                filter_cells(content, op_content, notebook)
+                #pass
+            elif nb_file.startswith("IP_") or \
+                 nb_file.startswith("FULL_HEADER") or nb_file.startswith("FULL_FOOTER"):
+                copy_cells(content, op_content, notebook)
+            else:
+                die(f'Unexpected notebook name format in {notebook}')
 
         if MODE == 'VANILLA_COPY':
-            copy_cells(content, op_content)
+            copy_cells(content, op_content, notebook)
 
         write_nb(OP_NOTEBOOK, op_content)
-                
+        if SAVE_MLINE_JSON:
+            mline_json = json.dumps(op_content, indent = 2, sort_keys=True)
+            writefile(OP_NOTEBOOK[:-4]+".mu;ltiline.ipynb", op_content)
 
 
 if __name__ == "__main__":

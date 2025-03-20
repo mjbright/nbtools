@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-./nbjoin.py \
-    -op ~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL.ipynb \
-    \
+OP=~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL.ipynb
+
+./nbjoin.py -nbtool -oN -op $OP \
     -oh ~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL_HEADER.ipynb \
     -of ~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL_FOOTER.ipynb \
     \
