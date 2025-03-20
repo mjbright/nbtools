@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json, sys, re, os
+import uuid
 
 from inspect import currentframe, getframeinfo
 from inspect import stack
