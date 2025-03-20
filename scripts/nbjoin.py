@@ -155,16 +155,17 @@ def filter_cells(content, op_content, notebook):
             for source_line in source_lines:
                 if source_line.startswith('NB_SAVE'):
 
-                    # return straight away:
-                    cell={ 'cell_type':'markdown', 'id': 'end-cell', 'metadata': {},
-                           'source':[f'#END {notebook}: TODO']  }
-                           #'source':[f'#END {notebook}: {source_line}']  }
-                    op_content["cells"].append( cell )
-                    return
+                    if not 'NB_SAVE_' in source_line:
+                        # return straight away:
+                        cell={ 'cell_type':'markdown', 'id': 'end-cell', 'metadata': {},
+                               'source':[f'#END {notebook}: {source_line}']  }
+                        op_content["cells"].append( cell )
+                        return
 
                 elif 'NB_SAVE' in source_line:
-                    print("Searching for lines starting with 'NB_SAVE'")
-                    die(f'{notebook}: Possible bad occurence of NB_SAVE in line {source_line}')
+                    if not 'NB_SAVE_' in source_line:
+                        print("Searching for lines starting with 'NB_SAVE'")
+                        die(f'{notebook}: Possible bad occurence of NB_SAVE in line {source_line}')
 
             op_content["cells"].append( cell )
             continue
@@ -183,8 +184,7 @@ def filter_cells(content, op_content, notebook):
 
                 started=True
                 cell={ 'cell_type':'markdown', 'id': 'start-cell', 'metadata': {},
-                       #'source': [f'#START {notebook}: source_line']  }
-                           'source':[f'#START {notebook}: TODO']  }
+                       'source': [f'#START {notebook}: {source_line}']  }
                 op_content["cells"].append( cell )
 
                 '''
