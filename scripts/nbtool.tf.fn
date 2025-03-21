@@ -6,6 +6,26 @@ mkdir -p $TF_STATE_DIR
 
 #echo "OK-beginning"
 
+function DO_CLEANUP {
+
+    CONTAINERS=$( docker ps -aq )
+    [ -z "$CONTAINERS" ] && echo "Cleanup: No containers to remove"
+    [ ! -z "$CONTAINERS" ] && {
+        echo "Cleanup: Destroying remaining containers: $CONTAINERS"
+        set -x; docker rm -f $CONTAINERS; set +x;
+    }
+
+    USER_NETWORKS=$( docker network ls |
+                     awk '$2 !~ /^bridge$/ && $2 !~ /^host$/ && $2 !~ /^none$/ && $3 !~ /^NAME$/ { print $2; }' )
+    [ -z "$USER_NETWORKS" ] && echo "Cleanup: No user-networks to remove"
+    [ ! -z "$USER_NETWORKS" ] && {
+        echo "Cleanup: Destroying remaining user-created networks: $USER_NETWORKS"
+        set -x; docker network rm $USER_NETWORKS; set +x;
+    }
+
+    return 0
+}
+
 function TF_INIT {
     NB_DEBUG $TF init $*
     TIMER_START
