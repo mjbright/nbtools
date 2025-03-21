@@ -133,10 +133,11 @@ def __create_cell(nb, cell_type, source_lines=[], metadata={}, execution_count=N
                }
     die(f'Unknown cell type "{cell_type}"')
 
-def filter_cells(content, op_content, notebook):
+def filter_cells(content, op_content, notebook, delete_outputs=False):
     started=False
 
     for cell in content["cells"]:
+        if cell['cell_type'] == 'code' and delete_outputs: cell['outputs']=[]
         #print(f'cell={cell}')
         #input()
 
@@ -203,8 +204,10 @@ def filter_cells(content, op_content, notebook):
     die(f'{notebook}: Never started ...')
     
 
-def copy_cells(content, op_content, notebook):
+def copy_cells(content, op_content, notebook, delete_outputs=False):
     for cell in content["cells"]:
+        if cell['cell_type'] == 'code' and delete_outputs: cell['outputs']=[]
+
         op_content["cells"].append( cell )
 
 def main():
@@ -315,16 +318,18 @@ def main():
             nb_file = notebook.split('/')[-1]
             #print(f'nb_file={nb_file}')
             if nb_file.startswith("IP_"):
-                filter_cells(content, op_content, notebook)
+                filter_cells(content, op_content, notebook, delete_outputs=True)
                 #pass
-            elif nb_file.startswith("IP_") or \
-                 nb_file.startswith("FULL_HEADER") or nb_file.startswith("FULL_FOOTER"):
+            #elif nb_file.startswith("IP_") or \
+            elif nb_file.startswith("FULL_HEADER") or nb_file.startswith("FULL_FOOTER"):
+                #copy_cells(content, op_content, notebook, delete_outputs=True)
                 copy_cells(content, op_content, notebook)
             else:
                 die(f'Unexpected notebook name format in {notebook}')
 
             if OP_DIVIDER_NOTEBOOK:
                 content = read_json( OP_DIVIDER_NOTEBOOK )
+                #copy_cells(content, op_content, notebook, delete_outputs=True)
                 copy_cells(content, op_content, notebook)
 
         if MODE == 'VANILLA_COPY':
