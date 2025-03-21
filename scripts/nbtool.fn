@@ -693,7 +693,7 @@ function NB_ARCHIVE_SOLUTIONS {
 # - TODO: Autonumber sections/subsections
 #
 function NB_QUIET {
-    [ "$FULL_MODE" != "" ] && {
+    [ "$FULL_MODE" = "FULL_START" ] && {
         echo "In FULL mode: Skipping notebook creation"
         return 0
     }
