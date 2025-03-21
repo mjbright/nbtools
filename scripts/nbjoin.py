@@ -160,7 +160,12 @@ def filter_cells(content, op_content, notebook, delete_outputs=False):
                     if not 'NB_SAVE_' in source_line:
                         # return straight away:
                         cell={ 'cell_type':'markdown', 'id': 'end-cell', 'metadata': {},
-                               'source':[f'#END {notebook}: {source_line}']  }
+                               'source':[
+                                    "# Pragma --INCLUDE--SECTION--\n",
+                                     f'#END {notebook}: {source_line}',
+                                    "# Pragma --EXCLUDE--SECTION--\n",
+                                  ]
+                              }
                         op_content["cells"].append( cell )
                         return
 
@@ -186,7 +191,12 @@ def filter_cells(content, op_content, notebook, delete_outputs=False):
 
                 started=True
                 cell={ 'cell_type':'markdown', 'id': 'start-cell', 'metadata': {},
-                       'source': [f'#START {notebook}: {source_line}']  }
+                       'source': [
+                            "# Pragma --INCLUDE--SECTION--\n",
+                            f'#START {notebook}: {source_line}',
+                            "# Pragma --EXCLUDE--SECTION--\n",
+                          ]
+                      }
                 op_content["cells"].append( cell )
 
                 '''
