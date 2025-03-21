@@ -92,6 +92,12 @@ if [ ! -z "$1" ]; then
         env | grep ^LAB_ | sed 's/^/    /'
     fi
 
+    case $LAB_MODE in
+        Terraform|Tofu|Kubernetes|Ansible|Rego) ;;)
+        *) echo "Error: unknown LAB_MODE '$LAB_MODE'"
+           return 1
+    esac
+
     echo $LAB_NAME | grep "^OP_" || {
         echo
         echo "error[nbtool.rc]: Bad name for o/p file: should be OP_*.ipynb, LAB_NAME='$LAB_NAME'"
