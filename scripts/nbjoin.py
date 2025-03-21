@@ -17,6 +17,7 @@ MODE='VANILLA_COPY'
 OP_NOTEBOOK = 'FULL.ipynb'
 OP_HEADER_NOTEBOOK = None
 OP_FOOTER_NOTEBOOK = None
+OP_DIVIDER_NOTEBOOK = None
 SAVE_MLINE_JSON=False
 
 '''
@@ -249,6 +250,13 @@ def main():
             OP_HEADER_NOTEBOOK = arg
             continue
 
+        # Define divider notebook to use for output notebook:
+        if arg == '-od':
+            arg = sys.argv[a]
+            a += 1
+            OP_DIVIDER_NOTEBOOK = arg
+            continue
+
         # Define footer notebook to use for output notebook:
         if arg == '-of':
             arg = sys.argv[a]
@@ -315,8 +323,15 @@ def main():
             else:
                 die(f'Unexpected notebook name format in {notebook}')
 
+            if OP_DIVIDER_NOTEBOOK:
+                content = read_json( OP_DIVIDER_NOTEBOOK )
+                copy_cells(content, op_content, notebook)
+
         if MODE == 'VANILLA_COPY':
             copy_cells(content, op_content, notebook)
+            if OP_DIVIDER_NOTEBOOK:
+                content = read_json( OP_DIVIDER_NOTEBOOK )
+                copy_cells(content, op_content, notebook)
 
         write_nb(OP_NOTEBOOK, op_content)
         if SAVE_MLINE_JSON:
