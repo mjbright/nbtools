@@ -297,6 +297,7 @@ def check_notebook( notebook, content ):
         else:
             errors+=1; print(f"\tERROR - missing 'cell_type' in cell")
             continue
+        if errors > 5: sys.exit(1)
 
         for key in list( CELL_KEYS[cell_type].keys() ):
             if key == 'id':        continue
@@ -305,7 +306,8 @@ def check_notebook( notebook, content ):
             if not key in cell:
                 if CELL_KEYS[cell_type][ key ] == MANDATORY:
                     ( lineno, location ) = get_cellid_location(id, notebook_raw)
-                    errors+=1; print(f'\tERROR - {id}: Missing mandatory key {key} at line { lineno} in {cell_type} cell @ {location}')
+                    errors+=1; print(f'\tERROR - {id}: Missing mandatory key {key} at line {lineno} in {cell_type} cell @ {location}')
+            if errors > 5: sys.exit(1)
 
         for key in cell:
             if key == 'id':        continue
@@ -313,7 +315,8 @@ def check_notebook( notebook, content ):
 
             if not key in CELL_KEYS[cell_type]:
                 ( lineno, location ) = get_cellid_location(id, notebook_raw)
-                errors+=1; print(f'\tERROR - {id}: Unknown key {key} at line { lineno} seen in {cell_type} cell @ {location}')
+                errors+=1; print(f'\tERROR - {id}: Unknown key {key} at line {lineno} seen in {cell_type} cell @ {location}')
+            if errors > 5: sys.exit(1)
 
     print(f'\nTOTAL - {notebook}: {errors} errors')
     return errors
