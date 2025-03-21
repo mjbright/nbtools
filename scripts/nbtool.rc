@@ -7,7 +7,7 @@
 SCRIPT=${BASH_SOURCE[0]}
 SCRIPT_DIR=$(dirname $SCRIPT)
 
-NB_START=$( date +%s )
+NB_START=$SECONDS
 
 die() { echo "$0: die - $*" >&2; exit 1; }
 
