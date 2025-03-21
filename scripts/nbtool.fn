@@ -30,7 +30,9 @@ function NB_SAVE {
     echo
     echo   $*
     START_S=$NB_START
-    TIMER_STOP "[$(date)] Execution stopped: SAVE NOTEBOOK BEFORE EXECUTING NB_QUIET CELL"
+    echo; echo "[$(date)] Execution stopped: SAVE NOTEBOOK BEFORE EXECUTING NB_QUIET CELL"
+    #TIMER_STOP "SAVE NOTEBOOK"
+    TIMER_STOP "OVERALL notebook execution"
     return 1
 }
 
@@ -326,13 +328,13 @@ function NB_CHECK_FILE_SIZE {
 
 # START: TIMER FUNCTIONS ================================================
 
-function TIMER_START { START_S=`date +%s`; }
+function TIMER_START { START_S=$SECONDS; }
 
 function TIMER_STOP {
     LABEL=""
     [ ! -z "$1" ] && LABEL="[$*]: "
 
-    END_S=`date +%s`
+    END_S=$SECONDS
     let TOOK=END_S-START_S
 
     TIMER_hhmmss $TOOK
@@ -369,6 +371,8 @@ function NB_SOURCE_FNS {
 
 function NB_INIT_NOTEBOOK {
     #set -x
+    NB_START_TIME=$SECONDS
+
     NB=""
     if [ -z "$1" ]; then
         NB="${LAB_IPYNB}"
@@ -689,17 +693,24 @@ function NB_ARCHIVE_SOLUTIONS {
 # - TODO: Autonumber sections/subsections
 #
 function NB_QUIET {
+    [ "$FULL_MODE" != "" ] && {
+        echo "In FULL mode: Skipping notebook creation"
+        return 0
+    }
     # Quiet except on failure --> __FILTER
     pwd
 
     LAST_MOD_S=$(date -r $NB_DIR/$LAB_IPYNB +%s)
-    NOW_S=$(date +%s)
+    NOW_S=$SECONDS
     let AGE_S=NOW_S-LAST_MOD_S
     echo "[$AGE_S secs old] $NB_DIR/$LAB_IPYNB"
 
     TIMER_START
     NB_QUIET_FILTER_NOTEBOOK $* || __FILTER
     TIMER_STOP "Notebook filtering/conversion"
+
+    #START_S=$NB_START_TIME
+    #TIMER_STOP "OVERALL notebook execution"
 }
 
 function NB_FILTER {
