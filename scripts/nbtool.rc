@@ -93,9 +93,11 @@ if [ ! -z "$1" ]; then
     fi
 
     case $LAB_MODE in
-        Terraform|Tofu|Kubernetes|Ansible|Rego) ;;)
+        Terraform|Tofu|Kubernetes|Ansible|Rego)
+           ;;
         *) echo "Error: unknown LAB_MODE '$LAB_MODE'"
            return 1
+           ;;
     esac
 
     echo $LAB_NAME | grep "^OP_" || {
