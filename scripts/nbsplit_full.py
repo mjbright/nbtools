@@ -72,7 +72,7 @@ def split_markdown(arg):
                 opfile = opfile.replace("_TF_", "_OTF_")
 
             opfile = ipfileDir + '/' + opfile
-            frontMatterText[1] = f'title: {opfile}\n'
+            frontMatterText[1] = f'title: {opfileFir}\n'
             frontMatterText[3] = f'weight: {weight}\n'
 
             #if mode = "Tofu":
