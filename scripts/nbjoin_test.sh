@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-OP=~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL.ipynb
+#OP=~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL.ipynb
+OP=NBJOIN_TEST/FULL.ipynb \
 
 die() { echo "$0: die - $*" >2; exit 1; }
 
@@ -8,8 +9,9 @@ python3 -m py_compile   nbjoin.py || die "Syntax error"
 
 set -x
 ./nbjoin.py -nbtool -oN -op $OP \
-    -oh ~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL_HEADER.ipynb \
-    -of ~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL_FOOTER.ipynb \
+    -oh NBJOIN_TEST/FULL_HEADER.ipynb \
+    -od NBJOIN_TEST/FULL_BETWEEN.ipynb \
+    -of NBJOIN_TEST/FULL_FOOTER.ipynb \
     \
     NBJOIN_TEST/IP_TF_Lab1.ipynb \
     NBJOIN_TEST/IP_TF_Lab2.Workflow.ipynb \
