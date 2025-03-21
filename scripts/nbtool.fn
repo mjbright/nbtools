@@ -424,14 +424,14 @@ function NB_INIT_NOTEBOOK {
             ;;
         Tofu|Terraform)
             # Handling OpenTofu:
-            TF="terraform"; _TF="TF";
+            TF="terraform"; __TF="TF";
             # DO $__TF replacement automatically in nbtools.py !
             NB_SET_VAR TF="terraform"
             NB_SET_VAR TOOL="terraform"
             export __TF
             ## REPO="https://github.com/hashicorp/terraform"
             [ "$LAB_MODE" = "Tofu" ] && {
-                TF="tofu"; _TF="OTF";
+                TF="tofu"; __TF="OTF";
                 NB_SET_VAR TF="tofu"
                 NB_SET_VAR TOOL="tofu"
                 export __TF
@@ -439,7 +439,7 @@ function NB_INIT_NOTEBOOK {
             }
             echo "EXPORTED __TF: $( env | grep __TF )"
 
-            TITLE_MODE=$_TF
+            TITLE_MODE=$__TF
             rm -rf ~/tmp/terraform*
 
             echo "==== Setting TF_PLUGIN_CACHE_DIR"
@@ -453,7 +453,7 @@ function NB_INIT_NOTEBOOK {
                 echo "==== Setting AWS vars for student20 account ===="
                 . ~/.aws/linked/student20.rc; env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
                 #env | grep AWS_LINKED_ACCOUNT= | NB_HIGHLIGHT_EOL =
-                TITLE_MODE="${_TF}-AWS"
+                TITLE_MODE="${__TF}-AWS"
             else
                 echo "==== No AWS vars ( ~/.aws/linked/student20.rc )"
             fi
@@ -463,7 +463,7 @@ function NB_INIT_NOTEBOOK {
                 . ~/.student.rc;
                 env | grep AZURE_CONFIG_DIR= | NB_HIGHLIGHT_EOL =
                 env | grep ^ARM_.*=          | NB_HIGHLIGHT_EOL =
-                TITLE_MODE="${_TF}-AZ"
+                TITLE_MODE="${__TF}-AZ"
             else
                 echo "==== No AZURE vars ( ~/.student.rc )"
             fi
