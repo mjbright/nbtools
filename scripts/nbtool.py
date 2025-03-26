@@ -507,7 +507,7 @@ def escape_markdown(text):
         op_text += line+'\n'
     return op_text.rstrip()
 
-def replace_code_cell_by_markdown(cell, format_string):
+def NB_FILE_replace_code_cell_by_markdown(cell, format_string):
     """ Only used by NB_FILE_*, so use <pre><code class="nooutputtab"> ... </pre></code>"""
     global  REPLACE_OP_WORD, REPLACE_OP_WORDS
 
@@ -524,6 +524,7 @@ def replace_code_cell_by_markdown(cell, format_string):
         if '>>tofile:' in source_lines[slno]:
             source_lines[slno]='____TO_REMOVE____'
             slno_to_delete+=1
+
     for i in range(slno_to_delete):
         source_lines.remove('____TO_REMOVE____')
 
@@ -535,6 +536,8 @@ def replace_code_cell_by_markdown(cell, format_string):
     for REPLACE_OP_WORD in REPLACE_OP_WORDS:
         if REPLACE_OP_WORD in file_content:
             file_content = file_content.replace(REPLACE_OP_WORD, REPLACE_OP_WORDS[REPLACE_OP_WORD])
+
+    file_content = file_content.replace('<', '&lt;').replace('>', '&gt;')
 
     file_name = source_line0[ source_line0.find(" ") : ].lstrip()
     file_name =    file_name[ : file_name.rfind("<<")-1 ]
@@ -595,27 +598,45 @@ def FINAL_CODE_CELL_CHECK(cell, cell_no):
     # ACCEPT line
     return True
 
-def replace_asterisks_backticks(str):
-    str0=str
-    split_str = str.split('**')
-    if len(split_str) == 3:
-        str=split_str[0] + '<b>' + split_str[1] + '</b>' + split_str[2]
-    if len(split_str) == 5:
-        str=split_str[0] + '<b>' + split_str[1] + '</b>' + split_str[2] + '<b>' + split_str[3] + '</b>' + split_str[4]
+def replace_chars(replace_these, tag, string):
+    split_string = string.split(replace_these)
+    bits = len(split_string)
 
-    split_str = str.split('*')
-    if len(split_str) == 3:
-        str=split_str[0] + '<em>' + split_str[1] + '</em>' + split_str[2]
-    if len(split_str) == 5:
-        str=split_str[0] + '<em>' + split_str[1] + '</em>' + split_str[2] + '<em>' + split_str[3] + '</em>' + split_str[4]
+    if bits % 2 == 0:
+        bits.append('')
+        #bits -= 1
+        #print(f"Wrong split({replace_these}) count - expected odd number[got {bits}] of elements in string:\n\t{string}")
+        # die("Wrong split count - expected odd number of elements")
 
-    split_str = str.split('```')
-    if len(split_str) == 3:
-        str=split_str[0] + '<i>' + split_str[1] + '</i>' + split_str[2]
-    if len(split_str) == 5:
-        str=split_str[0] + '<i>' + split_str[1] + '</i>' + split_str[2] + '<i>' + split_str[3] + '</i>' + split_str[4]
+    string = ''
+    open_tag = '<' + tag + '>'
+    close_tag = '</' + tag + '>'
 
-    return str
+    for i in range(bits-1):
+        if i % 2 == 0:
+            string += split_string[i] + open_tag
+        else:
+            string += split_string[i] + close_tag
+    string += split_string[bits-1]
+
+    return string
+
+
+def replace_asterisks_backticks(string):
+    string0=string
+    string = replace_chars("**",  "b",    string)
+    string = replace_chars("*",   "i",    string)
+    string = replace_chars("```", "code", string)
+
+    #if len(split_str) == 3:
+    #    str=split_str[0] + '<i>' + split_str[1] + '</i>' + split_str[2]
+    #if len(split_str) == 5:
+    #    str=split_str[0] + '<i>' + split_str[1] + '</i>' + split_str[2] + '<i>' + split_str[3] + '</i>' + split_str[4]
+    #if len(split_str) == 7:
+    #    str=split_str[0] + '<i>' + split_str[1] + '</i>' + split_str[2] + \
+    #            '<i>' + split_str[3] + '</i>' + split_str[4] + '<i>' + split_str[5] + '</i>' + split_str[6]
+
+    return string
 
 def question_box(summary, details, box_colour, tag):
     global QUESTIONS, NUM_QUESTIONS
@@ -666,7 +687,7 @@ def markdown_cell(id, lines):
         "source": lines # array
     }
 
-def replace_EOF_backticks( section_title, cell_no, source_lines ):
+def NB_FILE_replace_EOF_backticks( section_title, cell_no, source_lines ):
     for slno in range( len( source_lines ) ):
         if source_lines[slno].find('EOF') == 0:
             source_lines[slno] = '\n'
@@ -1081,8 +1102,13 @@ def filter_nb(json_data, DEBUG=False):
                       "**Info:**":    [ 'Info: ',         '#0000ff', '#eeeeff', True  ],
                       "**Warn:**":    [ 'Warn: ',         '#aa0000', '#ffeeee', True  ],
                       "**Error:**":   [ 'Error: ',        '#ff0000', '#ffdddd', True  ],
+
                       "**Qn:**":      [ 'Qn: ',           '#0000ff', '#eeeeff', True  ],
                       "**Answer:**":  [ 'Qn: ',           '#0000ff', '#eeeeff', True  ],
+
+                      "**Oops:**":    [ 'Oops:',          '#ff0000', '#ffeeee', False ],
+                      "**Good:**":    [ 'Good:',          '#008800', '#eeffee', False ],
+
                       "**Red:**":     [ '',               '#ff0000', '#ffeeee', True  ],
                       "**Green:**":   [ '',               '#008800', '#eeffee', True  ],
                       "**Blue:**":    [ '',               '#0000ff', '#eeeeff', True  ],
@@ -1093,6 +1119,14 @@ def filter_nb(json_data, DEBUG=False):
               }
 
               for slno in range(len(source_lines)):
+                  link_pos = source_lines[slno].find("NB_LINK(")
+                  if link_pos != -1:
+                      before = source_lines[slno][ : link_pos ]
+                      link_start_pos = link_pos + len('NB_LINK(')
+                      link_end_pos   = source_lines[slno].find(')')
+                      link = source_lines[slno][ link_start_pos : link_end_pos ]
+                      source_lines[slno] = before + '[' + link + '](' + link + ')\n'
+
                   for TAG in NOTE_BLOCKS:
                       if source_lines[slno].find(TAG) == 0:
                           O_TAG = NOTE_BLOCKS[TAG][0]
@@ -1126,18 +1160,18 @@ def filter_nb(json_data, DEBUG=False):
               DEBUG(f'len(source_lines)={len(source_lines)} source_lines="{source_lines}"')
               source_line0 = source_lines[0]
               if source_line0.find("NB_FILE_M") == 0:
-                  replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
-                  replace_code_cell_by_markdown( cells_data[cell_no], 
+                  NB_FILE_replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
+                  NB_FILE_replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Modify the file __FILE__ replacing with the following content:")
 
               if source_line0.find("NB_FILE_A") == 0:
-                  replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
-                  replace_code_cell_by_markdown( cells_data[cell_no], 
+                  NB_FILE_replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
+                  NB_FILE_replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Append the following content to file __FILE__:")
 
               if source_line0.find("NB_FILE_") == -1 and source_line0.find("NB_FILE") == 0:
-                  replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
-                  replace_code_cell_by_markdown( cells_data[cell_no], 
+                  NB_FILE_replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
+                  NB_FILE_replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Create a file __FILE__ with the following content:")
                       #"Create a new file (or modify existing) __FILE__ with the following content:")
 
