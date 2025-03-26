@@ -808,48 +808,30 @@ function __CHECK_NB_DIR {
 }
 
 function REPLACE_OTF_TF {
-    IFILE=$1; shift
+    local LABEL=$1; shift
+    local IFILE=$1; shift
 
-    echo "DEBUG: sed -i.tf $OP_NOTEBOOK" >&2
-    ls -al $OP_NOTEBOOK
-    # Replace terraform by tofu/OpenTofu except for lock/state files:
-    #sed -i.tf $OP_NOTEBOOK \
     if [ "$LAB_MODE" = "Tofu" ]; then
       set -x
         sed -i.bak $IFILE \
-        -e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
-        -e 's?www.tofu.io/docs/commands/?opentofu.org/docs/cli/commands/?g' \
-        -e 's/\.tofu/\.terraform/g' \
-        -e 's/^tofu {/terraform {/' \
-        -e 's/tofu-modules/terraform-modules/g' \
-        -e 's/tofu.lock.hcl/terraform.lock.hcl/g' \
-        -e 's/tofu.tfvars/terraform.tfvars/g' \
-        -e 's/tofu.tfstate/terraform.tfstate/g' \
-        -e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g'
+          -e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
+          -e 's?www.tofu.io/docs/commands/?opentofu.org/docs/cli/commands/?g' \
+          -e 's/\.tofu/\.terraform/g' \
+          -e 's/^tofu {/terraform {/' \
+          -e 's/tofu-modules/terraform-modules/g' \
+          -e 's/tofu.lock.hcl/terraform.lock.hcl/g' \
+          -e 's/tofu.tfvars/terraform.tfvars/g' \
+          -e 's/tofu.tfstate/terraform.tfstate/g' \
+          -e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g' \
+
       set +x
     else
       set -x
-        cp -a $IFILE ${IFILE}.bak
-        #sed -i.bak $IFILE \
-        #-e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
-        #-e 's?www.tofu.io/docs/commands/?opentofu.org/docs/cli/commands/?g' \
-        #-e 's/\.tofu/\.terraform/g' \
-        #-e 's/^tofu {/terraform {/' \
-        #-e 's/tofu-modules/terraform-modules/g' \
-        #-e 's/tofu.lock.hcl/terraform.lock.hcl/g' \
-        #-e 's/tofu.tfvars/terraform.tfvars/g' \
-        #-e 's/tofu.tfstate/terraform.tfstate/g' \
-        #-e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g'
-        # NOOP
-        touch /dev/null
+        sed -i.bak $IFILE \
+          -e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g' \
+
       set +x
     fi
-
-     #sed -i.bak $OP_NOTEBOOK_FM_MD
-                #-e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
-                #-e 's/tofu.lock.hcl/terraform.lock.hcl/' \
-                #-e 's/tofu.tfstate/terraform.tfstate/' \
-                #-e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g'
 }
 
 function NB_FILTER_NOTEBOOK {
@@ -910,7 +892,7 @@ function NB_FILTER_NOTEBOOK {
         echo "$DIFFS lines changed reference from Terraform to Tofu"
         # TOO EARLY TO RENAME output file (need to do that after filtering)
     }
-    REPLACE_OTF_TF $OP_NOTEBOOK
+    REPLACE_OTF_TF 'NB_FILTER_NOTEBOOK: OP_NOTEBOOK' $OP_NOTEBOOK
 
     [ `which jq` ] && {
         set -x
@@ -1055,13 +1037,15 @@ function NB_CONVERT {
             echo "DEBUG[Tofu]: changing _[Ee]rraform entries to [Tt]erraform in $NEW" >&2
             # Replace terraform by tofu/OpenTofu except for lock/state files:
         fi
-        REPLACE_OTF_TF $OP_NOTEBOOK_FM_MD
+
+        REPLACE_OTF_TF 'NB_CONVERT' $OP_NOTEBOOK_FM_MD
 
         # MOVE FINAL OP_NOTEBOOK and OP_MARKDOWN into place:
         set -x
             mv $OP_NOTEBOOK_FM_MD $NEW
             mv $OP_NOTEBOOK ${NAME}.ipynb
         set +x
+        REPLACE_OTF_TF 'NB_CONVERT:NEW' $NEW
 
         ## Remove leading spaces from markdown file:
         #  Disabled - messes up output cells under Hugo (no black background)
