@@ -627,9 +627,14 @@ def question_box(summary, details, box_colour, tag):
     source_line = f'<details {style} ><summary>Question {NUM_QUESTIONS+1}: {summary}</summary>{details}</details>\n'
     return source_line
 
-def details_box(summary, details, box_colour, bg_colour, tag):
+def details_box(summary, details, box_colour, bg_colour, tag, full_page_width=True):
     global QUESTIONS, NUM_QUESTIONS
-    style = 'style="border-width:6px; border-style:solid; border-color:{box_colour}; background-color: {bg_colour}; border-radius: 15px; padding: 1em;"'
+    extra_style=''
+    if not full_page_width:
+        # display: inline-block => don't expand to full page width:
+        extra_style='display: inline-block; '
+
+    style = 'style="{extra_style}border-width:6px; border-style:solid; border-color:{box_colour}; background-color: {bg_colour}; border-radius: 15px; padding: 1em;"'
 
     summary = replace_asterisks_backticks(summary)
     details = replace_asterisks_backticks(details)
@@ -1063,29 +1068,46 @@ def filter_nb(json_data, DEBUG=False):
 
           # EXCLUDED_CODE_CELL for markdown ??
           if cell_type == 'markdown' and not EXCLUDED_CODE_CELL:
+              NOTE_BLOCKS = {
+                      # TAG: [ O_TAG, COLOUR, BACKGROUND_COLOUR, full_page_width ]
+                      "**Note:**":    [ 'Note: ',         '#0000aa', '#ffffff', False ],
+                      "**Stretch:**": [ 'Stretch Goal: ', '#00aa00', '#aaffaa', False ],
+                      "**Info:**":    [ 'Info: ',         '#0000aa', '#eeeeff', True  ],
+                      "**Warn:**":    [ 'Warn: ',         '#aa0000', '#ffeeee', True  ],
+                      "**Error:**":   [ 'Error: ',        '#ff0000', '#ffdddd', True  ],
+                      "**Qn:**":      [ 'Qn: ',           '#0000ff', '#eeeeff', True  ],
+                      "**Red:**":     [ 'Red: ',          '#ff0000', '#ffeeee', True  ],
+                      "**Green:**":   [ 'Green: ',        '#00ff00', '#eeffee', True  ],
+                      "**Blue:**":    [ 'Blue: ',         '#0000ff', '#eeeeff', True  ],
+                      "**Yellow:**":  [ 'Yellow: ',       '#ffff00', '#ffffee', True  ],
+                      "**Cyan:**":    [ 'Cyan: ',         '#00ffff', '#eeffff', True  ],
+                      "**Violet:**":  [ 'Violet: ',       '#ff00ff', '#ffeeff', True  ],
+                      "**Grey:**":    [ 'Grey: ',         '#000000', '#eeeeee', True  ],
+                      "**Answer:**":    [ 'Info: ',         '#0000ff', '#ffffff', True  ],
+              }
+
               for slno in range(len(source_lines)):
-                  TAG='Note:'; O_TAG='Note: '
-                  if source_lines[slno].find(TAG) == 0:
-                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', '#ffffff', O_TAG, full_page_width=False)
-                  TAG='**Note:**'; O_TAG='Note: '
-                  if source_lines[slno].find(TAG) == 0:
-                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', '#ffffff', O_TAG, full_page_width=False)
-                  TAG='**Stretch:**'; O_TAG='Stretch Goal: '
-                  if source_lines[slno].find(TAG) == 0:
-                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', '#00aaaa', O_TAG, full_page_width=False)
-                  TAG='# __INFO:'; O_TAG='Info: '
-                  if source_lines[slno].find(TAG) == 0:
-                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#00AA00', '#eeffee', O_TAG)
-                  TAG='# __WARN:'; O_TAG='Warning: '
-                  if source_lines[slno].find(TAG) == 0:
-                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#AA0000', '#ffeeee', O_TAG)
-                  TAG='# __ERROR:'; O_TAG='Error: '
-                  if source_lines[slno].find(TAG) == 0:
-                       source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#FF0000', '#ffeeee', O_TAG)
-                  if source_lines[slno].find('# __DETAIL(') == 0:
-                       summary=source_lines[slno][ 9+source_lines[slno].find('__DETAIL(') : source_lines[slno].find('):') ]
-                       details=source_lines[slno][ source_lines[slno].find('):') + 2 : ]
-                       source_lines[slno]=details_box(summary, details, '#0000FF', '#ffffff', 'Info: ')
+                  ## Disable Simple 'Note:'
+                  ## TAG='Note:'; O_TAG='Note: '
+                  ## # BLUE on WHITE:
+                  ## if source_lines[slno].find(TAG) == 0:
+                  ##      source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', '#ffffff', O_TAG, full_page_width=False)
+
+                  for TAG in NOTE_BLOCKS:
+                      if source_lines[slno].find(TAG) == 0:
+                          O_TAG = NOTE_BLOCKS[TAG][0]
+                          FG_COL = NOTE_BLOCKS[TAG][1]
+                          BG_COL = NOTE_BLOCKS[TAG][2]
+                          F_PAGE_W = NOTE_BLOCKS[TAG][3]
+                          if TAG == '**Answer:**':
+                              summary=source_lines[slno][ 11+source_lines[slno].find('**Answer:**(') : source_lines[slno].find('):') ]
+                              details=source_lines[slno][ source_lines[slno].find('):') + 2 : ]
+                              source_lines[slno]=details_box(summary, details, FG_COL, BG_COL, O_TAG, full_page_width=F_PAGE_W)
+                          else:
+                              source_lines[slno]=info_box(source_lines[slno][len(TAG):], FG_COL, BG_COL, O_TAG, full_page_width=F_PAGE_W)
+                              QUESTIONS.append([summary, details])
+                              NUM_QUESTIONS+=1
+                          break
 
                   if source_lines[slno].find('SSH_SET ') == 0:
                        SSH_NODE=source_lines[slno][8:]
@@ -1093,23 +1115,6 @@ def filter_nb(json_data, DEBUG=False):
                   elif source_lines[slno].find('SSH ') == 0:
                        source_lines[slno] = source_lines[slno][4:]
 
-                  if source_lines[slno].find('# __Q(') == 0:
-                       summary=source_lines[slno][ 9+source_lines[slno].find('__Q(') : source_lines[slno].find('):') ]
-                       details=source_lines[slno][ source_lines[slno].find('):') + 2 : ]
-                       source_lines[slno]=question_box(summary, details, '#0000FF', 'Question: ')
-                       QUESTIONS.append([summary, details])
-                       NUM_QUESTIONS+=1
-
-                  if ( source_lines[slno].find('**Red**') != -1 or \
-                     source_lines[slno].find('**Green**') != -1 or \
-                     source_lines[slno].find('**Blue**') != -1 or \
-                     source_lines[slno].find('**Yellow**') != -1):
-                     source_lines[slno]=source_lines[slno].replace("**Red**", "<div class='alert alert-danger'> ")
-                     source_lines[slno]=source_lines[slno].replace("**Green**", "<div class='alert alert-success'> ")
-                     source_lines[slno]=source_lines[slno].replace("**Blue**", "<div class='alert alert-info'> ")
-                     source_lines[slno]=source_lines[slno].replace("**Yellow**", "<div class='alert alert-warning'> ")
-                     source_lines[slno]=source_lines[slno] + "</div>"
-                     cells_data[cell_no]['source'][slno] = source_lines[slno]
               incl_md_cells.append(cell_no)
 
 
