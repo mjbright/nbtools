@@ -603,7 +603,8 @@ def replace_chars(replace_these, tag, string):
     bits = len(split_string)
 
     if bits % 2 == 0:
-        bits.append('')
+        split_string.append('')
+        bits += 1
         #bits -= 1
         #print(f"Wrong split({replace_these}) count - expected odd number[got {bits}] of elements in string:\n\t{string}")
         # die("Wrong split count - expected odd number of elements")
