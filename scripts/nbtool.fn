@@ -811,9 +811,11 @@ function REPLACE_OTF_TF {
     IFILE=$1; shift
 
     echo "DEBUG: sed -i.tf $OP_NOTEBOOK" >&2
+    ls -al $OP_NOTEBOOK
     # Replace terraform by tofu/OpenTofu except for lock/state files:
     #sed -i.tf $OP_NOTEBOOK \
     if [ "$LAB_MODE" = "Tofu" ]; then
+      set -x
         sed -i.bak $IFILE \
         -e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
         -e 's?www.tofu.io/docs/commands/?opentofu.org/docs/cli/commands/?g' \
@@ -824,8 +826,11 @@ function REPLACE_OTF_TF {
         -e 's/tofu.tfvars/terraform.tfvars/g' \
         -e 's/tofu.tfstate/terraform.tfstate/g' \
         -e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g'
+      set +x
     else
-        sed -i.bak $IFILE \
+      set -x
+        cp -a $IFILE ${IFILE}.bak
+        #sed -i.bak $IFILE \
         #-e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
         #-e 's?www.tofu.io/docs/commands/?opentofu.org/docs/cli/commands/?g' \
         #-e 's/\.tofu/\.terraform/g' \
@@ -837,6 +842,7 @@ function REPLACE_OTF_TF {
         #-e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g'
         # NOOP
         touch /dev/null
+      set +x
     fi
 
      #sed -i.bak $OP_NOTEBOOK_FM_MD
@@ -847,6 +853,7 @@ function REPLACE_OTF_TF {
 }
 
 function NB_FILTER_NOTEBOOK {
+#set -x
     __CHECK_NB_DIR
     export LAB_NUM=$( echo $LAB_NAME | sed -e 's/^lab//i' -e 's/_lab//i' -e 's/ .*//' -e 's/\..*//' )
 
@@ -977,7 +984,8 @@ function NB_FILTER_NOTEBOOK {
     }
 
     echo "Performing NB_CONVERT"
-    [ "$LAB_IPYNB" = "${LAB_IPYNB##*TEST}" ] && NB_CONVERT
+    # ZZZZ WHY ???? [ "$LAB_IPYNB" = "${LAB_IPYNB##*TEST}" ] && NB_CONVERT
+    NB_CONVERT
     )
 
     return 0
