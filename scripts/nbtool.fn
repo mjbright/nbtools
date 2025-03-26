@@ -226,6 +226,16 @@ function NB_FILE {
     __NB_FILE_COMMON $FILE
 }
 
+function NB_FILE_TEMPLATE {
+    #set -x
+    # NOTE: nbtool.py to replace this code_cell with markdown cell to say create a file with these contents
+    FILE="$1"; shift
+    local LOG=/tmp/__FILE
+
+    echo "[$PWD] Writing to new file '$FILE'" >$LOG
+    __NB_FILE_COMMON $FILE
+}
+
 function NB_FILE_A {
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say append file with these contents
     FILE="$1"; shift

@@ -733,6 +733,7 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
             if len(inc_source_line) > MAX_LINE_LEN and \
                 source_lines[slno][0] != '#' and \
                 source_line0.find("NB_FILE") == -1 and \
+                source_line0.find("NB_FILE_TEMPLATE") == -1 and \
                 source_line0.find("NB_FILE_M") == -1 and \
                 source_line0.find("NB_FILE_A") == -1:
                     show_long_code_line( 'CODE-src', inc_source_line, MAX_LINE_LEN, cell_no, section_title, EXCLUDED_CODE_CELL )
@@ -1168,6 +1169,11 @@ def filter_nb(json_data, DEBUG=False):
                   NB_FILE_replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
                   NB_FILE_replace_code_cell_by_markdown( cells_data[cell_no], 
                       "Append the following content to file __FILE__:")
+
+              if source_line0.find("NB_FILE_TEMPLATE") == 0:
+                  NB_FILE_replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
+                  NB_FILE_replace_code_cell_by_markdown( cells_data[cell_no], 
+                      "Create the file __FILE__ based on this partial template:")
 
               if source_line0.find("NB_FILE_") == -1 and source_line0.find("NB_FILE") == 0:
                   NB_FILE_replace_EOF_backticks( section_title, cell_no, cells_data[cell_no]['source'] )
