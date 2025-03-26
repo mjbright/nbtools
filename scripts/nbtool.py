@@ -629,17 +629,22 @@ def question_box(summary, details, box_colour, tag):
 
 def details_box(summary, details, box_colour, bg_colour, tag, full_page_width=True):
     global QUESTIONS, NUM_QUESTIONS
+
     extra_style=''
     if not full_page_width:
         # display: inline-block => don't expand to full page width:
         extra_style='display: inline-block; '
 
-    style = 'style="{extra_style}border-width:6px; border-style:solid; border-color:{box_colour}; background-color: {bg_colour}; border-radius: 15px; padding: 1em;"'
+    # padding: top right bottom left
+    style = f'style="{extra_style}border: 5px solid {box_colour}; background-color: {bg_colour}; border-radius: 20px; padding: 10px 0px 10px 10px;"'
+    summary_style = f'style="color: {box_colour}; background-color: #00000000; padding: 0px 0px 0px 0px;"'
 
     summary = replace_asterisks_backticks(summary)
     details = replace_asterisks_backticks(details)
 
-    source_line = f'<details {style} ><summary>Question {NUM_QUESTIONS+1}: {summary}</summary>{details}</details>\n'
+    spaces='&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp'
+    detail_spaces='&nbsp; &nbsp; &nbsp; &nbsp;'
+    source_line = f'<details {style} ><summary {summary_style}>{spaces}Question {NUM_QUESTIONS+1}: {summary}</summary>{detail_spaces}{details}</details>\n'
     return source_line
 
 def info_box(source_line, box_colour, bg_colour, tag, full_page_width=True):
@@ -649,7 +654,7 @@ def info_box(source_line, box_colour, bg_colour, tag, full_page_width=True):
         extra_style='display: inline-block; '
 
     source_line = replace_asterisks_backticks(source_line)
-    source_line=f'<p style="{extra_style}border-width:3px; border-style:solid; border-color:{box_colour}; background-color: {bg_colour}; border-radius: 15px; padding: 1em;"><b>{tag}</b>' \
+    source_line=f'<p style="{extra_style}border-width:3px; border-style:solid; border-color:{box_colour}; background-color: {bg_colour}; border-radius: 10px; padding: 5px;"><b>{tag}</b>' \
         + source_line + '</p>\n\n'
     return source_line
 
@@ -1070,29 +1075,24 @@ def filter_nb(json_data, DEBUG=False):
           if cell_type == 'markdown' and not EXCLUDED_CODE_CELL:
               NOTE_BLOCKS = {
                       # TAG: [ O_TAG, COLOUR, BACKGROUND_COLOUR, full_page_width ]
-                      "**Note:**":    [ 'Note: ',         '#0000aa', '#ffffff', False ],
-                      "**Stretch:**": [ 'Stretch Goal: ', '#00aa00', '#aaffaa', False ],
-                      "**Info:**":    [ 'Info: ',         '#0000aa', '#eeeeff', True  ],
+                      "Note:":        [ 'Note: ',         '#444444', '#ffffff', False ],
+                      "**Note:**":    [ 'Note: ',         '#0000ff', '#ffffff', False ],
+                      "**Stretch:**": [ 'Stretch Goal: ', '#008800', '#eeffee', False ],
+                      "**Info:**":    [ 'Info: ',         '#0000ff', '#eeeeff', True  ],
                       "**Warn:**":    [ 'Warn: ',         '#aa0000', '#ffeeee', True  ],
                       "**Error:**":   [ 'Error: ',        '#ff0000', '#ffdddd', True  ],
                       "**Qn:**":      [ 'Qn: ',           '#0000ff', '#eeeeff', True  ],
-                      "**Red:**":     [ 'Red: ',          '#ff0000', '#ffeeee', True  ],
-                      "**Green:**":   [ 'Green: ',        '#00ff00', '#eeffee', True  ],
-                      "**Blue:**":    [ 'Blue: ',         '#0000ff', '#eeeeff', True  ],
-                      "**Yellow:**":  [ 'Yellow: ',       '#ffff00', '#ffffee', True  ],
-                      "**Cyan:**":    [ 'Cyan: ',         '#00ffff', '#eeffff', True  ],
-                      "**Violet:**":  [ 'Violet: ',       '#ff00ff', '#ffeeff', True  ],
-                      "**Grey:**":    [ 'Grey: ',         '#000000', '#eeeeee', True  ],
-                      "**Answer:**":    [ 'Info: ',         '#0000ff', '#ffffff', True  ],
+                      "**Answer:**":  [ 'Qn: ',           '#0000ff', '#eeeeff', True  ],
+                      "**Red:**":     [ '',               '#ff0000', '#ffeeee', True  ],
+                      "**Green:**":   [ '',               '#008800', '#eeffee', True  ],
+                      "**Blue:**":    [ '',               '#0000ff', '#eeeeff', True  ],
+                      "**Yellow:**":  [ '',               '#888800', '#ffffee', True  ],
+                      "**Cyan:**":    [ '',               '#008888', '#eeffff', True  ],
+                      "**Violet:**":  [ '',               '#880088', '#ffeeff', True  ],
+                      "**Grey:**":    [ '',               '#000000', '#eeeeee', True  ],
               }
 
               for slno in range(len(source_lines)):
-                  ## Disable Simple 'Note:'
-                  ## TAG='Note:'; O_TAG='Note: '
-                  ## # BLUE on WHITE:
-                  ## if source_lines[slno].find(TAG) == 0:
-                  ##      source_lines[slno]=info_box(source_lines[slno][len(TAG):], '#0000AA', '#ffffff', O_TAG, full_page_width=False)
-
                   for TAG in NOTE_BLOCKS:
                       if source_lines[slno].find(TAG) == 0:
                           O_TAG = NOTE_BLOCKS[TAG][0]
@@ -1100,13 +1100,14 @@ def filter_nb(json_data, DEBUG=False):
                           BG_COL = NOTE_BLOCKS[TAG][2]
                           F_PAGE_W = NOTE_BLOCKS[TAG][3]
                           if TAG == '**Answer:**':
-                              summary=source_lines[slno][ 11+source_lines[slno].find('**Answer:**(') : source_lines[slno].find('):') ]
+                              TAG = '**Answer:**('
+                              summary=source_lines[slno][ len(TAG)+source_lines[slno].find(TAG) : source_lines[slno].find('):') ]
                               details=source_lines[slno][ source_lines[slno].find('):') + 2 : ]
                               source_lines[slno]=details_box(summary, details, FG_COL, BG_COL, O_TAG, full_page_width=F_PAGE_W)
-                          else:
-                              source_lines[slno]=info_box(source_lines[slno][len(TAG):], FG_COL, BG_COL, O_TAG, full_page_width=F_PAGE_W)
                               QUESTIONS.append([summary, details])
                               NUM_QUESTIONS+=1
+                          else:
+                              source_lines[slno]=info_box(source_lines[slno][len(TAG):], FG_COL, BG_COL, O_TAG, full_page_width=F_PAGE_W)
                           break
 
                   if source_lines[slno].find('SSH_SET ') == 0:
