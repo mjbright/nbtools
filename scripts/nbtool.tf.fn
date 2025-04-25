@@ -58,7 +58,7 @@ function TF_PLAN {
 
     if [ $QUIET -ne 0 ]; then
         $TF plan $* |
-            tee /tmp/PLAN.op |& grep -iE "complet|fail|error| to add"
+            tee /tmp/PLAN.op |& grep -iE "Plan:|complet|fail|error| to add"
         RET=$?
     else
         $TF plan $*
@@ -87,13 +87,13 @@ function TF_APPLY {
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        echo yes | $TF apply $* |
-            tee /tmp/APPLY.op |& grep -iE "complet|fail|error| to add"
+        echo yes | $TF apply $* | tee /tmp/APPLY.op |& grep -iE "Plan:|complet|fail|error| to add"
         RET=$?
     else
-        echo yes | $TF apply $*
+        echo yes | $TF apply $* | tee /tmp/APPLY.op
         RET=$?
     fi
+    grep -i error: /tmp/APPLY.op && RET=1
     NB_DEBUG $( TIMER_STOP "$TF apply" )
 
     # Ignore saving state list if TF_STATE_FILE is unset:

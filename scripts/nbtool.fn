@@ -48,13 +48,13 @@ function __NB_SAVE_FILES {
     local DIR=$1; shift
     DIR=~/LAB_INFO.${LAB_MODE}.${TOOL_VERSION}/$DIR
 
-    rm   -rf $DIR 2>/dev/null
+    # !! rm   -rf $DIR 2>/dev/null
     mkdir -p $DIR
 
     case $LAB_MODE in
         Terraform|Tofu)
             if [ -z "$1" ]; then
-                cp -a *.tf *.tfvars *.tpl tpl/ *.cfg $DIR/ 2>/dev/null
+                cp -a *.hcl *.tf *.tfvars *.tpl tpl/ *.cfg $DIR/ 2>/dev/null
             else
                 cp -a $*                       $DIR/ 2>/dev/null
             fi;;
@@ -578,7 +578,7 @@ function __NB_LAB_ENV {
             __OTF_VERSION=$( which tofu >/dev/null && tofu version -json | jq -rc '.terraform_version' || echo missing )
             INFO="$TF $__OTF_VERSION"
             TITLE_MODE+="_$__OTF_VERSION"
-            TOOL_VERSION="$__OTF_VERSION"
+            # Set in ~/.tool: TOOL_VERSION="$__OTF_VERSION"
             ;;
 
         Terraform)
@@ -586,7 +586,7 @@ function __NB_LAB_ENV {
             # terraform version | awk '/^Terraform / { print $2; }'
             INFO="terraform $__TF_VERSION"
             TITLE_MODE+="_$__TF_VERSION"
-            TOOL_VERSION="$__TF_VERSION"
+            # Set in ~/.tool: TOOL_VERSION="$__TF_VERSION"
             ;;
         Docker)
             if which docker >/dev/null; then
