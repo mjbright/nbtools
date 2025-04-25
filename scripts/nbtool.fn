@@ -44,6 +44,32 @@ function NB_SAVE {
 #    cd       ~/labs/$LAB
 #}
 
+function NB_SAVE_ZIP {
+    DIR=~/LAB_INFO.${LAB_MODE}.${TOOL_VERSION}
+    # zip -r9 LAB_INFO.Terraform.1.11.4.zip LAB_INFO.Terraform.1.11.4
+    
+
+    export _DIR=$( basename $DIR )
+    (
+        cd
+        zip -r9 ${_DIR}.zip ~/${_DIR}/ >/dev/null 2>&1
+    )
+
+    # LAB_INFO.Terraform.1.11.4.zip
+    case $PWD in
+        */tf-intro/*)
+            echo "LAB detected as tf-intro so zip moved to mkdocs"
+            MK_DIR=~/src/mjbright.labs-terraform-private/mkdocs/mkdocs.tf-intro/docs/downloads/
+            mv ${DIR}.zip $MK_DIR/
+            ls -al $MK_DIR/
+            ;;
+        *)
+            echo "LAB not detected so zip not moved to mkdocs - (PWD=$PWD)"
+            ls -al ${DIR}.zip ;;
+    esac
+     
+}
+
 function __NB_SAVE_FILES {
     local DIR=$1; shift
     DIR=~/LAB_INFO.${LAB_MODE}.${TOOL_VERSION}/$DIR
@@ -721,6 +747,7 @@ function NB_QUIET {
 
     #START_S=$NB_START_TIME
     #TIMER_STOP "OVERALL notebook execution"
+    NB_SAVE_ZIP
 }
 
 function NB_FILTER {
