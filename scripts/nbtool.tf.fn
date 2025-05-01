@@ -26,12 +26,21 @@ function DO_CLEANUP {
     return 0
 }
 
+function TF_GET {
+    NB_DEBUG $TF get $*
+    TIMER_START
+    $TF get $*
+    RET=$?
+    NB_DEBUG $( TIMER_STOP "$TF get" )
+    __RETURN $RET
+}
+
 function TF_INIT {
     NB_DEBUG $TF init $*
     TIMER_START
     $TF init $*
     RET=$?
-    NB_DEBUG $( TIMER_STOP "$TF plan" )
+    NB_DEBUG $( TIMER_STOP "$TF init" )
     __RETURN $RET
 }
 
