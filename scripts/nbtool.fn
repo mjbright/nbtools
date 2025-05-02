@@ -92,7 +92,8 @@ function __NB_SAVE_FILES {
             fi;;
     esac
 
-    ls -al $DIR/
+    echo "-- ls -altr $DIR/:"
+    ls -altr $DIR/
     #set +x
 }
 

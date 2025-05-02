@@ -1105,7 +1105,9 @@ def filter_nb(json_data, DEBUG=False):
                       "**Warn:**":    [ 'Warn: ',         '#aa0000', '#ffeeee', True  ],
                       "**Error:**":   [ 'Error: ',        '#ff0000', '#ffdddd', True  ],
 
+                      # "**Qn:** This is a rhetorical question
                       "**Qn:**":      [ 'Qn: ',           '#0000ff', '#eeeeff', True  ],
+                      # "**Answer:**(this is the question): this is the answer",
                       "**Answer:**":  [ 'Qn: ',           '#0000ff', '#eeeeff', True  ],
 
                       "**Oops:**":    [ 'Oops:',          '#ff0000', '#ffeeee', False ],
