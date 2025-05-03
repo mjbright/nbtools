@@ -159,6 +159,15 @@ function TF_SHOW {
     __RETURN
 }
 
+function TF_TEST {
+    NB_DEBUG $TF test $*
+    TIMER_START
+     __TF_ARGS "$1" || shift
+    $TF test $*
+    NB_DEBUG $( TIMER_STOP "$TF test" )
+    __RETURN
+}
+
 function TF_OUTPUT {
     NB_DEBUG $TF output $*
     TIMER_START
