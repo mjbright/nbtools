@@ -1144,21 +1144,21 @@ function NB_SET_VAR {
 
     # DETECT A=B form:
     [ "${VARNAME#*=}" != "$VARNAME" ] && {
-        echo "NB_SET_VAR: [A=B] Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
+        # echo "NB_SET_VAR: [A=B] Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
         local ARGS="${VARNAME#*=}"
         VARNAME=${VARNAME%%=*}
         #set -- ${VARNAME#*=}
         set -- $ARGS
-        echo "Setting args to $*"
+        # echo "Setting args to $*"
         #echo "Leaving args as $*"
     }
 
     # DETECT VARNAME not preceded by __
     [ "${VARNAME#__}" = "$VARNAME" ] && {
-        echo "NB_SET_VAR: [not __A] Correcting var name '$VARNAME' to '__$VARNAME'"
-        echo "export $VARNAME=$*"
+        # echo "NB_SET_VAR: [not __A] Correcting var name '$VARNAME' to '__$VARNAME'"
         export $VARNAME=$*
         VARNAME=__$VARNAME
+        #echo "export $VARNAME=$*"
     }
 
     # Output variables so they will be seen by nbtool.py:
@@ -1166,11 +1166,11 @@ function NB_SET_VAR {
     echo $VALUE | grep -q $HOME && {
         VALUE=$(echo $VALUE | sed -e "s?$HOME?~?g")
     }
-    eval $VARNAME="$VALUE"
+    #eval $VARNAME="$VALUE"
     #echo "VAR $VARNAME='$VALUE'"
-    echo "VAR $VARNAME='$VALUE'"
+    #echo "VAR $VARNAME='$VALUE'"
     echo "export $VARNAME='$VALUE'"
-    export $VARNAME
+    export $VARNAME=$VALUE
 }
 
 # Usage:
