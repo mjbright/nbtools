@@ -80,15 +80,23 @@ function __NB_SAVE_FILES {
     case $LAB_MODE in
         Terraform|Tofu)
             if [ -z "$1" ]; then
+              set -x
                 cp -a *.hcl *.tf *.tfvars *.tpl tpl/ *.cfg $DIR/ 2>/dev/null
+              set +x
             else
+              set -x
                 cp -a $*                       $DIR/ 2>/dev/null
+              set +x
             fi;;
         Kubernetes)
             if [ -z "$1" ]; then
+              set -x
                 cp -a *.yaml *.yml *.json      $DIR/ 2>/dev/null
+              set +x
             else
+              set -x
                 cp -a $*                       $DIR/ 2>/dev/null
+              set +x
             fi;;
     esac
 
