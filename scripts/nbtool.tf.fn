@@ -67,7 +67,7 @@ function TF_PLAN {
 
     if [ $QUIET -ne 0 ]; then
         $TF plan $* |
-            tee /tmp/PLAN.op |& grep -iE "Plan:|complet|fail|error| to add"
+            tee /tmp/PLAN.op |& grep -iE " be |Plan:|complet|fail|error| to add"
         RET=$?
     else
         $TF plan $*
@@ -96,7 +96,7 @@ function TF_APPLY {
     TIMER_START
 
     if [ $QUIET -ne 0 ]; then
-        echo yes | $TF apply $* | tee /tmp/APPLY.op |& grep -iE "Plan:|complet|fail|error| to add"
+        echo yes | $TF apply $* | tee /tmp/APPLY.op |& grep -iE " be |Plan:|complet|fail|error| to add"
         RET=$?
     else
         echo yes | $TF apply $* | tee /tmp/APPLY.op
@@ -186,7 +186,7 @@ function TF_DESTROY {
     local BEFORE=$( $TF state list 2>/dev/null | wc -l )
     if [ $QUIET -ne 0 ]; then
         echo yes | $TF destroy $* |
-            tee /tmp/DESTROY.op |& grep -iE "complet|fail|error| to add"
+            tee /tmp/DESTROY.op |& grep -iE " be |complet|fail|error| to add"
         RET=$?
     else
         echo yes | $TF destroy $*
