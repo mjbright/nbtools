@@ -141,10 +141,14 @@ which banner >/dev/null && {
 
 HOSTNAME=$(hostname)
 
+function NB_DEBUG_INFO {
+    echo "NB_DEBUG: $(date +'%Y-%b-%d %0Hh%0Mm') $(id -un)@$(hostname):$PWD" | sed -e 's?/home/student/?~?g'
+    echo "NB_DEBUG: -- $*"
+}
+
 function NB_DEBUG {
     #local INFO="DIR=${PWD##*/} $(date +'%Y-%b-%d %0Hh%0Mm')"
     #echo "NB_DEBUG: $INFO"
-    echo "NB_DEBUG: $(date +'%Y-%b-%d %0Hh%0Mm') $(id -un)@$(hostname):$PWD"
     echo "NB_DEBUG: -- $*"
 }
 

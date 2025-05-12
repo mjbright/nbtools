@@ -31,7 +31,7 @@ function DO_CLEANUP {
 }
 
 function TF_GET {
-    NB_DEBUG $TF get $*
+    NB_DEBUG_INFO $TF get $*
     TIMER_START
     $TF get $*
     RET=$?
@@ -40,7 +40,7 @@ function TF_GET {
 }
 
 function TF_INIT {
-    NB_DEBUG $TF init $*
+    NB_DEBUG_INFO $TF init $*
     TIMER_START
     $TF init $*
     RET=$?
@@ -63,7 +63,7 @@ function __TF_ARGS {
 }
 
 function TF_PLAN {
-    NB_DEBUG $TF plan $*
+    NB_DEBUG_INFO $TF plan $*
     #__RETURN
      __TF_ARGS "$1" || shift
 
@@ -89,11 +89,11 @@ function TF_PLAN {
 #echo "OK-before TF_APPLY"
 
 function TF_APPLY {
-    NB_DEBUG $TF apply $*
+    NB_DEBUG_INFO $TF apply $*
 
     TF_STATE_FILE=""
     [ "$1" = "-chk" ] && {
-        NB_DEBUG "TF_APPLY SAW -chk option: -chk $2"
+        # NB_DEBUG "TF_APPLY SAW -chk option: -chk $2"
         shift; TF_STATE_FILE=LAB${LAB_NUM}.${1}; shift
         # Save & check state list against saved state list (if present)
     }
@@ -171,7 +171,7 @@ function TF_APPLY {
 #echo "OK-half"
 
 function TF_STATE {
-    NB_DEBUG $TF state $*
+    NB_DEBUG_INFO $TF state $*
     TIMER_START
      __TF_ARGS "$1" || shift
     $TF state $*
@@ -180,7 +180,7 @@ function TF_STATE {
 }
 
 function TF_SHOW {
-    NB_DEBUG $TF show $*
+    NB_DEBUG_INFO $TF show $*
     TIMER_START
      __TF_ARGS "$1" || shift
     $TF show $*
@@ -189,7 +189,7 @@ function TF_SHOW {
 }
 
 function TF_TEST {
-    NB_DEBUG $TF test $*
+    NB_DEBUG_INFO $TF test $*
     TIMER_START
      __TF_ARGS "$1" || shift
     $TF test $*
@@ -198,7 +198,7 @@ function TF_TEST {
 }
 
 function TF_OUTPUT {
-    NB_DEBUG $TF output $*
+    NB_DEBUG_INFO $TF output $*
     TIMER_START
      __TF_ARGS "$1" || shift
     $TF output $*
@@ -207,7 +207,7 @@ function TF_OUTPUT {
 }
 
 function TF_DESTROY {
-    NB_DEBUG $TF destroy $*
+    NB_DEBUG_INFO $TF destroy $*
      __TF_ARGS "$1" || shift
 
     TIMER_START
@@ -250,7 +250,7 @@ function TG_RUN_ALL {
     fi
     #AUTO="-auto-approve"
     AUTO="--terragrunt-non-interactive"
-    NB_DEBUG terragrunt run-all $SUBCOMMAND $*
+    NB_DEBUG_INFO terragrunt run-all $SUBCOMMAND $*
 
     __TF_ARGS "$1" || shift
 
@@ -276,7 +276,7 @@ function TG_RUN_ALL {
 }
 
 function TG_PLAN {
-    NB_DEBUG terragrunt plan $*
+    NB_DEBUG_INFO terragrunt plan $*
 
     __TF_ARGS "$1" || shift
 
@@ -300,7 +300,7 @@ function TG_PLAN {
 }
 
 function TG_APPLY {
-    NB_DEBUG terragrunt apply $*
+    NB_DEBUG_INFO terragrunt apply $*
     __TF_ARGS "$1" || shift
 
     TIMER_START
@@ -323,7 +323,7 @@ function TG_APPLY {
 }
 
 function TG_DESTROY {
-    NB_DEBUG terragrunt destroy $*
+    NB_DEBUG_INFO terragrunt destroy $*
     __TF_ARGS "$1" || shift
 
     TIMER_START
