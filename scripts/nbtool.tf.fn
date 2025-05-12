@@ -128,7 +128,20 @@ function TF_APPLY {
     [ -f $TF_STATE_DIR/${TF_STATE_FILE} ] && {
         diff $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE} \
             > $TF_STATE_DIR/${TF_STATE_FILE}.diff 2>&1
-        [ $? -ne 0 ] && __RETURN 1 || return 1
+        DIFFS=$?
+        [ $DIFFS -ne 0 ] && {
+            ls -altr $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE} $TF_STATE_DIR/${TF_STATE_FILE}.diff
+            wc -l    $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE} $TF_STATE_DIR/${TF_STATE_FILE}.diff
+            NB_DEBUG "RETURN 1 diffs seen in statefile"
+          __RETURN 1 || return 1
+        }
+        [ $DIFFS -ne 0 ] && {
+            NB_DEBUG "OK - no diffs seen in statefile"
+        }
+    }
+    [ ! -f $TF_STATE_DIR/${TF_STATE_FILE} ] && {
+        NB_DEBUG "NO TF_STATE_FILE reference - saving $TF_STATE_DIR/${TF_STATE_FILE}"
+        cp -a $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE}
     }
 
     __RETURN $RET
