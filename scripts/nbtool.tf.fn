@@ -104,7 +104,7 @@ function TF_APPLY {
 
     TIMER_START
 
-    local SAVED_OP_FILE=$SAVED_OP_DIR/TF_APPLY.op
+    local SAVED_OP_FILE=$SAVED_OP_DIR/TF_apply.op
     if [ $QUIET -ne 0 ]; then
         echo yes | $TF apply $* |&
              tee $SAVED_OP_FILE |& grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
@@ -120,7 +120,7 @@ function TF_APPLY {
     NB_DEBUG $( TIMER_STOP "$TF apply" )
 
     # Ignore saving state list if TF_STATE_FILE is unset:
-    NB_DEBUG "INFO: \$TF_STATE_FILE=$TF_STATE_FILE"
+    #NB_DEBUG "INFO: \$TF_STATE_FILE=$TF_STATE_FILE"
     [ -z "$TF_STATE_FILE" ] && NB_DEBUG "WARNING: No -chk option"
     # Enable/disable for stopping when '-chk' not specified:
 
@@ -128,7 +128,7 @@ function TF_APPLY {
     let   CREATED=AFTER-BEFORE
     NB_DEBUG "$CREATED resources created"
 
-    NB_DEBUG "NB_TF_ENFORCE_CHK=$NB_TF_ENFORCE_CHK"
+    #NB_DEBUG "NB_TF_ENFORCE_CHK=$NB_TF_ENFORCE_CHK"
     [ ! -z "NB_TF_ENFORCE_CHK" ] && [ -z "$TF_STATE_FILE" ] && {
          NB_DEBUG "RETURN 1 because NB_TF_ENFORCE_CHK=$NB_TF_ENFORCE_CHK, and no '-chk' option"
          __RETURN 1 || return 1
@@ -137,6 +137,7 @@ function TF_APPLY {
 
     # Save state list:
     $TF state list > $TF_STATE_DIR/${TF_STATE_FILE}.new
+    NEW_STATE_LINES=$( wc -l <$TF_STATE_DIR/${TF_STATE_FILE}.new )
 
     # If existing state list file, compare:
     [ -f $TF_STATE_DIR/${TF_STATE_FILE} ] && {
@@ -150,11 +151,11 @@ function TF_APPLY {
           __RETURN 1 || return 1
         }
         [ $DIFFS -ne 0 ] && {
-            NB_DEBUG "OK - no diffs seen in statefile"
+            NB_DEBUG "OK - no diffs seen in statefile [lines=$NEW_STATE_LINES]"
         }
     }
     [ ! -f $TF_STATE_DIR/${TF_STATE_FILE} ] && {
-        NB_DEBUG "NO TF_STATE_FILE reference - saving $TF_STATE_DIR/${TF_STATE_FILE}"
+        NB_DEBUG "NO TF_STATE_FILE reference - saving $TF_STATE_DIR/${TF_STATE_FILE} [lines=$NEW_STATE_LINES]"
         cp -a $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE}
     }
 
