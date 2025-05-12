@@ -150,13 +150,14 @@ function TF_APPLY {
             NB_DEBUG "RETURN 1 diffs seen in statefile"
           __RETURN 1 || return 1
         }
-        [ $DIFFS -ne 0 ] && {
+        [ $DIFFS -eq 0 ] && {
             NB_DEBUG "OK - no diffs seen in statefile [lines=$NEW_STATE_LINES]"
+            rm -f $TF_STATE_DIR/${TF_STATE_FILE}.diff
         }
     }
     [ ! -f $TF_STATE_DIR/${TF_STATE_FILE} ] && {
         NB_DEBUG "NO TF_STATE_FILE reference - saving $TF_STATE_DIR/${TF_STATE_FILE} [lines=$NEW_STATE_LINES]"
-        cp -a $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE}
+        mv $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE}
     }
 
     __RETURN $RET
