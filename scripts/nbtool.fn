@@ -142,7 +142,7 @@ which banner >/dev/null && {
 HOSTNAME=$(hostname)
 
 function NB_DEBUG_INFO {
-    echo "NB_DEBUG: $(date +'%Y-%b-%d %0Hh%0Mm') $(id -un)@$(hostname):$PWD" | sed -e 's?/home/student/?~?g'
+    echo "NB_DEBUG: $(date +'%Y-%b-%d %0Hh%0Mm') $(id -un)@$(hostname):$PWD" | sed -e 's?/home/student/??g'
     echo "NB_DEBUG: -- $*"
 }
 
@@ -1220,7 +1220,8 @@ function NB_WAIT_CMD {
 #  ...  { __RETURN 1; return 1; }
 function __RETURN {
     local RET="$1"
-    [ -z "$RET" ] && return 0
+    [ -z "$RET"    ] && return 0
+    [ "$RET" = "0" ] && return 0
     NB_DEBUG "return $RET"
     return $RET
 }
