@@ -100,7 +100,7 @@ function TF_APPLY {
     
     local BEFORE=$( $TF state list 2>/dev/null | wc -l )
      __TF_ARGS $* || shift
-    NB_DEBUG $TF apply $*
+    #NB_DEBUG $TF apply $*
 
     TIMER_START
 
