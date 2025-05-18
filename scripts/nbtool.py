@@ -1089,10 +1089,10 @@ def filter_nb(json_data, DEBUG=False):
                   DEBUG(f"[cell={cell_no} section={section_title}] EXCLUDED_CODE_CELL - #EXCLUDE found")
 
               # Pragma | QUIET: just quietly/rebuild notebook/markdown - exclude this cell
-              if source_lines[0].find('__QUIET') == 0:
+              if source_lines[0].find('NB_QUIET') == 0:
                   EXCLUDED_CODE_CELL=True
                   exclude_cells.append(cell_no)
-                  DEBUG(f"[cell={cell_no} section={section_title}] EXCLUDED_CODE_CELL - __QUIET found")
+                  DEBUG(f"[cell={cell_no} section={section_title}] EXCLUDED_CODE_CELL - NB_QUIET found")
 
           # EXCLUDED_CODE_CELL for markdown ??
           if cell_type == 'markdown' and not EXCLUDED_CODE_CELL:
@@ -1337,6 +1337,10 @@ def split_nb(json_data, DEBUG=False):
           if source_lines[0].find('#EXCLUDE') == 0 and cell_type == 'code':
               EXCLUDED_CODE_CELL=True
               # NOTE: Code will be excluded but continue to parse/search for variables settings
+
+          # Exclude any NB_SAVE, NB_SAVE_STEP cells:
+          if source_lines[0].find('NB_SAVE') == 0 and cell_type == 'code':
+              EXCLUDED_CODE_CELL=True
 
           for slno in range(len(source_lines)):
               source_line=source_lines[slno]
