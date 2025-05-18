@@ -761,10 +761,6 @@ def process_code_cell(source_lines, cells_data, cell_no, EXCLUDED_CODE_CELL, sec
                     ofile=f'/home/student/tmp/cells_data_{cell_no}'
                     print(f"Writing {ofile}")
                     writefile(ofile, text=''.join( cells_data[cell_no]['source'] ))
-                    #sys.exit(1) XXXXXX
-                #if slno >= num_source_lines:
-                    #sys.exit(1)
-                #cells_data[cell_no]['source'][slno] = source_line
                 source_lines[slno] = source_line
 
         # Pragma FOREACH (use singular form of variable e.g. __POD_IP which will be populated form __POD_IPS)
@@ -1018,6 +1014,7 @@ def filter_nb(json_data, DEBUG=False):
     In_cell_no='unknown'
     section_title=''
     section_number=''
+    # Final_code_cell_no=0
 
     exclude_cells=[]
     incl_code_cells=[]
@@ -1032,6 +1029,8 @@ def filter_nb(json_data, DEBUG=False):
           source_lines = cells_data[cell_no]['source']
           if cell_type == 'code':
               In_cell_no=cells_data[cell_no]['execution_count']
+              # Final_code_cell_no+=1
+              # cells_data[cell_no]['final_cell_no']=Final_code_cell_no
 
               if 'NB_SET_VAR' in ' '.join(source_lines):
                   DEBUG(f"[cell={cell_no} section={section_title}] NB_SET_VAR variables seen in cell source_lines")
@@ -1256,10 +1255,12 @@ def filter_nb(json_data, DEBUG=False):
               # ADD Code-Cell comment line at beginning of cell source lines:
               source_lines = cells_data[cell_no]['source']
               #if 'section_title' in cells_data[cell_no]:
+              #final_cell_no = cells_data[cell_no]['final_cell_no']
               if 'section_number' in cells_data[cell_no]:
-                  #source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]["section_title"] }\n\n')
+                  #source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}/F{final_cell_no}] { cells_data[cell_no]["section_number"] }\n\n')
                   source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}] { cells_data[cell_no]["section_number"] }\n\n')
               else:
+                  #source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}/F{final_cell_no}]\n\n')
                   source_lines.insert(0, f'# Code-Cell[{op_code_cell_no}]\n\n')
 
           if 'section_title' in cells_data[cell_no]:
