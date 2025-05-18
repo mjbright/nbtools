@@ -36,7 +36,7 @@ function NB_SAVE {
     START_S=$NB_START
     echo; echo "[$(date)] Execution stopped: SAVE NOTEBOOK BEFORE EXECUTING NB_QUIET CELL"
     #TIMER_STOP "SAVE NOTEBOOK"
-    TIMER_STOP "OVERALL notebook execution"
+    TIMER_STOP "TOTAL TIME since nbtool.rc sourced"
     return 1
 }
 
@@ -763,8 +763,9 @@ function NB_QUIET {
     TIMER_STOP "Notebook filtering/conversion"
 
     START_S=$NB_START_TIME
-    TIMER_STOP "OVERALL notebook execution"
     NB_SAVE_ZIP
+    TIMER_STOP "TOTAL TIME since nbtool.rc sourced"
+    return 0
 }
 
 function NB_FILTER {
