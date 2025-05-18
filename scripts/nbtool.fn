@@ -868,6 +868,10 @@ function REPLACE_OTF_TF {
     if [ "$LAB_MODE" = "Tofu" ]; then
       set -x
         sed -i.bak $IFILE \
+          -e 's/TOOL/OpenTofu/g' \
+          -e 's/registry.terraform.io/registry.dontreplace.io/g' \
+          -e 's?mjbright/terraform?mjbright/dontreplace?g' \
+          -e 's?mjbright/Terraform?mjbright/DONTREPLACE?g' \
           -e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
           -e 's?www.tofu.io/docs/commands/?opentofu.org/docs/cli/commands/?g' \
           -e 's/\.tofu/\.terraform/g' \
@@ -877,15 +881,22 @@ function REPLACE_OTF_TF {
           -e 's/tofu.tfvars/terraform.tfvars/g' \
           -e 's/tofu.tfstate/terraform.tfstate/g' \
           -e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g' \
+          -e 's/DONTREPLACE/Terraform/g' \
+          -e 's/dontreplace/terraform/g' \
 
       set +x
     else
       set -x
         sed -i.bak $IFILE \
+          -e 's/TOOL/Terraform/g' \
           -e 's/_Erraform/Terraform/g' -e 's/_erraform/terraform/g' \
 
       set +x
     fi
+
+    echo $LAB_MODE
+    echo "REPLACE_OTF_TF: '$LABEL'"
+    ls -altr ${IFILE}*
 }
 
 function NB_FILTER_NOTEBOOK {
