@@ -762,8 +762,8 @@ function NB_QUIET {
     NB_QUIET_FILTER_NOTEBOOK $* || __FILTER
     TIMER_STOP "Notebook filtering/conversion"
 
-    #START_S=$NB_START_TIME
-    #TIMER_STOP "OVERALL notebook execution"
+    START_S=$NB_START_TIME
+    TIMER_STOP "OVERALL notebook execution"
     NB_SAVE_ZIP
 }
 
