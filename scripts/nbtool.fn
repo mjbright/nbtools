@@ -768,6 +768,12 @@ function NB_QUIET {
     return 0
 }
 
+function NB_TIME {
+    TIMER_START
+    $*
+    TIMER_STOP "$*"
+}
+
 function NB_FILTER {
     pwd
     NB_FILTER_NOTEBOOK $*

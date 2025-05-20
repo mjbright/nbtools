@@ -164,11 +164,6 @@ function TF_APPLY {
     __RETURN $RET
 }
 
-# What ??
-#function ____TF_DESTROY {
-    #TF_DESTROY $*
-#}
-
 #echo "OK-half"
 
 function TF_STATE {
@@ -177,6 +172,17 @@ function TF_STATE {
      __TF_ARGS "$1" || shift
     $TF state $*
     NB_DEBUG $( TIMER_STOP "$TF state" )
+    __RETURN
+}
+
+function TF_IMPORT {
+    NB_DEBUG_INFO $TF import $*
+    TIMER_START
+    local SAVED_OP_FILE=$SAVED_OP_DIR/TF_import.op
+     __TF_ARGS "$1" || shift
+    echo yes | $TF import $* |&
+        tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+    NB_DEBUG $( TIMER_STOP "$TF import" )
     __RETURN
 }
 

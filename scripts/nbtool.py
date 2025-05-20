@@ -146,6 +146,7 @@ REPLACE_COMMANDS={
     'TF_SHOW':  'terraform show',
     'TF_STATE':  'terraform state',
     'TF_OUTPUT':  'terraform output',
+    'TF_IMPORT':  'terraform import',
     'TIMER_START': '',
     'TIMER_STOP':  '',
     'K_GET':      'kubectl get',
@@ -1194,6 +1195,8 @@ def filter_nb(json_data, DEBUG=False):
           for slno in range( len( source_lines ) ):
               if source_lines[slno].find("__CURL") != -1:
                   source_lines[slno] = source_lines[slno].replace("__CURL", "ssh vm-linux-docker curl")
+              if source_lines[slno].find("NB_TIME") == 0:
+                  source_lines[slno] = source_lines[slno][8:]
 
           source_line_0=source_lines[0]
 
