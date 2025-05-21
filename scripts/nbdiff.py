@@ -224,7 +224,11 @@ def copy_cells(content, op_content, notebook, delete_outputs=False):
 
         op_content["cells"].append( cell )
 
-die("TO BE DONE")
+die("""TO BE DONE
+    - diff only code cells (only i/p, only o/p, or both)
+    - diff only markdown cells
+    - diff markdown cells and code cells (w/o output)
+    """)
 
 def main():
     global MODE, OP_NOTEBOOK, SAVE_MLINE_JSON

@@ -224,7 +224,12 @@ def copy_cells(content, op_content, notebook, delete_outputs=False):
 
         op_content["cells"].append( cell )
 
-die("TO BE DONE")
+die("""TO BE DONE
+        - strip all output cells
+        - recalculate Code-Cell info
+        - recalculate Sections (or do this on markdown?)
+        - detect unexpected occurences (empty code i/p cells, NB_*, TF_*, $__VAR, ...) (or do this on markdown)
+        """)
 
 def main():
     global MODE, OP_NOTEBOOK, SAVE_MLINE_JSON
