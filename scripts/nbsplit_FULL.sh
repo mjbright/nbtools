@@ -24,7 +24,8 @@ case $PWD in
     *) die "Move to tf-* directory\n\tunder $REPO_DIR";;
 esac
 
-FULL_IPYNB=FULL_NOTEBOOK/FULL.multiline.ipynb
+FULL_IPYNB=FULL_NOTEBOOK/FULL.ipynb
+FULL_ML_IPYNB=FULL_NOTEBOOK/FULL.multiline.ipynb
 ## FULL_MD_0=FULL_NOTEBOOK/OP_MODE_FULL.md
 case $TOOL in
     tofu)      FULL_MD=FULL_NOTEBOOK/OP_OTF_OP_MODE_FULL.md;;
@@ -34,11 +35,11 @@ esac
 ## [ ! -f $FULL_MD_0 ] && die "No such output markdown file: $FULL_MD_0"
 ## cp $FULL_MD_0 $FULL_MD
 
-[ ! -f $FULL_IPYNB ] && die "No such input notebook file: $FULL_IPYNB"
+[ ! -f $FULL_ML_IPYNB ] && die "No such input notebook file: $FULL_ML_IPYNB"
 [ ! -f $FULL_MD ] && die "No such output markdown file: $FULL_MD"
 
-NB_START=$(grep -c '#START:' $FULL_IPYNB)
-NB_END=$(grep -c '#END:' $FULL_IPYNB)
+NB_START=$(grep -c '#START:' $FULL_ML_IPYNB)
+NB_END=$(grep -c '#END:' $FULL_ML_IPYNB)
 MD_START=$(grep -c '#START:' $FULL_MD)
 MD_END=$(grep -c '#END:' $FULL_MD)
 
@@ -54,4 +55,10 @@ ls -al $FULL_MD
 set -x
 ~/scripts/nbsplit_full.py $FULL_MD
 set +x
+
+jq .  $FULL_IPYNB | grep -iq took && {
+    TIMING=FULL_NOTEBOOK/took.${TOOL}_${TOOL_VERSION}.txt
+    jq .  $FULL_IPYNB | grep -i took > $TIMING
+    ls -al $TIMING
+}
 

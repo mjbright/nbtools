@@ -62,17 +62,19 @@ def split_markdown(arg):
             #START 1.InstallTerraform/IP_TF_Lab1.ipynb: . ~/scripts/nbtool.rc 10 Terraform "OP_TF_Lab1.InstallTerraform"
             print(f'START LINE={line}')
             startBits = line.split(' ')
-            print(f'startBits LINE={startBits}')
+            print(f'startBits={startBits}')
             #ipfile=startBits[1][:-1]
-            ipfile=startBits[1].rstrip()
-            print(f'ipfile LINE={ipfile}')
+            ipfile=startBits[2].rstrip()
+            print(f'ipfile={ipfile}')
             ipfileDir=ipfile[ : ipfile.find("/") ]
-            print(f'ipfileDir LINE={ipfileDir}')
-            weight=startBits[4]
-            print(f'weight LINE={weight}')
-            mode=startBits[5]
-            print(f'mode LINE={mode}')
-            opfile=startBits[6].replace('"', "").replace('\n','') + '.md'
+            print(f'ipfileDir={ipfileDir}')
+            weight=startBits[5]
+            print(f'weight={weight}')
+            mode=startBits[6]
+            print(f'mode={mode}')
+            opfile=startBits[7].replace('"', "").replace('\n','') + '.md'
+            print(f'opfile={mode}')
+            #['<!--', '#START:', '10.Revision/IP_TF_Lab10.Revision.ipynb', '.', '~/scripts/nbtool.rc', '100', 'OpenTofu', 'OP_TF_Lab10.OpenTofuRevision', '-->\n']
 
             # If using tofu (based on variable exported in ~/.tool) rename output file:
             if os.getenv('TOOL','') == 'tofu':

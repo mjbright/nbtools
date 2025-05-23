@@ -167,19 +167,19 @@ def filter_cells(nb, content, op_content, notebook, delete_outputs=False):
                         # - return straight away: 
 
                         # Add INCLUDE Pragma:
-                        # cell={ 'cell_type':'markdown', 'id': f'nb{nb}-nd-cell-0-excl', 'metadata': {},
-                        #        'source': [ "# Pragma --INCLUDE--SECTION--\n", ] }
-                        # op_content["cells"].append( cell )
-
-                        # Add EXCLUDE Pragma:
                         cell={ 'cell_type':'markdown', 'id': f'nb{nb}-nd-cell-1-excl', 'metadata': {},
-                               'source': [ "# Pragma --EXCLUDE--SECTION--\n", ] }
+                               'source': [ "# Pragma --INCLUDE--SECTION--\n", ] }
                         op_content["cells"].append( cell )
 
                         # Don't change #END line - format is important for nbsplit:
                         # Add #END: {notebook} Pragma: AS A COMMMENT so that nbsplit will see it:
-                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-nd-cell-2-excl', 'metadata': {},
+                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-nd-cell-1-excl', 'metadata': {},
                                'source': [ f'<!-- #END: {notebook} {source_line} -->\n', ] }
+                        op_content["cells"].append( cell )
+
+                        # Add EXCLUDE Pragma:
+                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-nd-cell-2-excl', 'metadata': {},
+                               'source': [ "# Pragma --EXCLUDE--SECTION--\n", ] }
                         op_content["cells"].append( cell )
 
                         cell={ 'cell_type':'markdown', 'id': f'nb{nb}-end-cell-3-excl', 'metadata': {},
@@ -218,11 +218,11 @@ def filter_cells(nb, content, op_content, notebook, delete_outputs=False):
                 # Don't change initial #START line - format is important for nbsplit:
                 # Add #START: {notebook} Pragma: AS A COMMMENT so that nbsplit will see it:
                 cell={ 'cell_type':'markdown', 'id': f'nb{nb}-start-cell-2-excl', 'metadata': {},
-                       'source': [ f'<!-- #START: {notebook} {source_line} -->\n', ] }
+                       'source': [ "# Pragma --INCLUDE--SECTION--\n", ] }
                 op_content["cells"].append( cell )
 
                 cell={ 'cell_type':'markdown', 'id': f'nb{nb}-start-cell-3-excl', 'metadata': {},
-                       'source': [ "# Pragma --INCLUDE--SECTION--\n", ] }
+                       'source': [ f'<!-- #START: {notebook} {source_line} -->\n', ] }
                 op_content["cells"].append( cell )
 
                 cell={ 'cell_type':'markdown', 'id': f'nb{nb}-start-cell-4-excl', 'metadata': {},
