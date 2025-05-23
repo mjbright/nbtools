@@ -221,12 +221,20 @@ def filter_cells(nb, content, op_content, notebook, delete_outputs=False):
                        'source': [ "# Pragma --INCLUDE--SECTION--\n", ] }
                 op_content["cells"].append( cell )
 
+                # Strip line feed to prevent mangling following single-line commentl:
+                # DOn't understand how Lab7.Modules inserted a line-feed into the nbtool.rc line
+                source_line = source_line.rstrip()
                 cell={ 'cell_type':'markdown', 'id': f'nb{nb}-start-cell-3-excl', 'metadata': {},
                        'source': [ f'<!-- #START: {notebook} {source_line} -->\n', ] }
                 op_content["cells"].append( cell )
 
                 cell={ 'cell_type':'markdown', 'id': f'nb{nb}-start-cell-4-excl', 'metadata': {},
                        'source': [ "# Pragma --EXCLUDE--SECTION--\n", ] }
+                op_content["cells"].append( cell )
+
+                cell={ 'cell_type':'code', 'id': f'nb{nb}-start-cell-5-excl', 'metadata': {},
+                       'execution_count': '0', 'outputs': [],
+                       'source': [ f"echo START $(date): {notebook} >> /tmp/nb.progress.log", ] }
                 op_content["cells"].append( cell )
 
                 '''

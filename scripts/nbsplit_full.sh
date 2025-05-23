@@ -27,16 +27,22 @@ esac
 FULL_IPYNB=FULL_NOTEBOOK/FULL.ipynb
 FULL_ML_IPYNB=FULL_NOTEBOOK/FULL.multiline.ipynb
 ## FULL_MD_0=FULL_NOTEBOOK/OP_MODE_FULL.md
+
 case $TOOL in
     tofu)      FULL_MD=FULL_NOTEBOOK/OP_OTF_OP_MODE_FULL.md;;
-    terraform) FULL_MD=FULL_NOTEBOOK/OP_TF_OP_MODE_FULL.md;;
+    terraform)
+	    FULL_MD=FULL_NOTEBOOK/OP_TF_OP_MODE_FULL.md
+	    # HACK:
+	    cp FULL_NOTEBOOK/OP_MODE_FULL.md $FULL_MD
+	    ;;
 esac
 
 ## [ ! -f $FULL_MD_0 ] && die "No such output markdown file: $FULL_MD_0"
 ## cp $FULL_MD_0 $FULL_MD
 
+jq . $FULL_IPYNB > $FULL_ML_IPYNB
 [ ! -f $FULL_ML_IPYNB ] && die "No such input notebook file: $FULL_ML_IPYNB"
-[ ! -f $FULL_MD ] && die "No such output markdown file: $FULL_MD"
+[ ! -f $FULL_MD       ] && die "No such output markdown file: $FULL_MD"
 
 NB_START=$(grep -c '#START:' $FULL_ML_IPYNB)
 NB_END=$(grep -c '#END:' $FULL_ML_IPYNB)
@@ -44,8 +50,10 @@ MD_START=$(grep -c '#START:' $FULL_MD)
 MD_END=$(grep -c '#END:' $FULL_MD)
 
 STOP=0
-echo "Notebook has $NB_START START blocks, markdown has $MD_START"
-echo "Notebook has $NB_END END blocks, markdown has $MD_END"
+echo "Notebook is $FULL_IPYNB"
+echo "ML Notebook is $FULL_ML_IPYNB"
+echo "ML Notebook has $NB_START START blocks, markdown has $MD_START"
+echo "ML Notebook has $NB_END END blocks, markdown has $MD_END"
 [ "$NB_START" != "$MD_START" ] && { STOP=1; echo "Error: Notebook has $NB_START START blocks, markdown has only $MD_START"; }
 [ "$NB_END"   != "$MD_END"   ] && { STOP=1; echo "Error: Notebook has $NB_END END blocks, markdown has only $MD_END"; }
 

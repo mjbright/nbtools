@@ -96,6 +96,7 @@ def split_markdown(arg):
             #print(f'IP={ipfile} mode={mode} OP={opfile}')
             #print(f'FRONTMATTER={frontMatterText}')
             currentLabText = ''
+            line = ''
             continue
             #die("OK")
 

@@ -3,6 +3,8 @@
 # In practice 74 seems to be a good limit for the PDF output (tested using Safari/macOS):
 MAX_LEN_MD=80
 
+PROGRESS_LOG=/tmp/nb.progress.log
+
 # TODO:
 # - what functions take a long time ... can some slow things be recoded in Python?
 # - look especially at NB_QUIET implementation ... for speedups
@@ -37,6 +39,7 @@ function NB_SAVE {
     echo; echo "[$(date)] Execution stopped: SAVE NOTEBOOK BEFORE EXECUTING NB_QUIET CELL"
     #TIMER_STOP "SAVE NOTEBOOK"
     TIMER_STOP "TOTAL TIME since nbtool.rc sourced"
+    echo "NB_SAVE STOP" >> $PROGRESS_LOG
     return 1
 }
 
@@ -77,6 +80,8 @@ function NB_SAVE_ZIP {
 function __NB_SAVE_FILES {
     local DIR=$1; shift
     DIR=~/LAB_INFO.${LAB_MODE}.${TOOL_VERSION}/$DIR
+    #echo $DIR $LAB_MODE $TOOL_VERSION >> $PROGRESS_LOG
+    echo "   - " $(basename $DIR) $LAB_MODE $TOOL_VERSION >> $PROGRESS_LOG
 
     # !! rm   -rf $DIR 2>/dev/null
     mkdir -p $DIR

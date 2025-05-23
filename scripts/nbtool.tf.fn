@@ -2,6 +2,7 @@
 TF_STATE_DIR=~/tmp/TF_state_list
 SAVED_OP_DIR=~/tmp/TF_saved_OP
 mkdir -p $TF_STATE_DIR $SAVED_OP_DIR
+PROGRESS_LOG=/tmp/nb.progress.log
 
 # TODO:
 # - move " be " detection into separate function
@@ -71,8 +72,10 @@ function TF_PLAN {
 
     local SAVED_OP_FILE=$SAVED_OP_DIR/TF_plan.op
     if [ $QUIET -ne 0 ]; then
+        echo "    Planning ..." >> $PROGRESS_LOG
         $TF plan $* |&
             tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+        grep -iE "Plan.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
         #RET=$?
     else
         $TF plan $* |&
@@ -106,8 +109,10 @@ function TF_APPLY {
 
     local SAVED_OP_FILE=$SAVED_OP_DIR/TF_apply.op
     if [ $QUIET -ne 0 ]; then
+        echo "    Applying ..." >> $PROGRESS_LOG
         echo yes | $TF apply $* |&
              tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+        grep -iE "Apply.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
         #RET=$?
     else
         echo yes | $TF apply $* |&
@@ -233,8 +238,10 @@ function TF_DESTROY {
     local BEFORE=$( $TF state list 2>/dev/null | wc -l )
     local SAVED_OP_FILE=$SAVED_OP_DIR/TF_destroy.op
     if [ $QUIET -ne 0 ]; then
+        echo "    Destroying ..." >> $PROGRESS_LOG
         echo yes | $TF destroy $* |&
             tee $SAVED_OP_FILE | grep -iE " be |complet|fail|error| to add" | grep -v " will be accepted "
+        grep -iE "Destroy.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
         #RET=$?
     else
         #RET=$?
