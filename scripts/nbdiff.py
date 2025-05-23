@@ -224,11 +224,65 @@ def copy_cells(content, op_content, notebook, delete_outputs=False):
 
         op_content["cells"].append( cell )
 
-die("""TO BE DONE
-    - diff only code cells (only i/p, only o/p, or both)
-    - diff only markdown cells
-    - diff markdown cells and code cells (w/o output)
-    """)
+#die("""TO BE DONE
+    #- diff only code cells (only i/p, only o/p, or both)
+    #- diff only markdown cells
+    #- diff markdown cells and code cells (w/o output)
+    #""")
+
+DIFF_CELLS=1
+DIFF_IP=2
+DIFF_OP=3
+
+def nbdiff(notebook1, notebook2, DEPTH=DIFF_IP):
+    content1 = read_json(notebook1)
+    content2 = read_json(notebook2)
+    num_cells1 = count_cells(content1)
+    num_cells2 = count_cells(content2)
+    num_markdown_cells1 = count_cells(content1, cell_type='markdown')
+    num_markdown_cells2 = count_cells(content2, cell_type='markdown')
+    num_code_cells1 = count_cells(content1, cell_type='code')
+    num_code_cells2 = count_cells(content2, cell_type='code')
+
+    print(f'notebook1={notebook1}')
+    print(f'notebook2={notebook2}')
+
+    if num_cells1 != num_cells2:
+        print(f'Number of cells differ notebook1:{num_cells1} != notebook2:{num_cells2}')
+    if num_markdown_cells1 != num_markdown_cells2:
+        print(f'Number of markdown_cells differ notebook1:{num_markdown_cells1} != notebook2:{num_markdown_cells2}')
+    if num_code_cells1 != num_code_cells2:
+        print(f'Number of code_cells differ notebook1:{num_code_cells1} != notebook2:{num_code_cells2}')
+
+    identical_cells=0
+    different_cells=0
+    for i in range(max(num_cells1, num_cells2)):
+        if i <= num_cells1 and i <= num_cells2:
+            cell1 = content1['cells'][i]
+            cell2 = content2['cells'][i]
+            if cell1['cell_type'] == 'code' and cell2['cell_type'] == 'code':
+                source1 = '\t'.join(cell1['source'])
+                source2 = '\t'.join(cell2['source'])
+                if source1 != source2:
+                    different_cells+=1
+                    print(f'code cell[{i}] source differs')
+                    print('Print <enter> to see diffs')
+                    input()
+                    print(f'nb1:\n\t{source1}\n')
+                    print(f'nb2:\t{source2}\n')
+                else:
+                    #print(f'Cells{i} are identical')
+                    identical_cells+=1
+            print(f'cell={i} identical={identical_cells} different={different_cells}')
+
+
+    #for cell in content["cells"]:
+    #if cell["cell_type"] == "markdown": count+=1
+
+    # num_cells_info = f'[cells: code={num_code_cells} markdown={num_markdown_cells} total={ num_cells }]'
+    # print(f'NOTEBOOK{nb} {num_cells_info} {notebook}')
+    #print(f'\tkeys: { content.keys() }')
+    # if nb == 1:
 
 def main():
     global MODE, OP_NOTEBOOK, SAVE_MLINE_JSON
@@ -240,6 +294,12 @@ def main():
           
     if len(sys.argv) == 1:
         die("Missing arguments")
+
+    notebook1=sys.argv[1]
+    notebook2=sys.argv[2]
+
+    nbdiff(notebook1, notebook2)
+    sys.exit(0)
 
     while a < len(sys.argv):
         arg = sys.argv[a]
