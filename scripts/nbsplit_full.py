@@ -51,25 +51,37 @@ def split_markdown(arg):
                 frontMatter=False
             continue
 
-        if '#END'   in line:
+        if '#END:'   in line:
             currentLabText = ''.join(frontMatterText) + currentLabText
             writefile(opfile, currentLabText)
             currentLabText = ''
             continue
 
 
-        if '#START' in line:
+        if '#START:' in line:
             #START 1.InstallTerraform/IP_TF_Lab1.ipynb: . ~/scripts/nbtool.rc 10 Terraform "OP_TF_Lab1.InstallTerraform"
+            print(f'START LINE={line}')
             startBits = line.split(' ')
-            ipfile=startBits[1][:-1]
+            print(f'startBits LINE={startBits}')
+            #ipfile=startBits[1][:-1]
+            ipfile=startBits[1].rstrip()
+            print(f'ipfile LINE={ipfile}')
             ipfileDir=ipfile[ : ipfile.find("/") ]
+            print(f'ipfileDir LINE={ipfileDir}')
             weight=startBits[4]
+            print(f'weight LINE={weight}')
             mode=startBits[5]
+            print(f'mode LINE={mode}')
             opfile=startBits[6].replace('"', "").replace('\n','') + '.md'
-            if os.path.exists("/home/student/.opentofu"):
+
+            # If using tofu (based on variable exported in ~/.tool) rename output file:
+            if os.getenv('TOOL','') == 'tofu':
                 opfile = opfile.replace("_TF_", "_OTF_")
-            if os.path.exists("/home/student/.tofu"):
-                opfile = opfile.replace("_TF_", "_OTF_")
+                print(f'Modified output file name for Tofu: {opfile}')
+            #if os.path.exists("/home/student/.opentofu"):
+            #    opfile = opfile.replace("_TF_", "_OTF_")
+            #if os.path.exists("/home/student/.tofu"):
+            #    opfile = opfile.replace("_TF_", "_OTF_")
 
             opfile = ipfileDir + '/' + opfile
             frontMatterText[1] = f'title: {opfile}\n'
