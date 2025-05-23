@@ -154,6 +154,9 @@ def filter_cells(content, op_content, notebook, delete_outputs=False):
         # CAN we start now?
         if started:
             # search for 'NB_SAVE' entry:
+            EXCLUDE_CELL=False
+            if source_lines[0].startswith("#EXCLUDE"):
+                EXCLUDE_CELL=True
             for source_line in source_lines:
                 if source_line.startswith('NB_SAVE'):
 
@@ -171,7 +174,7 @@ def filter_cells(content, op_content, notebook, delete_outputs=False):
                         return
 
                 elif 'NB_SAVE' in source_line:
-                    if not 'NB_SAVE_' in source_line:
+                    if not EXCLUDE_CELL and not 'NB_SAVE_' in source_line:
                         print("Searching for lines starting with 'NB_SAVE'")
                         die(f'{notebook}: Possible bad occurence of NB_SAVE in line {source_line}')
 
