@@ -213,6 +213,17 @@ function TF_OUTPUT {
     __RETURN
 }
 
+# NOTE: will include debug output, so probably best to use:
+#    $__TF graph | dot -Tsvg > graph.svg
+function TF_GRAPH {
+    NB_DEBUG_INFO $TF graph $*
+    TIMER_START
+     __TF_ARGS "$1" || shift
+    $TF graph $*
+    NB_DEBUG $( TIMER_STOP "$TF graph" )
+    __RETURN
+}
+
 function TF_DESTROY {
     NB_DEBUG_INFO $TF destroy $*
      __TF_ARGS "$1" || shift
