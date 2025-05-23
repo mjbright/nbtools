@@ -875,7 +875,6 @@ function REPLACE_OTF_TF {
     if [ "$LAB_MODE" = "Tofu" ]; then
       set -x
         sed -i.bak $IFILE \
-          -e 's/TOOL/OpenTofu/g' \
           -e 's/registry.terraform.io/registry.dontreplace.io/g' \
           -e 's?mjbright/terraform?mjbright/dontreplace?g' \
           -e 's?mjbright/Terraform?mjbright/DONTREPLACE?g' \
@@ -891,7 +890,7 @@ function REPLACE_OTF_TF {
           -e 's/dontreplace/terraform/g' \
           -e 's/OTFOTF/OpenTofu/g' -e 's/otfotf/opentofu/g' \
           -e 's/TFTF/Terraform/g'  -e 's/tftf/terraform/g' \
-          -e 's/_TOOL_/OpenTofu/g' \
+          -e 's/TFTOOL/OpenTofu/g' \
 
       set +x
     else
@@ -899,7 +898,7 @@ function REPLACE_OTF_TF {
         sed -i.bak $IFILE \
           -e 's/OTFOTF/OpenTofu/g' -e 's/otfotf/opentofu/g' \
           -e 's/TFTF/Terraform/g'  -e 's/tftf/terraform/g' \
-          -e 's/_TOOL_/Terraform/g' \
+          -e 's/TFTOOL/Terraform/g' \
 
       set +x
     fi
