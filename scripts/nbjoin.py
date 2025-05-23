@@ -133,7 +133,7 @@ def __create_cell(nb, cell_type, source_lines=[], metadata={}, execution_count=N
                }
     die(f'Unknown cell type "{cell_type}"')
 
-def filter_cells(content, op_content, notebook, delete_outputs=False):
+def filter_cells(nb, content, op_content, notebook, delete_outputs=False):
     started=False
 
     for cell in content["cells"]:
@@ -167,18 +167,23 @@ def filter_cells(content, op_content, notebook, delete_outputs=False):
                         # - return straight away: 
 
                         # Add INCLUDE Pragma:
-                        cell={ 'cell_type':'markdown', 'id': 'end-cell-1', 'metadata': {},
-                               'source': [ "# Pragma --INCLUDE--SECTION--\n", ] }
-                        op_content["cells"].append( cell )
-
-                        # Add #END {notebook} Pragma:
-                        cell={ 'cell_type':'markdown', 'id': 'end-cell-2', 'metadata': {},
-                               'source': [ f'#END {notebook}: {source_line}', ] }
-                        op_content["cells"].append( cell )
+                        # cell={ 'cell_type':'markdown', 'id': f'nb{nb}-nd-cell-0-excl', 'metadata': {},
+                        #        'source': [ "# Pragma --INCLUDE--SECTION--\n", ] }
+                        # op_content["cells"].append( cell )
 
                         # Add EXCLUDE Pragma:
-                        cell={ 'cell_type':'markdown', 'id': 'end-cell-3', 'metadata': {},
+                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-nd-cell-1-excl', 'metadata': {},
                                'source': [ "# Pragma --EXCLUDE--SECTION--\n", ] }
+                        op_content["cells"].append( cell )
+
+                        # Don't change #END line - format is important for nbsplit:
+                        # Add #END: {notebook} Pragma: AS A COMMMENT so that nbsplit will see it:
+                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-nd-cell-2-excl', 'metadata': {},
+                               'source': [ f'<!-- #END: {notebook} {source_line} -->\n', ] }
+                        op_content["cells"].append( cell )
+
+                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-end-cell-3-excl', 'metadata': {},
+                               'source': [ f'\n\n## END {notebook}', f'\n\n   {source_line}', ] }
                         op_content["cells"].append( cell )
 
                         return
@@ -204,15 +209,23 @@ def filter_cells(content, op_content, notebook, delete_outputs=False):
             elif source_line.startswith('. ~/scripts/nbtool.rc'):
 
                 started=True
-                cell={ 'cell_type':'markdown', 'id': 'start-cell-1', 'metadata': {},
+
+                # IN EXCLUDED section:
+                cell={ 'cell_type':'markdown', 'id': f'nb{nb}-start-cell-1-excl', 'metadata': {},
+                       'source': [ f'\n\n## START {notebook}', f'\n\n   {source_line}', ] }
+                op_content["cells"].append( cell )
+
+                # Don't change initial #START line - format is important for nbsplit:
+                # Add #START: {notebook} Pragma: AS A COMMMENT so that nbsplit will see it:
+                cell={ 'cell_type':'markdown', 'id': f'nb{nb}-start-cell-2-excl', 'metadata': {},
+                       'source': [ f'<!-- #START: {notebook} {source_line} -->\n', ] }
+                op_content["cells"].append( cell )
+
+                cell={ 'cell_type':'markdown', 'id': f'nb{nb}-start-cell-3-excl', 'metadata': {},
                        'source': [ "# Pragma --INCLUDE--SECTION--\n", ] }
-
                 op_content["cells"].append( cell )
-                cell={ 'cell_type':'markdown', 'id': 'start-cell-2', 'metadata': {},
-                       'source': [ f'#START {notebook}:\n', f'## {notebook}', '\n', '\n', f'   {source_line}', ] }
 
-                op_content["cells"].append( cell )
-                cell={ 'cell_type':'markdown', 'id': 'start-cell-3', 'metadata': {},
+                cell={ 'cell_type':'markdown', 'id': f'nb{nb}-start-cell-4-excl', 'metadata': {},
                        'source': [ "# Pragma --EXCLUDE--SECTION--\n", ] }
                 op_content["cells"].append( cell )
 
@@ -321,7 +334,10 @@ def main():
 
     for notebook in notebooks:
         nb+=1
+        print(f'Reading notebook {notebook}')
         content = read_json(notebook)
+        os.system(f'ls -al {notebook}')
+        #input()
         #print(f'NOTEBOOK {notebook} keys: { keys( content ) }')
         num_cells = count_cells(content)
         num_markdown_cells = count_cells(content, cell_type='markdown')
@@ -345,7 +361,7 @@ def main():
             nb_file = notebook.split('/')[-1]
             #print(f'nb_file={nb_file}')
             if nb_file.startswith("IP_"):
-                filter_cells(content, op_content, notebook, delete_outputs=True)
+                filter_cells(nb, content, op_content, notebook, delete_outputs=True)
                 #pass
             #elif nb_file.startswith("IP_") or \
             elif nb_file.startswith("FULL_HEADER") or nb_file.startswith("FULL_FOOTER"):
