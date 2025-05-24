@@ -135,6 +135,7 @@ def __create_cell(nb, cell_type, source_lines=[], metadata={}, execution_count=N
 
 def filter_cells(nb, content, op_content, notebook, delete_outputs=False):
     started=False
+    NB_SAVE_SEEN=False
 
     for cell in content["cells"]:
         if cell['cell_type'] == 'code' and delete_outputs: cell['outputs']=[]
@@ -155,6 +156,11 @@ def filter_cells(nb, content, op_content, notebook, delete_outputs=False):
         if started:
             # search for 'NB_SAVE' entry:
             EXCLUDE_CELL=False
+            if len(source_lines) == 0:
+                #die(f"{notebook}: Empty source_lines in cell {cell}")
+                #EXCLUDE_CELL=True
+                source_lines.append('')
+
             if source_lines[0].startswith("#EXCLUDE"):
                 EXCLUDE_CELL=True
 
@@ -162,27 +168,34 @@ def filter_cells(nb, content, op_content, notebook, delete_outputs=False):
                 if source_line.startswith('NB_SAVE'):
 
                     if not 'NB_SAVE_' in source_line:
+                        NB_SAVE_SEEN=True
                         # This is the end of the notebook
                         # - Add INCLUDE/#END/EXCUDE Pragmas
                         # - return straight away: 
 
                         # Add INCLUDE Pragma:
-                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-nd-cell-1-excl', 'metadata': {},
+                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-end-cell-1-excl', 'metadata': {},
                                'source': [ "# Pragma --INCLUDE--SECTION--\n", ] }
                         op_content["cells"].append( cell )
 
                         # Don't change #END line - format is important for nbsplit:
                         # Add #END: {notebook} Pragma: AS A COMMMENT so that nbsplit will see it:
-                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-nd-cell-1-excl', 'metadata': {},
+                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-end-cell-1-excl', 'metadata': {},
                                'source': [ f'<!-- #END: {notebook} {source_line} -->\n', ] }
                         op_content["cells"].append( cell )
 
                         # Add EXCLUDE Pragma:
-                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-nd-cell-2-excl', 'metadata': {},
+                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-end-cell-2-excl', 'metadata': {},
                                'source': [ "# Pragma --EXCLUDE--SECTION--\n", ] }
                         op_content["cells"].append( cell )
 
-                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-end-cell-3-excl', 'metadata': {},
+                        cell={ 'cell_type':'code', 'id': f'nb{nb}-end-cell-3-excl', 'metadata': {},
+                               'execution_count': '0', 'outputs': [],
+                               'source': [ "let TOOK=SECONDS-START_SECONDS\n",
+                                           f"echo END $(date): [took $TOOK secs]  {notebook} >> $PROGRESS_LOG\n", ] }
+                        op_content["cells"].append( cell )
+
+                        cell={ 'cell_type':'markdown', 'id': f'nb{nb}-end-cell-4-excl', 'metadata': {},
                                'source': [ f'\n\n## END {notebook}', f'\n\n   {source_line}', ] }
                         op_content["cells"].append( cell )
 
@@ -190,24 +203,23 @@ def filter_cells(nb, content, op_content, notebook, delete_outputs=False):
 
                 elif 'NB_SAVE' in source_line:
                     if not EXCLUDE_CELL and not 'NB_SAVE_' in source_line:
-                        print("Searching for lines starting with 'NB_SAVE'")
+                        print(f"{notebook}: Searching for lines starting with '. ~/scripts/nbtool.rc'")
                         die(f'{notebook}: Possible bad occurence of NB_SAVE in line {source_line}')
 
             op_content["cells"].append( cell )
             continue
 
         # NOT started, so search for 'nbtool.rc' entry:
+        print(f"{notebook}: Searching for lines starting with '. ~/scripts/nbtool.rc'")
         for source_line in source_lines:
-            print("Searching for '. ~/scripts/nbtool.rc'")
+            #print("Searching for '. ~/scripts/nbtool.rc'")
             print(source_line)
             #input()
 
             if 'MODE_FULL' in source_line:
                 started=True
-                #continue
 
             elif source_line.startswith('. ~/scripts/nbtool.rc'):
-
                 started=True
 
                 # IN EXCLUDED section:
@@ -234,7 +246,8 @@ def filter_cells(nb, content, op_content, notebook, delete_outputs=False):
 
                 cell={ 'cell_type':'code', 'id': f'nb{nb}-start-cell-5-excl', 'metadata': {},
                        'execution_count': '0', 'outputs': [],
-                       'source': [ f"echo START $(date): {notebook} >> /tmp/nb.progress.log", ] }
+                       'source': [ "export START_SECONDS=$SECONDS\n",
+                                   f"echo START $(date): {notebook} >> $PROGRESS_LOG\n", ] }
                 op_content["cells"].append( cell )
 
                 '''
@@ -246,10 +259,13 @@ def filter_cells(nb, content, op_content, notebook, delete_outputs=False):
                 '''
 
             elif 'nbtool.rc' in source_line:
-                print("Searching for lines starting with '. ~/scripts/nbtool.rc'")
+                print(f"{notebook}: Searching for lines starting with '. ~/scripts/nbtool.rc'")
                 die(f'{notebook}: Possible bad occurence of nbtool.rc in line {source_line}')
 
-    die(f'{notebook}: Never started ...')
+    if not started:
+        die(f'{notebook}: Never started ...')
+    if not NB_SAVE_SEEN:
+        die(f'{notebook}: Never saw NB_SAVE ...')
     
 
 def copy_cells(content, op_content, notebook, delete_outputs=False):

@@ -430,6 +430,7 @@ function NB_SOURCE_FNS {
 function NB_INIT_NOTEBOOK {
     #set -x
     NB_START_TIME=$SECONDS
+    [ "$FULL_MODE" != "FULL_START" ] && { rm $PROGRESS_LOG; }
 
     NB=""
     if [ -z "$1" ]; then
