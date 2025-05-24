@@ -3,7 +3,7 @@
 # In practice 74 seems to be a good limit for the PDF output (tested using Safari/macOS):
 MAX_LEN_MD=80
 
-PROGRESS_LOG=/tmp/nb.progress.log
+[ -z "$PROGRESS_LOG" ] && export PROGRESS_LOG=/tmp/nb.progress.log
 
 # TODO:
 # - what functions take a long time ... can some slow things be recoded in Python?
@@ -35,21 +35,12 @@ function NB_SET_ENV {
 function NB_SAVE {
     echo
     echo   $*
-    START_S=$NB_START
+    START_S=$NB_START_TIME
     echo; echo "[$(date)] Execution stopped: SAVE NOTEBOOK BEFORE EXECUTING NB_QUIET CELL"
     #TIMER_STOP "SAVE NOTEBOOK"
-    TIMER_STOP "TOTAL TIME since nbtool.rc sourced"
-    echo "NB_SAVE STOP" >> $PROGRESS_LOG
+    TIMER_STOP "NB_SAVE STOP: TOTAL TIME since NB_INIT_NOTEBOOK called" | tee -a $PROGRESS_LOG
     return 1
 }
-
-# NO: want to show these steps
-#function NB_START_LAB {
-#    LAB=$1; shift
-#
-#    mkdir -p ~/labs/$LAB
-#    cd       ~/labs/$LAB
-#}
 
 function NB_SAVE_ZIP {
     DIR=~/LAB_INFO.${LAB_MODE}.${TOOL_VERSION}
@@ -81,7 +72,7 @@ function __NB_SAVE_FILES {
     local DIR=$1; shift
     DIR=~/LAB_INFO.${LAB_MODE}.${TOOL_VERSION}/$DIR
     #echo $DIR $LAB_MODE $TOOL_VERSION >> $PROGRESS_LOG
-    echo "   - " $(basename $DIR) $LAB_MODE $TOOL_VERSION >> $PROGRESS_LOG
+    echo "    - " $(basename $DIR) $LAB_MODE $TOOL_VERSION >> $PROGRESS_LOG
 
     # !! rm   -rf $DIR 2>/dev/null
     mkdir -p $DIR
@@ -566,6 +557,12 @@ function NB_INIT_NOTEBOOK {
             ;;
     esac
 
+    export PROGRESS_LOG=/tmp/nb.progress.${TITLE_MODE}.log
+    [ ! -z "$TOOL" ] && export PROGRESS_LOG=/tmp/nb.progress.${TOOL}.log
+    [ -f $PROGRESS_LOG ] && mv ${PROGRESS_LOG} ${PROGRESS_LOG}.bak
+    echo "NB_INIT_NOTEBOOK: $(date)"
+    NB_INIT_SECONDS=$SECONDS
+
     #rm -rf ~/labs
     #NO_EXEC echo SHOULD NOT BE SEEN | NB_HIGHLIGHT_SOL SHOULD
     #EXEC    echo SHOULD BE SEEN     | NB_HIGHLIGHT_SOL SHOULD
@@ -770,7 +767,9 @@ function NB_QUIET {
 
     START_S=$NB_START_TIME
     NB_SAVE_ZIP
-    TIMER_STOP "TOTAL TIME since nbtool.rc sourced"
+    TIMER_STOP "NB_QUIET: TOTAL TIME since NB_INIT_NOTEBOOK called" | tee -a $PROGRESS_LOG
+    #let START_S=NB_INIT_SECONDS
+    #TIMER_STOP "NB_QUIET: TOTAL TIME since NB_INIT_NOTEBOOK called" | tee -a $PROGRESS_LOG
     return 0
 }
 
@@ -1248,7 +1247,7 @@ function __RETURN {
     local RET="$1"
     [ -z "$RET"    ] && return 0
     [ "$RET" = "0" ] && return 0
-    NB_DEBUG "return $RET"
+    NB_DEBUG "return $RET [called from function ${FUNCNAME[1]}"
     return $RET
 }
 

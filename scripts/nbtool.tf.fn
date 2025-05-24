@@ -2,7 +2,7 @@
 TF_STATE_DIR=~/tmp/TF_state_list
 SAVED_OP_DIR=~/tmp/TF_saved_OP
 mkdir -p $TF_STATE_DIR $SAVED_OP_DIR
-PROGRESS_LOG=/tmp/nb.progress.log
+[ -z "$PROGRESS_LOG" ] && export PROGRESS_LOG=/tmp/nb.progress.${TOOL}.log
 
 # TODO:
 # - move " be " detection into separate function
