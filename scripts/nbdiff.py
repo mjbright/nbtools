@@ -16,6 +16,10 @@ NORMAL='\x1B[00m'
 
 MODE='TO_BE_DONE'
 
+DIFF_CODE_CELLS_IP=True
+DIFF_CODE_CELLS_OP=False
+DIFF_MD_CELLS=False
+
 OP_NOTEBOOK = 'FULL.ipynb'
 OP_HEADER_NOTEBOOK = None
 OP_FOOTER_NOTEBOOK = None
@@ -230,11 +234,7 @@ def copy_cells(content, op_content, notebook, delete_outputs=False):
     #- diff markdown cells and code cells (w/o output)
     #""")
 
-DIFF_CELLS=1
-DIFF_IP=2
-DIFF_OP=3
-
-def nbdiff(notebook1, notebook2, DEPTH=DIFF_IP):
+def nbdiff_cells(notebook1, notebook2):
     content1 = read_json(notebook1)
     content2 = read_json(notebook2)
     num_cells1 = count_cells(content1)
@@ -254,8 +254,6 @@ def nbdiff(notebook1, notebook2, DEPTH=DIFF_IP):
     if num_code_cells1 != num_code_cells2:
         print(f'Number of code_cells differ notebook1:{num_code_cells1} != notebook2:{num_code_cells2}')
 
-    identical_cells=0
-    different_cells=0
     for i in range(max(num_cells1, num_cells2)):
         if i <= num_cells1 and i <= num_cells2:
             cell1 = content1['cells'][i]
@@ -284,6 +282,63 @@ def nbdiff(notebook1, notebook2, DEPTH=DIFF_IP):
     #print(f'\tkeys: { content.keys() }')
     # if nb == 1:
 
+def nbdiff(notebook1, notebook2):
+    content1 = read_json(notebook1)
+    content2 = read_json(notebook2)
+    num_cells1 = count_cells(content1)
+    num_cells2 = count_cells(content2)
+    num_markdown_cells1 = count_cells(content1, cell_type='markdown')
+    num_markdown_cells2 = count_cells(content2, cell_type='markdown')
+    num_code_cells1 = count_cells(content1, cell_type='code')
+    num_code_cells2 = count_cells(content2, cell_type='code')
+
+    dump_nb1=''
+    dump_nb2=''
+
+    print(f'notebook1={notebook1}')
+    print(f'notebook2={notebook2}')
+
+    if num_cells1 != num_cells2:
+        print(f'Number of cells differ notebook1:{num_cells1} != notebook2:{num_cells2}')
+    if num_markdown_cells1 != num_markdown_cells2:
+        print(f'Number of markdown_cells differ notebook1:{num_markdown_cells1} != notebook2:{num_markdown_cells2}')
+    if num_code_cells1 != num_code_cells2:
+        print(f'Number of code_cells differ notebook1:{num_code_cells1} != notebook2:{num_code_cells2}')
+
+    dump_file1 = notebook1 + ".dump.txt"
+    print(f'Dumping {notebook1} to {dump_file1}')
+    dump_nb1   = dump_nb(notebook1)
+    writefile(dump_file1, dump_nb1)
+
+    dump_file2 = notebook2 + ".dump.txt"
+    print(f'Dumping {notebook2} to {dump_file2}')
+    dump_nb2 = dump_nb(notebook2)
+    writefile(dump_file2, dump_nb2)
+
+    os.system(f'diff -w {dump_file1} {dump_file2}')
+
+def dump_nb(notebook):
+    #identical_cells=0
+    #different_cells=0
+    dump_nb=''
+
+    content = read_json(notebook)
+    for cell in content['cells']:
+        cell_type    = cell['cell_type']
+        source_lines = cell['source']
+        outputs      = []
+        if 'outputs' in cell:
+            outputs = cell['outputs']
+
+        if cell_type == 'code' and DIFF_CODE_CELLS_IP:
+            dump_nb += ''.join(source_lines)
+        if cell_type == 'code' and DIFF_CODE_CELLS_OP and len(outputs) > 0:
+            dump_nb += ''.join(outputs)
+        if cell_type == 'markdown' and DIFF_MD_CELLS:
+            dump_nb += ''.join(source_lines)
+
+    return dump_nb
+        
 def main():
     global MODE, OP_NOTEBOOK, SAVE_MLINE_JSON
 
@@ -313,6 +368,18 @@ def main():
             #continue
         if arg == '-nbtool':
             MODE='NBTOOL_COPY'
+            continue
+
+        if arg == "-cc-ip":
+            DIFF_CODE_CELLS_IP=False
+            continue
+
+        if arg == "+cc-op":
+            DIFF_CODE_CELLS_OP=True
+            continue
+
+        if arg == "+md":
+            DIFF_MD_CELLS=True
             continue
 
         # Define output notebook:
