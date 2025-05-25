@@ -8,6 +8,12 @@ import uuid
 from inspect import currentframe, getframeinfo
 from inspect import stack
 
+''' USAGE:
+    ./nbdiff.py -mod1 2:1 -labs1 labs:labs.aaz \
+        ~/src/mjbright.labs-terraform-private/tf-intro/10.Revision/OP_TF_Lab10.TerraformRevision.ipynb
+        ~/src/mjbright.labs-terraform-private/tf-adv-azure/1.Revision/OP_TF_Lab1.TerraformRevision.ipynb
+'''
+
 PROG='program'
 
 BLACK='\x1B[00;30m'

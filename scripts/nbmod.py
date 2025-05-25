@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+''' USAGE:
+    ./nbmod.py -mod 10:27 -labs labs:labs.testing \
+        ~/src/mjbright.labs-terraform-private/tf-intro/10.Revision/IP_TF_Lab10.Revision.ipynb
+'''
+
 # SKELETON CODE for Notebook processing
 
 import json
