@@ -20,6 +20,11 @@ DIFF_CODE_CELLS_IP=True
 DIFF_CODE_CELLS_OP=False
 DIFF_MD_CELLS=False
 
+# e.g.  for notebook1 modifs: -mod1 11:1 to change section numbers from 11 to 1
+MODIFY_SECTIONS = None
+# e.g.  for notebook1 modifs: -labs1 labs:labs.aaz to change labs parent folder from ~/labs/ to ~/labs.aaz/
+MODIFY_LABS_PARENT = None
+
 OP_NOTEBOOK = 'FULL.ipynb'
 OP_HEADER_NOTEBOOK = None
 OP_FOOTER_NOTEBOOK = None
@@ -308,7 +313,72 @@ def nbdiff(notebook1, notebook2):
     dump_file1 = notebook1 + ".dump.txt"
     print(f'Dumping {notebook1} to {dump_file1}')
     dump_nb1   = dump_nb(notebook1)
+
+    if MODIFY_LABS_PARENT:
+        # e.g.  for notebook1 modifs: -labs1 labs:labs.aaz to change labs parent folder from ~/labs/ to ~/labs.aaz/
+        ( old_labs_parent, new_labs_parent ) = MODIFY_LABS_PARENT.split(":")
+        print(f'old_labs_parent={old_labs_parent} new_labs_parent={new_labs_parent}')
+        
+        dump_nb1 = dump_nb1.replace(f"~/{old_labs_parent}/", f"~/{new_labs_parent}/")
+        dump_nb1 = dump_nb1.replace(f"/home/student/{old_labs_parent}/", f"/home/student/{new_labs_parent}/")
+
+
+    if MODIFY_SECTIONS:
+        # e.g.  for notebook1 modifs: -mod1 11:1 to change section numbers from 11 to 1
+        ( old_section, new_section ) = MODIFY_SECTIONS.split(":")
+        print(f'old_section={old_section} new_section={new_section}')
+
+        if MODIFY_LABS_PARENT:
+            dump_nb1 = dump_nb1.replace(f"~/{new_labs_parent}/lab{old_section}", f"~/{new_labs_parent}/lab{new_section}")
+            dump_nb1 = dump_nb1.replace(f"/home/student/{new_labs_parent}/lab{old_section}", f"/home/student/{new_labs_parent}/lab{new_section}")
+        else:
+            old_labs_parent='labs'
+            new_labs_parent=old_labs_parent
+            dump_nb1 = dump_nb1.replace(f"~/{new_labs_parent}/lab{old_section}", f"~/{new_labs_parent}/lab{new_section}")
+            dump_nb1 = dump_nb1.replace(f"/home/student/{new_labs_parent}/lab{old_section}", f"/home/student/{new_labs_parent}/lab{new_section}")
+            old_labs_parent='labs.az'
+            new_labs_parent=old_labs_parent
+            dump_nb1 = dump_nb1.replace(f"~/{new_labs_parent}/lab{old_section}", f"~/{new_labs_parent}/lab{new_section}")
+            dump_nb1 = dump_nb1.replace(f"/home/student/{new_labs_parent}/lab{old_section}", f"/home/student/{new_labs_parent}/lab{new_section}")
+            old_labs_parent='labs.aaz'
+            new_labs_parent=old_labs_parent
+            dump_nb1 = dump_nb1.replace(f"~/{new_labs_parent}/lab{old_section}", f"~/{new_labs_parent}/lab{new_section}")
+            dump_nb1 = dump_nb1.replace(f"/home/student/{new_labs_parent}/lab{old_section}", f"/home/student/{new_labs_parent}/lab{new_section}")
+
+        #sys.exit(1)
+
+        # Code-Cell:
+        lines=[]
+        d1 = dump_nb1
+        for line in dump_nb1.split('\n'):
+            if 'Code-Cell' in line:
+                line = ''
+
+                #  l = line
+                #  #print(f'LINE WAS {l}')
+                #  line = line.replace(f'[section {old_section}.', f'[section {new_section}.')
+                #  #if l != line:
+                #  #    print(f'LINE WAS {l}')
+                #  #    print(f'LINE NOW {line}')
+            lines.append(line)
+        dump_nb1 = '\n'.join(lines)
+        d2 = dump_nb1
+        if d1 != d2:
+            print("d1 != d2")
+        else:
+            print("d1 IS SAME AS d2")
+
+        # Markdown replacements:
+        if DIFF_MD_CELLS:
+            dump_nb1 = dump_nb1.replace(f"# lab{old_section}",  f"# lab{new_section}")
+            dump_nb1 = dump_nb1.replace(f"# lab{old_section}.", f"# lab{new_section}.")
+            dump_nb1 = dump_nb1.replace(f"## lab{old_section}.", f"## lab{new_section}.")
+            dump_nb1 = dump_nb1.replace(f"### lab{old_section}.", f"### lab{new_section}.")
+            dump_nb1 = dump_nb1.replace(f"#### lab{old_section}.", f"#### lab{new_section}.")
+
+    sys.stdout.flush()
     writefile(dump_file1, dump_nb1)
+    #sys.exit(1)
 
     dump_file2 = notebook2 + ".dump.txt"
     print(f'Dumping {notebook2} to {dump_file2}')
@@ -331,43 +401,56 @@ def dump_nb(notebook):
             outputs = cell['outputs']
 
         if cell_type == 'code' and DIFF_CODE_CELLS_IP:
-            dump_nb += ''.join(source_lines)
+            for line in source_lines:
+                if not '# Code-Cell' in line:
+                    if line != '' and line != '\n':
+                        dump_nb += line + '\n'
+            #dump_nb += '\n'.join(source_lines) + '\n'
         if cell_type == 'code' and DIFF_CODE_CELLS_OP and len(outputs) > 0:
-            dump_nb += ''.join(outputs)
+            for line in outputs:
+                if line != '' and line != '\n':
+                    dump_nb += line + '\n'
+            #dump_nb += '\n'.join(outputs) + '\n'
         if cell_type == 'markdown' and DIFF_MD_CELLS:
-            dump_nb += ''.join(source_lines)
+            for line in source_lines:
+                if line != '' and line != '\n':
+                    dump_nb += line + '\n'
+            #dump_nb += '\n'.join(source_lines) + '\n'
+            #dump_nb += '\n'.join(source_lines) + '\n'
 
     return dump_nb
         
 def main():
-    global MODE, OP_NOTEBOOK, SAVE_MLINE_JSON
+    #global MODE, OP_NOTEBOOK, SAVE_MLINE_JSON
+    global MODIFY_SECTIONS, MODIFY_LABS_PARENT
+    global DIFF_CODE_CELLS_IP, DIFF_CODE_CELLS_OP, DIFF_MD_CELLS
 
     PROG=sys.argv[0]
     a=1
 
     notebooks=[]
           
-    if len(sys.argv) == 1:
-        die("Missing arguments")
-
-    notebook1=sys.argv[1]
-    notebook2=sys.argv[2]
-
-    nbdiff(notebook1, notebook2)
-    sys.exit(0)
-
     while a < len(sys.argv):
         arg = sys.argv[a]
         a += 1
 
-        # Change MODE: NBTOOL_COPY
-        #if arg == '-mode':
-            #arg = sys.argv[a]
-            #a += 1
-            #MODE=arg
-            #continue
-        if arg == '-nbtool':
-            MODE='NBTOOL_COPY'
+        if arg == "-mod1":
+            # e.g.  for notebook1 modifs: -mod1 11:1 to change section numbers from 11 to 1
+            arg = sys.argv[a]
+            a += 1
+            print("OK")
+            MODIFY_SECTIONS = arg
+            if MODIFY_SECTIONS.count(":") != 1:
+                die("Expected -mod1: <oldmod>:<newmod>, e.g. -mod1 10:1")
+            continue
+
+        if arg == "-labs1":
+            # e.g.  for notebook1 modifs: -labs1 labs:labs.aaz to change labs parent folder from ~/labs/ to ~/labs.aaz/
+            arg = sys.argv[a]
+            a += 1
+            MODIFY_LABS_PARENT = arg
+            if MODIFY_LABS_PARENT.count(":") != 1:
+                die("Expected -labs1: <olddir>:<newdir>, e.g. -labs1 labs:labs.aaz")
             continue
 
         if arg == "-cc-ip":
@@ -382,52 +465,33 @@ def main():
             DIFF_MD_CELLS=True
             continue
 
-        # Define output notebook:
-        if arg == '-oN':
-            SAVE_MLINE_JSON=True
-            continue
-
-        if arg == '-op':
-            arg = sys.argv[a]
-            a += 1
-            OP_NOTEBOOK=arg
-            continue
-
-        # Define header notebook to use for output notebook:
-        if arg == '-oh':
-            arg = sys.argv[a]
-            a += 1
-            OP_HEADER_NOTEBOOK = arg
-            continue
-
-        # Define divider notebook to use for output notebook:
-        if arg == '-od':
-            arg = sys.argv[a]
-            a += 1
-            OP_DIVIDER_NOTEBOOK = arg
-            continue
-
-        # Define footer notebook to use for output notebook:
-        if arg == '-of':
-            arg = sys.argv[a]
-            a += 1
-            OP_FOOTER_NOTEBOOK = arg
-            continue
-
-        if os.path.exists(arg) and os.path.isdir(arg):
-            die(f"TODO: read folder of .ipynb files")
-
-        if not arg.endswith(".ipynb"):
-            die(f"Expected only .ipynb files - got {arg}")
+        if len(notebooks) < 2:
+            if not arg.endswith(".ipynb"):
+                die(f"Expected only .ipynb files - got {arg}")
           
-        if not os.path.exists(arg):
-            die(f"No such file - {arg}")
+            if not os.path.exists(arg):
+                die(f"No such file - {arg}")
 
-        notebooks.append(arg)
+            notebooks.append( arg )
+            continue
+
+        if len(notebooks) >= 2:
+            die(f"Unrecognized argument: '{arg}'")
+
+        #TODO: XXXX
+        #if arg == "-auto": # Get mod1, labs1 parameters automatically from nb2
+        #    ( MODIFY_SECTIONS, MODIFY_LABS_PARENT ) = get_modify_params(notebooks[1])
+        #TODO: XXXX
+
+    if len(notebooks) != 2:
+        die(f"Missing notebook arguments [len(notebooks) notebooks seen]")
 
     print(f'notebooks={ notebooks }')
     print(f'Using OP_NOTEBOOK={OP_NOTEBOOK}')
     print()
+    nbdiff(notebooks[0], notebooks[1])
+    sys.exit(0)
+
     nb=0
 
     # Handle output header and footer notebooks if specified:
