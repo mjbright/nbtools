@@ -11,7 +11,7 @@
 
 # Dump all paths to all attributes:
 if [ "$1" = "-P" ]; then
-    # e.g. dump_notebook.sh -P ~/labs/lab9/terraform.tfstate
+    # e.g. jq_dump_notebook.sh -P ~/labs/lab9/terraform.tfstate
     shift
     jq -c 'paths' $1
     exit $?
@@ -19,7 +19,7 @@ fi
 
 # Dump all paths to specified attribute:
 if [ "$1" = "-p" ]; then
-    # e.g. dump_notebook.sh -p kubernetes_version ~/labs/lab9/terraform.tfstate
+    # e.g. jq_dump_notebook.sh -p kubernetes_version ~/labs/lab9/terraform.tfstate
     shift
     jq -c 'paths | select(.[-1] == "'$1'")' $2
     exit $?
