@@ -14,6 +14,22 @@ FORMAT="-c"
 [ "$1" = "-ml" ] && { FORMAT=""; shift; }
 
 # Dump all paths to all attributes:
+if [ "$1" = "-l" ]; then
+    shift
+    for NB in $*; do
+	echo "Notebook: $NB"
+        echo -n "    Total cells="
+        jq $FORMAT 'paths' $NB | wc -l
+
+        echo -n "    Code cells="
+        jq $FORMAT '.cells[]? | select(.cell_type=="code")' $NB | wc -l
+
+        echo -n "    Markdown cells="
+        jq $FORMAT '.cells[]? | select(.cell_type=="markdown")' $NB | wc -l
+    done
+    exit $?
+fi
+
 if [ "$1" = "-P" ]; then
     # e.g. jq_dump_notebook.sh -P ~/labs/lab9/terraform.tfstate
     shift
