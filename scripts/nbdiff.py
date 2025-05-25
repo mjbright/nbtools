@@ -8,6 +8,8 @@ import uuid
 from inspect import currentframe, getframeinfo
 from inspect import stack
 
+PROG='program'
+
 BLACK='\x1B[00;30m'
 RED='\x1B[00;31m';      B_RED='\x1B[01;31m';      BG_RED='\x1B[07;31m'
 GREEN='\x1B[00;32m';    B_GREEN='\x1B[01;32m';    BG_GREEN='\x1B[07;32m'
@@ -66,12 +68,12 @@ EXAMPLE cells from notebook json:
 '''
 
 def die(msg):
-    sys.stdout.write(f"die: {sys.argv[0]} {RED}{msg}{NORMAL}\n")
+    sys.stdout.write(f"die: {PROG} {RED}{msg}{NORMAL}\n")
     function = stack()[1].function
     lineno   = stack()[1].lineno
     #fname = stack()[1].filename
     #DEBUG_FD.write(f'[fn {function} line {lineno} {msg}'.rstrip()+'\n')
-    print(f'... called from [fn {function}] line {lineno} {msg}')
+    print(f'... called from [fn {function}] line {lineno}')
     #DEBUG_FD.close()
     sys.exit(1)
 
@@ -349,7 +351,7 @@ def nbdiff(notebook1, notebook2):
 
         # Code-Cell:
         lines=[]
-        d1 = dump_nb1
+        ''' d1 = dump_nb1 '''
         for line in dump_nb1.split('\n'):
             if 'Code-Cell' in line:
                 line = ''
@@ -362,11 +364,13 @@ def nbdiff(notebook1, notebook2):
                 #  #    print(f'LINE NOW {line}')
             lines.append(line)
         dump_nb1 = '\n'.join(lines)
+        '''
         d2 = dump_nb1
         if d1 != d2:
             print("d1 != d2")
         else:
             print("d1 IS SAME AS d2")
+        '''
 
         # Markdown replacements:
         if DIFF_MD_CELLS:
@@ -385,6 +389,7 @@ def nbdiff(notebook1, notebook2):
     dump_nb2 = dump_nb(notebook2)
     writefile(dump_file2, dump_nb2)
 
+    print(f'diff -w {dump_file1} {dump_file2}')
     os.system(f'diff -w {dump_file1} {dump_file2}')
 
 def dump_nb(notebook):
@@ -407,9 +412,11 @@ def dump_nb(notebook):
                         dump_nb += line + '\n'
             #dump_nb += '\n'.join(source_lines) + '\n'
         if cell_type == 'code' and DIFF_CODE_CELLS_OP and len(outputs) > 0:
-            for line in outputs:
-                if line != '' and line != '\n':
-                    dump_nb += line + '\n'
+            for output in outputs:
+                if 'text' in output:
+                    for line in output['text']:
+                        if line != '' and line != '\n':
+                            dump_nb += str(line) + '\n'
             #dump_nb += '\n'.join(outputs) + '\n'
         if cell_type == 'markdown' and DIFF_MD_CELLS:
             for line in source_lines:
@@ -424,6 +431,7 @@ def main():
     #global MODE, OP_NOTEBOOK, SAVE_MLINE_JSON
     global MODIFY_SECTIONS, MODIFY_LABS_PARENT
     global DIFF_CODE_CELLS_IP, DIFF_CODE_CELLS_OP, DIFF_MD_CELLS
+    global PROG
 
     PROG=sys.argv[0]
     a=1
@@ -484,7 +492,7 @@ def main():
         #TODO: XXXX
 
     if len(notebooks) != 2:
-        die(f"Missing notebook arguments [len(notebooks) notebooks seen]")
+        die(f"Missing notebook arguments [{len(notebooks)} notebooks seen, expected i/p and o/p notebooks]")
 
     print(f'notebooks={ notebooks }')
     print(f'Using OP_NOTEBOOK={OP_NOTEBOOK}')
