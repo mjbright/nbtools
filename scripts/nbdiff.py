@@ -433,6 +433,33 @@ def dump_nb(notebook):
 
     return dump_nb
         
+def get_section(line):
+    # print(f'SECTION={line}')
+    if len(line) <= 2:
+        return ''
+
+    # print(f'======== get_section({line})')
+    ch = line[2]
+    if not( ord(ch) >= ord('0') and ord(ch) <= ord('9') ):
+        return ''
+
+    sections = ch
+    if len(line) <= 3:
+        return sections
+
+    ch = line[3]
+    if ch == '.':
+        return sections
+
+    ch = line[3]
+    if ord(ch) >= ord('a') and ord(ch) <= ord('z'):
+        return sections+ch
+
+    if ord(ch) >= ord('0') and ord(ch) <= ord('9'):
+        return sections+ch
+
+    return sections+ch
+
 def main():
     #global MODE, OP_NOTEBOOK, SAVE_MLINE_JSON
     global MODIFY_SECTIONS, MODIFY_LABS_PARENT
@@ -444,6 +471,8 @@ def main():
 
     notebooks=[]
           
+    AUTO_MODS=True
+
     while a < len(sys.argv):
         arg = sys.argv[a]
         a += 1
@@ -479,6 +508,11 @@ def main():
             DIFF_MD_CELLS=True
             continue
 
+        if arg == "-auto": # Get mod1, labs1 parameters automatically from nb2
+            AUTO_MODS=True
+            DIFF_MD_CELLS=True
+            continue
+
         if len(notebooks) < 2:
             if not arg.endswith(".ipynb"):
                 die(f"Expected only .ipynb files - got {arg}")
@@ -492,13 +526,53 @@ def main():
         if len(notebooks) >= 2:
             die(f"Unrecognized argument: '{arg}'")
 
-        #TODO: XXXX
-        #if arg == "-auto": # Get mod1, labs1 parameters automatically from nb2
         #    ( MODIFY_SECTIONS, MODIFY_LABS_PARENT ) = get_modify_params(notebooks[1])
         #TODO: XXXX
 
     if len(notebooks) != 2:
         die(f"Missing notebook arguments [{len(notebooks)} notebooks seen, expected i/p and o/p notebooks]")
+
+    if AUTO_MODS:
+        dump_nb1   = dump_nb(notebooks[0])
+        labs1=''
+        labs2=''
+        sections1=''
+        sections2=''
+        for line in dump_nb1.split('\n'):
+            if labs1 == '' and '~/labs' in line and 'old' not in line:
+                line = line[ line.find('~/labs') + 2 : ]
+                if '/' in line:
+                    line = line[ : line.find('/') ]
+                labs1=line
+                pass
+
+            if sections1 == '' and line.startswith('#'):
+                sections1 = get_section(line)
+
+            if labs1 != '' and sections1 != '':
+                print(f'labs1={labs1} sections1={sections1}')
+                break
+                #continue
+
+        dump_nb2   = dump_nb(notebooks[0])
+        for line in dump_nb2.split('\n'):
+            if labs2 == '' and '~/labs' in line and 'old' not in line:
+                line = line[ line.find('~/labs') + 2 : ]
+                if '/' in line:
+                    line = line[ : line.find('/') ]
+                labs2=line
+                pass
+
+            if sections2 == '' and line.startswith('#'):
+                sections2 = get_section(line)
+
+            if labs2 != '' and sections2 != '':
+                print(f'labs2={labs2} sections2={sections2}')
+                break
+                #continue
+
+        MODIFY_SECTIONS=f'{sections1}:{sections2}'
+        MODIFY_LABS_PARENT=f'{labs1}:{labs2}'
 
     print(f'notebooks={ notebooks }')
     print(f'Using OP_NOTEBOOK={OP_NOTEBOOK}')
