@@ -32,7 +32,8 @@ esac
 #cd $( dirname $0 )
 
 # OP=~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL.ipynb
-OP=FULL_NOTEBOOK/FULL.ipynb
+FULL_NB=FULL_NOTEBOOK/FULL.ipynb
+FULL_NB_ML=${FULL_NB%.ipynb}.multiline.ipynb
 
 IP_FILES=""
 [ ! -f FULL_NOTEBOOK/IPFILES.rc ] && die "Missing file - FULL_NOTEBOOK/IPFILES.rc"
@@ -47,7 +48,7 @@ IP_FILES=$( echo $IP_FILES | sed 's?~?/home/student?g' )
 python3 -m py_compile   ~/scripts/nbjoin.py || die "Syntax error"
 
 set -x
-~/scripts/nbjoin.py -nbtool -oN -op $OP \
+~/scripts/nbjoin.py -nbtool -oN -op $FULL_NB \
     -oh FULL_NOTEBOOK/FULL_HEADER.ipynb \
     -od FULL_NOTEBOOK/FULL_BETWEEN.ipynb \
     -of FULL_NOTEBOOK/FULL_FOOTER.ipynb \
@@ -57,33 +58,14 @@ set -x
 set +x
 
 #echo
-#~/.venv/nbtoolbelt/bin/nbtb validate $OP -v
+#~/.venv/nbtoolbelt/bin/nbtb validate $FULL_NB -v
 
 echo
-~/scripts/nbcheck.py $OP
+~/scripts/nbcheck.py $FULL_NB || die "nbcheck.py failed - on $FULL_NB"
 echo
-~/scripts/nbcheck.py ${OP%.ipynb}.multiline.ipynb
+~/scripts/nbcheck.py $FULL_NB_ML || die "nbcheck.py failed - on $FULL_NB_ML"
 
-ls -al FULL_NOTEBOOK/FULL.ipynb FULL_NOTEBOOK/FULL.multiline.ipynb
-wc -cl FULL_NOTEBOOK/FULL.ipynb FULL_NOTEBOOK/FULL.multiline.ipynb
-
-
-
-
-#!/usr/bin/env bash
-
-SHOW_DIFFS=0
-
-ABS_SRC_DIR=$REPO_DIR/$SRC_DIR
-
-if [ $TOFU -eq 1 ]; then
-    OPSUFFIX=OTF
-    #NAME=opentofu
-    NAME=terraform
-    DEST_DIRNAME=mkdocs.otf-${FLAVOUR}
-else
-    OPSUFFIX=TF
-    NAME=terraform
-    DEST_DIRNAME=mkdocs.tf-${FLAVOUR}
-fi
+mv $FULL_NB_ML $FULL_NB
+ls -al $FULL_NB
+wc -cl $FULL_NB
 
