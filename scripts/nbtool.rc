@@ -45,8 +45,8 @@ esac
     ## source ~/.venv/TRAINING/bin/activate >/dev/null 2>&1
 }
 
-NB_DIR=$PWD
-echo "setting NB_DIR=$NB_DIR"
+export NB_DIR=$PWD
+echo "export NB_DIR=$NB_DIR"
 
 #echo "--- \${BASH_SOURCE[0]}='${BASH_SOURCE[0]}'"
 #echo "--- \${BASH_SOURCE[1]}='${BASH_SOURCE[1]}'"
@@ -106,9 +106,23 @@ if [ ! -z "$1" ]; then
         return 1
     }
 
-    #case "$1" in
-        #*.ipynb) LAB_IPYNB=$1; shift;;
-    #esac
+    NB=${JPY_SESSION_NAME##*/}
+    echo JPY_SESSION_NAME=$JPY_SESSION_NAME
+    echo NB=$NB
+    case $NB in
+        IP_TF_*)    LABS_VERSION_DIR=labs;     LABS_INFO_VERSION=tf;    LABS_VERSION_SRC_DIR=tf-intro;;
+        IP_TFAZA_*) LABS_VERSION_DIR=labs.aza; LABS_INFO_VERSION=tfaza; LABS_VERSION_SRC_DIR=tf-adv-azure;;
+        IP_TFAZ_*)  LABS_VERSION_DIR=labs.az;  LABS_INFO_VERSION=tfaz;  LABS_VERSION_SRC_DIR=tf-azure;;
+        *)   
+            echo "error[nbtool.rc]: Input notebook Foesn't match IP_*, or use implemented version"
+            echo "error[nbtool.rc]: TODO: implement LAB vars for $NB"
+            return 1
+            ;;
+    esac
+
+    # Allow ~ expansion here - else will mess up lab dirs:
+    export __LABS_DIR=~/$LABS_VERSION_DIR
+    export LABS_INFO_DIR=~/LAB_INFO.${LAB_MODE}.${LABS_INFO_VERSION}.${TOOL_VERSION}
 
     export LAB_TAG="${PWD##*/}"; shift
     # ----------------------------------------------
