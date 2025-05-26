@@ -131,7 +131,7 @@ function TF_APPLY {
 
     local AFTER=$( $TF state list 2>/dev/null | wc -l )
     let   CREATED=AFTER-BEFORE
-    NB_DEBUG "$CREATED resources created"
+    NB_DEBUG "$CREATED resources created [before=$BEFORE after=$AFTER]"
 
     #NB_DEBUG "NB_TF_ENFORCE_CHK=$NB_TF_ENFORCE_CHK"
     [ ! -z "NB_TF_ENFORCE_CHK" ] && [ -z "$TF_STATE_FILE" ] && {
@@ -177,6 +177,24 @@ function TF_STATE {
      __TF_ARGS "$1" || shift
     $TF state $*
     NB_DEBUG $( TIMER_STOP "$TF state" )
+    __RETURN
+}
+
+function TF_VALIDATE {
+    NB_DEBUG_INFO $TF validate $*
+    TIMER_START
+     __TF_ARGS "$1" || shift
+    $TF validate $*
+    NB_DEBUG $( TIMER_STOP "$TF validate" )
+    __RETURN
+}
+
+function TF_FMT {
+    NB_DEBUG_INFO $TF fmt $*
+    TIMER_START
+     __TF_ARGS "$1" || shift
+    $TF fmt $*
+    NB_DEBUG $( TIMER_STOP "$TF fmt" )
     __RETURN
 }
 
