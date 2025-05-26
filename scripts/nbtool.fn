@@ -35,6 +35,7 @@ function NB_SET_ENV {
 function NB_SAVE {
     echo
     echo   $*
+    env > ~/tmp/NB_SAVE.env
     START_S=$NB_START_TIME
     echo; echo "[$(date)] Execution stopped: SAVE NOTEBOOK BEFORE EXECUTING NB_QUIET CELL"
     #TIMER_STOP "SAVE NOTEBOOK"
@@ -43,36 +44,68 @@ function NB_SAVE {
 }
 
 function NB_SAVE_ZIP {
-    DIR=~/LAB_INFO.${LAB_MODE}.${TOOL_VERSION}
     # zip -r9 LAB_INFO.Terraform.1.11.4.zip LAB_INFO.Terraform.1.11.4
     
-
-    export _DIR=$( basename $DIR )
+    export _DIR=$( basename $LABS_INFO_DIR )
+    export ZIP=~/${_DIR}.zip
     (
         cd
-        zip -r9 ${_DIR}.zip ~/${_DIR}/ >/dev/null 2>&1
+        zip -r9 $ZIP ~/${_DIR}/ >/dev/null 2>&1
     )
+    #set +x
+    #
 
+    # [ "$FULL_MODE" != "FULL_START" ] && echo "NOT moving zip"
     # LAB_INFO.Terraform.1.11.4.zip
-    case $PWD in
+    TOOL_FLAVOUR=tf
+    [ "$TOOL" = "tofu" ] && TOOL_FLAVOUR=otf
+    case $JPY_SESSION_NAME in
         */tf-intro/*)
-            echo "LAB detected as tf-intro so zip moved to mkdocs"
-            MK_DIR=~/src/mjbright.labs-terraform-private/mkdocs/mkdocs.tf-intro/docs/downloads/
-            mv ${DIR}.zip $MK_DIR/
-            ls -al $MK_DIR/
+            SUB_DIR=mkdocs/mkdocs.${TOOL_FLAVOUR}-intro
+            MK_DIR=~/src/mjbright.labs-terraform-private/$SUB_DIR
+            DOWN_DIR=$MK_DIR/docs/downloads/
+            [ ! -d $MK_DIR ] && { echo "ERROR: No such dir as $MK_DIR"; return; }
+            echo "LAB detected as tf-intro so zip copied to $DOWN_DIR/"
+
+            mkdir -p $DOWN_DIR/
+            cp -a $ZIP $DOWN_DIR/
+            ls -al $DOWN_DIR/*.zip
+            ;;
+        */tf-azure/*)
+            SUB_DIR=mkdocs/mkdocs.${TOOL_FLAVOUR}-azure
+            MK_DIR=~/src/mjbright.labs-terraform-private/$SUB_DIR
+            DOWN_DIR=$MK_DIR/docs/downloads/
+            [ ! -d $MK_DIR ] && { echo "ERROR: No such dir as $MK_DIR"; return; }
+            echo "LAB detected as tf-azure so zip copied to $DOWN_DIR/"
+
+            mkdir -p $DOWN_DIR/
+            cp -a $ZIP $DOWN_DIR/
+            ls -al $DOWN_DIR/*.zip
+            ;;
+        */tf-adv-azure/*)
+            SUB_DIR=mkdocs/mkdocs.${TOOL_FLAVOUR}-adv-azure
+            MK_DIR=~/src/mjbright.labs-terraform-private/$SUB_DIR
+            DOWN_DIR=$MK_DIR/docs/downloads/
+            [ ! -d $MK_DIR ] && { echo "ERROR: No such dir as $MK_DIR"; return; }
+            echo "LAB detected as tf-adv-azure so zip copied to $DOWN_DIR/"
+
+            mkdir -p $DOWN_DIR/
+            cp -a $ZIP $DOWN_DIR/
+            ls -al $DOWN_DIR/*.zip
             ;;
         *)
-            echo "LAB not detected so zip not moved to mkdocs - (PWD=$PWD)"
-            ls -al ${DIR}.zip ;;
+            echo "[$LAB_IPYNB] LAB not detected so zip not copied to mkdocs"
+            ls -al $ZIP
+            ;;
     esac
      
 }
 
 function __NB_SAVE_FILES {
     local DIR=$1; shift
-    DIR=~/LAB_INFO.${LAB_MODE}.${TOOL_VERSION}/$DIR
+    DIR=$LABS_INFO_DIR/$DIR
     #echo $DIR $LAB_MODE $TOOL_VERSION >> $PROGRESS_LOG
-    echo "    - " $(basename $DIR) $LAB_MODE $TOOL_VERSION >> $PROGRESS_LOG
+    echo "    - NB_SAVE:" $(basename $DIR) $LABS_INFO_DIR >> $PROGRESS_LOG
 
     # !! rm   -rf $DIR 2>/dev/null
     mkdir -p $DIR
@@ -123,7 +156,6 @@ function NB_SAVE_STEP {
     local LAB_SECTION=$1; shift
     local STEP=$1; shift
 
-    #set -x
     __NB_SAVE_FILES STEPS/${LAB_SECTION}-${STEP} $*
 }
 
@@ -256,7 +288,6 @@ function __NB_FILE_COMMON {
 }
 
 function NB_FILE {
-    #set -x
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say create a file with these contents
     FILE="$1"; shift
     local LOG=/tmp/__FILE
@@ -266,7 +297,6 @@ function NB_FILE {
 }
 
 function NB_FILE_TEMPLATE {
-    #set -x
     # NOTE: nbtool.py to replace this code_cell with markdown cell to say create a file with these contents
     FILE="$1"; shift
     local LOG=/tmp/__FILE
@@ -419,7 +449,6 @@ function NB_SOURCE_FNS {
 }
 
 function NB_INIT_NOTEBOOK {
-    #set -x
     NB_START_TIME=$SECONDS
     [ "$FULL_MODE" != "FULL_START" ] && { rm $PROGRESS_LOG; }
 
@@ -560,7 +589,7 @@ function NB_INIT_NOTEBOOK {
     export PROGRESS_LOG=/tmp/nb.progress.${TITLE_MODE}.log
     [ ! -z "$TOOL" ] && export PROGRESS_LOG=/tmp/nb.progress.${TOOL}.log
     [ -f $PROGRESS_LOG ] && mv ${PROGRESS_LOG} ${PROGRESS_LOG}.bak
-    echo "NB_INIT_NOTEBOOK: $(date)"
+    echo "NB_INIT_NOTEBOOK: $(date)" | tee $PROGRESS_LOG
     NB_INIT_SECONDS=$SECONDS
 
     #rm -rf ~/labs
@@ -597,10 +626,6 @@ function NB_LAB_ENV {
 }
 
 function __NB_LAB_ENV {
-    #set -x
-    #local REPO=""
-    #local SHA=""
-    #local DATE=""
     REPO=""
     SHA=""
     DATE=""
@@ -725,10 +750,6 @@ function NB_ARCHIVE_LAB {
 }
 
 function NB_ARCHIVE_SOLUTIONS {
-    # set -x
-    # set +x
-    #echo "LAB_NUM='$LAB_NUM'"
-
     mkdir -p ~/Solutions/BAK
     SOLUTION_DIR=~/Solutions.${LAB_MODE}.${TOOL_VERSION}/Lab${LAB_NUM}
     BAK_DIR=${SOLUTION_DIR}.BAK
@@ -800,6 +821,7 @@ function SAVE_NB_SECTIONS {
 }
 
 function NB_QUIET_FILTER_NOTEBOOK {
+    #set -x
     pwd
     rm -f ~/tmp/quiet.filter.notebook.op
     NB_FILTER_NOTEBOOK $* > ~/tmp/quiet.filter.notebook.op 2>&1
@@ -812,6 +834,12 @@ function NB_QUIET_FILTER_NOTEBOOK {
       # echo HERE | NB_COLOUR blue
 
       IP_NB=${LAB_IPYNB}
+      [ -z "$IP_NB" ] && {
+          echo "NB_QUIET_FILTER_NOTEBOOK: Failed to find input notebook"
+          echo "LAB_IPYNB='$LAB_IPYNB' IP_NB='$IP_NB'"
+          exit 1
+      }
+
       TOTAL_CELLS=$(jq -rc '.cells    | length' $IP_NB )
       CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $IP_NB)
       MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $IP_NB)
@@ -828,6 +856,7 @@ function NB_QUIET_FILTER_NOTEBOOK {
           set +x
       }
 
+      #set -x
       SECTIONS_FILE=$( basename $OP_NB )
       SECTIONS_FILE=${SECTIONS_FILE%.ipynb}
       SECTIONS_FILE=SECTIONS_${SECTIONS_FILE#OP_}.list
@@ -842,14 +871,17 @@ function NB_QUIET_FILTER_NOTEBOOK {
       grep -q NB_DEBUG: ${OP_NB} &&
           echo "Warning NB_DEBUG entries seen - $( grep -c NB_DEBUG: ${OP_NB} ) in $OP_NB"
 
+      #set -x
       OP_MD=${OP_NB%.ipynb}.md
       [ ! -f "$OP_MD" ] && echo "Warning: No md file '$OP_MD'"
       ESCAPES=$( grep -c $'\x1b' $OP_MD )
       [ "$ESCAPES" != "0" ] && echo "Warning $ESCAPES escape code lines seen in markdown ($OP_MD)"
           # || echo "OK: No NB_DEBUG entries seen in $OP_NB"
-      echo "Warning $ESCAPES escape code lines seen in markdown ($OP_MD)"
+          #set -x
+          echo "Warning $ESCAPES escape code lines seen in markdown ($OP_MD)"
     )
 
+    #set -x
     mv *.sh $OP_DIR/ 2>/dev/null
 
     # Show DIE errors though:
@@ -869,6 +901,8 @@ function NB_QUIET_FILTER_NOTEBOOK {
 function __CHECK_NB_DIR {
     [ -z "$NB_DIR" ] && NB_DIR=$(cat .dir)
     [ -z "$NB_DIR" ] && DIE "NB_DIR is unset"
+    # HACK:
+    export NB_DIR
     env | grep -q ^NB_DIR= || DIE "NB_DIR is not exported"
     echo "__CHECK_NB_DIR: NB_DIR='$NB_DIR'"
 }
@@ -1247,7 +1281,7 @@ function __RETURN {
     local RET="$1"
     [ -z "$RET"    ] && return 0
     [ "$RET" = "0" ] && return 0
-    NB_DEBUG "return $RET [called from function ${FUNCNAME[1]}"
+    NB_DEBUG "return $RET [called from function ${FUNCNAME[1]}]"
     return $RET
 }
 
