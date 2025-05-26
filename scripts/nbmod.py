@@ -42,7 +42,7 @@ new_section='new_section'
 
 # e.g.  for notebook1 modifs: -mod 11:1 to change section numbers from 11 to 1
 MODIFY_SECTIONS = None
-# e.g.  for notebook1 modifs: -labs labs:labs.aaz to change labs parent folder from ~/labs/ to ~/labs.aaz/
+# e.g.  for notebook1 modifs: -labs labs:labs.aza to change labs parent folder from ~/labs/ to ~/labs.aza/
 MODIFY_LABS_PARENT = None
 
 OP_NOTEBOOK = 'FULL.ipynb'
@@ -289,7 +289,7 @@ def modify_line(line):
     '''
 
     if MODIFY_LABS_PARENT:
-        # e.g.  for notebook1 modifs: -labs labs:labs.aaz to change labs parent folder from ~/labs/ to ~/labs.aaz/
+        # e.g.  for notebook1 modifs: -labs labs:labs.aza to change labs parent folder from ~/labs/ to ~/labs.aza/
         line = line.replace(f"~/{old_labs_parent}/", f"~/{new_labs_parent}/")
         line = line.replace(f"/home/student/{old_labs_parent}/", f"/home/student/{new_labs_parent}/")
 
@@ -310,7 +310,7 @@ def modify_line(line):
             new_labs_parent=old_labs_parent
             line = line.replace(f"~/{new_labs_parent}/lab{old_section}", f"~/{new_labs_parent}/lab{new_section}")
             line = line.replace(f"/home/student/{new_labs_parent}/lab{old_section}", f"/home/student/{new_labs_parent}/lab{new_section}")
-            old_labs_parent='labs.aaz'
+            old_labs_parent='labs.aza'
             new_labs_parent=old_labs_parent
             line = line.replace(f"~/{new_labs_parent}/lab{old_section}", f"~/{new_labs_parent}/lab{new_section}")
             line = line.replace(f"/home/student/{new_labs_parent}/lab{old_section}", f"/home/student/{new_labs_parent}/lab{new_section}")
@@ -343,7 +343,7 @@ def modify_line(line):
                     #line = str(line)
                     if line != '' and line != '\n':
                        if MODIFY_LABS_PARENT:
-                           # e.g.  for notebook1 modifs: -labs labs:labs.aaz to change labs parent folder from ~/labs/ to ~/labs.aaz/
+                           # e.g.  for notebook1 modifs: -labs labs:labs.aza to change labs parent folder from ~/labs/ to ~/labs.aza/
                            line = line.replace(f"~/{old_labs_parent}/", f"~/{new_labs_parent}/")
 '''
 
@@ -363,7 +363,7 @@ def nbmod(ip_notebook, op_notebook):
     old_labs_parent='xxxxxxxxxxxx'
     new_labs_parent='yyyyyyyyyyyy'
     if MODIFY_LABS_PARENT:
-        # e.g.  for notebook1 modifs: -labs labs:labs.aaz to change labs parent folder from ~/labs/ to ~/labs.aaz/
+        # e.g.  for notebook1 modifs: -labs labs:labs.aza to change labs parent folder from ~/labs/ to ~/labs.aza/
         ( old_labs_parent, new_labs_parent ) = MODIFY_LABS_PARENT.split(":")
         print(f'old_labs_parent={old_labs_parent} new_labs_parent={new_labs_parent}')
 
@@ -506,12 +506,12 @@ def main():
             continue
 
         if arg == "-labs":
-            # e.g.  for notebook1 modifs: -labs labs:labs.aaz to change labs parent folder from ~/labs/ to ~/labs.aaz/
+            # e.g.  for notebook1 modifs: -labs labs:labs.aza to change labs parent folder from ~/labs/ to ~/labs.aza/
             arg = sys.argv[a]
             a += 1
             MODIFY_LABS_PARENT = arg
             if MODIFY_LABS_PARENT.count(":") != 1:
-                die("Expected -labs: <olddir>:<newdir>, e.g. -labs labs:labs.aaz")
+                die("Expected -labs: <olddir>:<newdir>, e.g. -labs labs:labs.aza")
             continue
 
         if arg == "-cc-ip":

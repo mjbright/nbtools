@@ -1635,6 +1635,10 @@ def split_nb(json_data, DEBUG=False):
         # Exclude any NB_SAVE, NB_SAVE_STEP cells:
         if source_lines[0].find("NB_SAVE") == 0 and cell_type == "code":
             EXCLUDED_CODE_CELL = True
+            # Why does this not empty output?
+            json_data["cells"][cell_no]["outputs"]=[]
+            #XXX
+            #include_cell = False
 
         for slno in range(len(source_lines)):
             source_line = source_lines[slno]
