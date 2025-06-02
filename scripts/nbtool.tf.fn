@@ -72,15 +72,13 @@ function TF_PLAN {
 
     local SAVED_OP_FILE=$SAVED_OP_DIR/TF_plan.op
     if [ $QUIET -ne 0 ]; then
-        echo "    Planning ..." >> $PROGRESS_LOG
+        echo "    $__TF Planning ... [$PWD]" >> $PROGRESS_LOG
         $TF plan $* |&
             tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
         grep -iE "Plan.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
-        #RET=$?
     else
         $TF plan $* |&
             tee $SAVED_OP_FILE
-        #RET=$?
     fi
     RET=0
     grep -q Error: $SAVED_OP_FILE && RET=1
@@ -109,16 +107,14 @@ function TF_APPLY {
 
     local SAVED_OP_FILE=$SAVED_OP_DIR/TF_apply.op
     if [ $QUIET -ne 0 ]; then
-        echo "    Applying ..." >> $PROGRESS_LOG
+        echo "    $__TF Applying ... [$PWD]" >> $PROGRESS_LOG
         echo yes | $TF apply $* |&
              tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
-        grep -iE "Apply.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
-        #RET=$?
     else
         echo yes | $TF apply $* |&
             tee $SAVED_OP_FILE
-        #RET=$?
     fi
+    grep -iE "Apply.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
     RET=0
     grep -q Error: $SAVED_OP_FILE && RET=1
 
@@ -259,13 +255,11 @@ function TF_DESTROY {
         echo "    Destroying ..." >> $PROGRESS_LOG
         echo yes | $TF destroy $* |&
             tee $SAVED_OP_FILE | grep -iE " be |complet|fail|error| to add" | grep -v " will be accepted "
-        grep -iE "Destroy.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
-        #RET=$?
     else
-        #RET=$?
         echo yes | $TF destroy $* |&
             tee $SAVED_OP_FILE
     fi
+    grep -iE "Destroy.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
     RET=0
     grep -q Error: $SAVED_OP_FILE && RET=1
     NB_DEBUG $( TIMER_STOP "$TF destroy" )
@@ -281,7 +275,7 @@ function TF_DESTROY {
 
 ## -- Terragrunt functions: -----------------------------------
 
-function TG_RUN_ALL {
+function TG_ALL {
     SUBCOMMAND=$1; shift
     if [ "$SUBCOMMAND" = "state" ]; then
         #echo "STATE-sub='$1'"
@@ -292,8 +286,8 @@ function TG_RUN_ALL {
         shift
     fi
     #AUTO="-auto-approve"
-    AUTO="--terragrunt-non-interactive"
-    NB_DEBUG_INFO terragrunt run-all $SUBCOMMAND $*
+    AUTO="--non-interactive"
+    NB_DEBUG_INFO terragrunt $SUBCOMMAND --al $*
 
     __TF_ARGS "$1" || shift
 
@@ -301,22 +295,28 @@ function TG_RUN_ALL {
 
     #set -x
     local SAVED_OP_FILE=$SAVED_OP_DIR/TG_runall_$SUBCOMMAND.op
+    echo "    Terragrunt --all Applying ... [$PWD]" >> $PROGRESS_LOG
     if [ $QUIET -ne 0 ]; then
-        echo yes | terragrunt run-all $SUBCOMMAND $AUTO $* |&
-            tee $SAVED_OP_FILE | grep -iE "complet|fail|error| to add|No changes"
-        #RET=$?
+        echo yes | terragrunt $SUBCOMMAND --all $AUTO $* |&
+            tee $SAVED_OP_FILE | grep -iE " be |complet|fail|error| to add|^Group |^- Module " | grep -v " will be accepted "
     else
-        echo yes | terragrunt run-all $SUBCOMMAND $AUTO $* |&
+        echo yes | terragrunt $SUBCOMMAND --all $AUTO $* |&
             tee $SAVED_OP_FILE
-        #RET=$?
     fi
+    grep -iE "Destroy.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
     RET=0
     grep -q Error: $SAVED_OP_FILE && RET=1
 
     #set +x
-    NB_DEBUG $( TIMER_STOP 'terragrunt $SUBCOMMAND' )
+    NB_DEBUG $( TIMER_STOP "terragrunt $SUBCOMMAND" )
     __RETURN $RET
 }
+
+#??
+#function TG_PLAN {
+    #NB_DEBUG_INFO terragrunt state list $*
+    #terragrunt state list --all --non-interactive
+#}
 
 function TG_PLAN {
     NB_DEBUG_INFO terragrunt plan $*
@@ -326,14 +326,14 @@ function TG_PLAN {
     TIMER_START
 
     local SAVED_OP_FILE=$SAVED_OP_DIR/TG_PLAN.op
+    echo "    Terragrunt Planning ... [$PWD]" >> $PROGRESS_LOG
     if [ $QUIET -ne 0 ]; then
         terragrunt plan $* |&
-            tee $SAVED_OP_FILE | grep -iE "complet|fail|error| to add|No changes"
-        #RET=$?
+            tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+        grep -iE "Plan.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
     else
         terragrunt plan $* |&
             tee $SAVED_OP_FILE
-        #RET=$?
     fi
     RET=0
     grep -q Error: $SAVED_OP_FILE && RET=1
@@ -349,15 +349,15 @@ function TG_APPLY {
     TIMER_START
 
     local SAVED_OP_FILE=$SAVED_OP_DIR/TG_apply.op
+    echo "    Terragrunt Applying ... [$PWD]" >> $PROGRESS_LOG
     if [ $QUIET -ne 0 ]; then
         echo yes | terragrunt apply $* |&
-            tee $SAVED_OP_FILE | grep -iE "complet|fail|error| to add|No changes"
-        #RET=$?
+            tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
     else
         echo yes | terragrunt apply $* |&
             tee $SAVED_OP_FILE
-        #RET=$?
     fi
+    grep -iE "Plan.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
     RET=0
     grep -q Error: $SAVED_OP_FILE && RET=1
 
@@ -375,11 +375,9 @@ function TG_DESTROY {
     if [ $QUIET -ne 0 ]; then
         echo yes | terragrunt destroy $* |&
             tee $SAVED_OP_FILE | grep -iE "complet|fail|error| to add|No changes"
-        #RET=$?
     else
         echo yes | terragrunt destroy $* |&
             tee $SAVED_OP_FILE
-        #RET=$?
     fi
     RET=0
     grep -q Error: $SAVED_OP_FILE && RET=1
