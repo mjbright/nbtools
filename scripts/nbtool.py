@@ -139,6 +139,13 @@ REPLACE_OP_WORDS = {
     #'EOF```':      'EOF\n```\n',
 }
 
+# Lines with these strings should be completely emptied:
+REPLACE_LINES = [
+    "TIMER_START",
+    "TIMER_STOP",
+]
+
+# Lines with these strings should have the keyword replaced
 REPLACE_COMMANDS = {
     "TF_INIT": "terraform init",
     "TF_PLAN -qt": "terraform plan",
@@ -160,8 +167,8 @@ REPLACE_COMMANDS = {
     "TF_STATE": "terraform state",
     "TF_OUTPUT": "terraform output",
     "TF_IMPORT": "terraform import",
-    "TIMER_START": "",
-    "TIMER_STOP": "",
+    "TF_FMT": "terraform fmt",
+    "TF_VALIDATE": "terraform validate",
     "K_GET": "kubectl get",
     "K_CREATE": "kubectl create",
     "NB_CODE": "",
@@ -473,6 +480,15 @@ def UNUSED_CONVERT_ANSI_CODES2HTML(cells_data, cell_no):
 def substitute_vars_in_line(source_line, slno, VARS_SEEN):
     new_line = source_line
     vars_seen = []
+
+    # A hack: needs to be generalized: (pull vars into VARS_SEEN:
+    if '${__LABS_DIR}' in source_line:
+        new_line = new_line.replace("${__LABS_DIR}", os.getenv('__LABS_DIR', 'ERROR_LABS_DIR_UNSER'))
+        new_line = new_line.replace("/home/student/", '~/')
+    if '$__LABS_DIR' in source_line:
+        new_line = new_line.replace("$__LABS_DIR", os.getenv('__LABS_DIR', 'ERROR_LABS_DIR_UNSER'))
+        new_line = new_line.replace("/home/student/", '~/')
+
     for var in VARS_SEEN:
         if "$__" + var in source_line:
             vars_seen.append("__" + var)
@@ -983,6 +999,10 @@ def process_code_cell(
                         section_title,
                         EXCLUDED_CODE_CELL,
                     )
+
+        for line in REPLACE_LINES:
+            if line in source_line:
+                cells_data[cell_no]["source"][slno] = ""
 
         # TODO: extend for multiple replacements (will never happen ? :)
         REPLACE_CMD = get_longest_matching_key(REPLACE_COMMANDS, source_line)
