@@ -78,6 +78,8 @@ if [ ! -z "$1" ]; then
     export LAB_WEIGHT="$1"; shift
     export LAB_MODE="$1"; shift
     export LAB_NAME="$1"; shift
+    [ ! -z "$1" ] && export MD_TITLE="$1"
+    echo "-- exporting MD_TITLE='$MD_TITLE'"
 
     if [ $OPENTOFU -ne 0 ]; then
         echo "******** Selecting TOFU mode"

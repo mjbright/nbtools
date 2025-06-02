@@ -40,6 +40,7 @@ function NB_SAVE {
     echo; echo "[$(date)] Execution stopped: SAVE NOTEBOOK BEFORE EXECUTING NB_QUIET CELL"
     #TIMER_STOP "SAVE NOTEBOOK"
     TIMER_STOP "NB_SAVE STOP: TOTAL TIME since NB_INIT_NOTEBOOK called" | tee -a $PROGRESS_LOG
+
     return 1
 }
 
@@ -50,7 +51,7 @@ function NB_SAVE_ZIP {
     export ZIP=~/${_DIR}.zip
     (
         cd
-        zip -r9 $ZIP ~/${_DIR}/ >/dev/null 2>&1
+        zip -r9 $ZIP ${_DIR}/ >/dev/null 2>&1
     )
     #set +x
     #
@@ -68,7 +69,7 @@ function NB_SAVE_ZIP {
             echo "LAB detected as tf-intro so zip copied to $DOWN_DIR/"
 
             mkdir -p $DOWN_DIR/
-            cp -a $ZIP $DOWN_DIR/
+            cp -a $ZIP $DOWN_DIR/LAB_INFO.zip
             ls -al $DOWN_DIR/*.zip
             ;;
         */tf-azure/*)
@@ -79,7 +80,7 @@ function NB_SAVE_ZIP {
             echo "LAB detected as tf-azure so zip copied to $DOWN_DIR/"
 
             mkdir -p $DOWN_DIR/
-            cp -a $ZIP $DOWN_DIR/
+            cp -a $ZIP $DOWN_DIR/LAB_INFO.zip
             ls -al $DOWN_DIR/*.zip
             ;;
         */tf-adv-azure/*)
@@ -90,7 +91,7 @@ function NB_SAVE_ZIP {
             echo "LAB detected as tf-adv-azure so zip copied to $DOWN_DIR/"
 
             mkdir -p $DOWN_DIR/
-            cp -a $ZIP $DOWN_DIR/
+            cp -a $ZIP $DOWN_DIR/LAB_INFO.zip
             ls -al $DOWN_DIR/*.zip
             ;;
         *)
@@ -117,9 +118,10 @@ function __NB_SAVE_FILES {
                 cp -a *.hcl *.tf *.tfvars *.tpl tpl/ *.cfg $DIR/ 2>/dev/null
               set +x
             else
-              set -x
-                cp -a $*                       $DIR/ 2>/dev/null
-              set +x
+              rsync -av --exclude .terraform --exclude .terraform.lock.hcl --exclude .terragrunt-cache $* $DIR/ 2>/dev/null
+              #set -x
+                #cp -a $*                       $DIR/ 2>/dev/null
+              #set +x
             fi;;
         Kubernetes)
             if [ -z "$1" ]; then
@@ -127,9 +129,10 @@ function __NB_SAVE_FILES {
                 cp -a *.yaml *.yml *.json      $DIR/ 2>/dev/null
               set +x
             else
-              set -x
-                cp -a $*                       $DIR/ 2>/dev/null
-              set +x
+              rsync -av --exclude .terraform --exclude .terraform.lock.hcl --exclude .terragrunt-cache $* $DIR/ 2>/dev/null
+              #set -x
+                #cp -a $*                       $DIR/ 2>/dev/null
+              #set +x
             fi;;
     esac
 
@@ -157,6 +160,14 @@ function NB_SAVE_STEP {
     local STEP=$1; shift
 
     __NB_SAVE_FILES STEPS/${LAB_SECTION}-${STEP} $*
+
+    INFO=$( basename $LABS_INFO_DIR )
+    INFO=${INFO#LAB_INFO.}
+
+    mkdir -p ~/tmp/nb.progress
+    COPY_LOG=~/tmp/nb.progress/${INFO}.${LAB_SECTION}.${STEP}.log
+    cp $PROGRESS_LOG $COPY_LOG
+    echo "Progress log saved to $COPY_LOG"
 }
 
 
@@ -371,7 +382,8 @@ typeset -f > $FN_0_LIST
 # Source .jupyer.profile, then demonstrate kubectl working:
 
 function DIE {
-    echo "==== START_DIE"
+    MESSAGE="$*"
+    echo "==== START_DIE: $MESSAGE"
     #echo "====" |& NB_HIGHLIGHT
     #echo "====" >&2
     echo "[$PWD]" |& NB_HIGHLIGHT
@@ -384,9 +396,19 @@ function DIE {
         awk '/==== FILTERING NOTEBOOK/,/==== FILTERING DONE/ { print $0; }' ~/tmp/quiet.filter.notebook.op
     fi >&2
     env | grep -E "NBTOOL|LAB"
-    echo "==== END_DIE"
+    echo "==== END: $MESSAGE"
+    echo "==== END_DIE see ~/tmp/quiet.filter.notebook.op"
+    ls -al ~/tmp/quiet.filter.notebook.op
+    for i in 0 1 2 3 4 5 6 7 8 9 10;do
+        CALLER_INFO=`caller $i`
+        [ -z "$CALLER_INFO" ] && break
+        echo "    Line: $CALLER_INFO" >&2
+    done
+
+    echo "==== END: $MESSAGE"
     exit 1
 }
+
 
 function NB_CHECK_FILE_SIZE {
     local FILE=$1; shift;
@@ -407,6 +429,17 @@ function NB_CHECK_FILE_SIZE {
 
 # START: TIMER FUNCTIONS ================================================
 
+# Time a command:
+function NB_TIME {
+    local START=$SECONDS
+
+    $*
+    let TOOK_NB_TIME=SECONDS-START
+    TIMER_hhmmss $TOOK_NB_TIME
+    TIMER_STOP="${LABEL}Took $TOOK secs [${HRS}h${MINS}m${SECS}]"
+    NB_DEBUG "Took: $TIMER_STOP - $*"
+}
+
 function TIMER_START { START_S=$SECONDS; }
 
 function TIMER_STOP {
@@ -418,7 +451,8 @@ function TIMER_STOP {
 
     TIMER_hhmmss $TOOK
     TIMER_STOP="${LABEL}Took $TOOK secs [${HRS}h${MINS}m${SECS}]"
-    echo $TIMER_STOP
+    NB_DEBUG $TIMER_STOP
+    #echo $TIMER_STOP
 }
 
 function TIMER_hhmmss {
@@ -450,7 +484,7 @@ function NB_SOURCE_FNS {
 
 function NB_INIT_NOTEBOOK {
     NB_START_TIME=$SECONDS
-    [ "$FULL_MODE" != "FULL_START" ] && { rm $PROGRESS_LOG; }
+    [ "$FULL_MODE" != "FULL_START" ] &&  [ -f $PROGRESS_LOG ] && { rm $PROGRESS_LOG; }
 
     NB=""
     if [ -z "$1" ]; then
@@ -715,6 +749,8 @@ function MD_SET_FRONTMATTER {
         __TITLE=$( echo $__TITLE | sed 's/Terraform/OpenTofu/' )
     fi
 
+    [ ! -z "$MD_TITLE" ] && __TITLE="force:$MD_TITLE"
+
     read -r -d '' FRONTMATTER <<EOF
 ---
 title:  $__TITLE
@@ -794,11 +830,11 @@ function NB_QUIET {
     return 0
 }
 
-function NB_TIME {
-    TIMER_START
-    $*
-    TIMER_STOP "$*"
-}
+#function NB_TIME {
+    #TIMER_START
+    #$*
+    #TIMER_STOP "$*"
+#}
 
 function NB_FILTER {
     pwd
@@ -978,7 +1014,13 @@ function NB_FILTER_NOTEBOOK {
     #echo "-- $CMD" | tee ~/tmp/nbtool.py.op | NB_REPLACE_HOME_STDIN
     echo "-- $CMD" | NB_REPLACE_HOME_STDIN
     #$CMD | tee ~/tmp/nbtool.py.op
+    local START_NB_FILTER=SECONDS
     $CMD
+    local TOOK_NB_FILTER=SECONDS-START_NB_FILTER
+    TIMER_hhmmss $TOOK_NB_TIME
+    LABEL="Notebook filtering: "
+    TIMER_STOP="${LABEL}Took $TOOK secs [${HRS}h${MINS}m${SECS}]"
+    NB_DEBUG "$TIMER_STOP"
     echo "======== FILTERING DONE ========================================================"
     __CHECK_NB_DIR
     #DIE "TODO: check nbtool.py output - TESTING"
