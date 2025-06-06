@@ -140,9 +140,11 @@ REPLACE_OP_WORDS = {
 }
 
 # Lines with these strings should be completely emptied:
+# - but doesn't exclude cell, so output may need to go via NB_DEBUG
 REPLACE_LINES = [
     "TIMER_START",
     "TIMER_STOP",
+    "NBTOOL_FN",
 ]
 
 # Lines with these strings should have the keyword replaced
@@ -169,6 +171,7 @@ REPLACE_COMMANDS = {
     "TF_IMPORT": "terraform import",
     "TF_FMT": "terraform fmt",
     "TF_VALIDATE": "terraform validate",
+    "TF_TEST": "terraform test",
     "K_GET": "kubectl get",
     "K_CREATE": "kubectl create",
     "NB_CODE": "",

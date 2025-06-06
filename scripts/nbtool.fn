@@ -475,10 +475,10 @@ function TIMER_hhmmss {
 #
 function NB_SOURCE_FNS {
     case $LAB_MODE in
-        Tofu|Terraform) echo "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN;;
-        Docker) echo "-- source $NBTOOL_DO_FN"; source $NBTOOL_DO_FN;;
-        Kubernetes) echo "-- source $NBTOOL_K8_FN"; source $NBTOOL_K8_FN;;
-        Rego) echo "-- source $NBTOOL_OPA_FN"; source $NBTOOL_OPA_FN;;
+        Tofu|Terraform) NB_DEBUG "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN;;
+        Docker)         NB_DEBUG "-- source $NBTOOL_DO_FN"; source $NBTOOL_DO_FN;;
+        Kubernetes)     NB_DEBUG "-- source $NBTOOL_K8_FN"; source $NBTOOL_K8_FN;;
+        Rego)           NB_DEBUG "-- source $NBTOOL_OPA_FN"; source $NBTOOL_OPA_FN;;
     esac
 }
 
@@ -983,6 +983,14 @@ function REPLACE_OTF_TF {
     ls -altr ${IFILE}*
 }
 
+function NBTOOL_FN {
+    # Re-source latest version:
+    NB_DEBUG "-- source $NBTOOL_FN"
+    #echo "-- source $NBTOOL_FN" | NB_REPLACE_HOME_STDIN
+    [ -z "$NBTOOL_FN" ] && DIE "NBTOOL_FN is unset"
+    source $NBTOOL_FN
+}
+
 function NB_FILTER_NOTEBOOK {
 #set -x
     __CHECK_NB_DIR
@@ -998,10 +1006,7 @@ function NB_FILTER_NOTEBOOK {
     ## Disabled in favour of NB_SAVE_STEP:
     ## NB_ARCHIVE_SOLUTIONS
 
-    # Re-source latest version:
-    echo "-- source $NBTOOL_FN" | NB_REPLACE_HOME_STDIN
-    [ -z "$NBTOOL_FN" ] && DIE "NBTOOL_FN is unset"
-    source $NBTOOL_FN
+    NBTOOL_FN
 
     # In kubelab:
     # Jupyter on Ubuntu, or in kubelab:
