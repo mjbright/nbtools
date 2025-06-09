@@ -1,0 +1,128 @@
+
+# set +x
+
+[ "$1" = "-x" ] && { shift; set -x; }
+[ "$1" = "+x" ] && { shift; set +x; }
+
+# This file:
+export NBTOOL_RC=$SCRIPT_DIR/nbtool2.rc
+export NBTOOL_FN=$SCRIPT_DIR/nbtool2.fn
+export NBTOOL_PY=$SCRIPT_DIR/nbtool2.py
+#export NBTOOL_RC=$SCRIPT_DIR/nbtool.rc
+#export NBTOOL_FN=$SCRIPT_DIR/nbtool.fn
+#export NBTOOL_PY=$SCRIPT_DIR/nbtool.py
+
+ABS_SCRIPT_DIR=$( dirname $( readlink -f $NBTOOL_RC ) )
+export NBTOOL_K8_FN=$ABS_SCRIPT_DIR/nbtool.k8.fn
+export NBTOOL_TF_FN=$ABS_SCRIPT_DIR/nbtool.tf.fn
+export NBTOOL_DO_FN=$ABS_SCRIPT_DIR/nbtool.do.fn
+export NBTOOL_OPA_FN=$ABS_SCRIPT_DIR/nbtool.opa.fn
+
+echo "[$NBTOOL_RC] Got args '$*'"
+echo "source ~/.tool"
+source ~/.tool
+
+[ -z "$1" ] && { source $NBTOOL_FN; return; }
+
+SCRIPT=${BASH_SOURCE[0]}
+SCRIPT_DIR=$(dirname $SCRIPT)
+
+NB_START=$SECONDS
+
+die() { echo "$0: die - $*" >&2; exit 1; }
+
+mkdir -p ~/tmp
+
+[ -z "${JPY_SESSION_NAME}" ] && die "unset: JPY_SESSION_NAME"
+export LAB_IPYNB=${JPY_SESSION_NAME##*/}
+echo "Setting LAB_IPYNB to '$LAB_IPYNB' from \$JPY_SESSION_NAME"
+
+#case "$4" in
+    #*.ipynb) export LAB_IPYNB=$4;;
+#esac
+
+[ ! -f $LAB_IPYNB ] && {
+    echo "[$PWD] $SCRIPT: No $LAB_IPYNB in working directory"
+    echo "Maybe you renamed a running notebook?"
+    echo "  -> Try saving/closing/reopening notebook"
+    exit 1
+}
+
+[ -f ~/.venv/TRAINING/bin/activate ] && {
+    OLD_PS1=$PS1; source ~/.venv/TRAINING/bin/activate >/dev/null 2>&1; export PS1=$OLD_PS1
+}
+
+export NB_DIR=$PWD
+echo "export NB_DIR=$NB_DIR"
+
+if [ -z "$STUDENT" ]; then
+    export STUDENT=student
+fi
+echo "STUDENT='$STUDENT'"
+
+# -- CONFIG ------------------------------------
+export LAB_TAG=${PWD##*/} 
+export LAB_WEIGHT="$1"; shift
+export LAB_MODE="$1"; shift
+export LAB_NAME="$1"; shift
+[ ! -z "$1" ] && export MD_TITLE="$1"
+echo "-- exporting MD_TITLE='$MD_TITLE'"
+
+if [ $OPENTOFU -ne 0 ]; then
+    echo "******** Selecting TOFU mode"
+    [ "$LAB_MODE" != "Terraform"         ] && die "~/.opentofu: expected LAB_MODE='Terraform'"
+    #[ "${LAB_NAME#OP_TF_}" = "$LAB_NAME" ] && die "~/.opentofu: expected LAB_NAME='OP_TF_*'"
+
+    export LAB_MODE="Tofu"
+    export LAB_NAME=OP_OTF_${LAB_NAME#OP_TF_}
+    [ "${LAB_NAME#OP_OTF_}" = "$LAB_NAME" ] && die "~/.opentofu: expected modified LAB_NAME='OP_OTF_*'"
+
+    #echo "OpenTofu Mode:"
+    env | grep ^LAB_ | sed 's/^/    /'
+fi
+
+case $LAB_MODE in
+    Terraform|Tofu|Kubernetes|Ansible|Rego)
+           ;;
+    *) echo "Error: unknown LAB_MODE '$LAB_MODE'"
+       return 1
+           ;;
+esac
+
+echo $LAB_NAME | grep "^OP_" || {
+    echo
+    echo "error[nbtool.rc]: Bad name for o/p file: should be OP_*.ipynb, LAB_NAME='$LAB_NAME'"
+    return 1
+}
+
+NB=${JPY_SESSION_NAME##*/}
+echo JPY_SESSION_NAME=$JPY_SESSION_NAME
+echo NB=$NB
+case $NB in
+    IP_TF_*)    LABS_VERSION_DIR=labs;     LABS_INFO_VERSION=tf;    LABS_VERSION_SRC_DIR=tf-intro;;
+    IP_TFAZA_*) LABS_VERSION_DIR=labs.aza; LABS_INFO_VERSION=tfaza; LABS_VERSION_SRC_DIR=tf-adv-azure;;
+    IP_TFAZ_*)  LABS_VERSION_DIR=labs.az;  LABS_INFO_VERSION=tfaz;  LABS_VERSION_SRC_DIR=tf-azure;;
+    *)   
+        echo "error[nbtool.rc]: Input notebook Foesn't match IP_*, or use implemented version"
+        echo "error[nbtool.rc]: TODO: implement LAB vars for $NB"
+        return 1
+        ;;
+esac
+
+# Allow ~ expansion here - else will mess up lab dirs:
+export __LABS_DIR=~/$LABS_VERSION_DIR
+export LABS_INFO_DIR=~/LAB_INFO.${LAB_MODE}.${LABS_INFO_VERSION}.${TOOL_VERSION}
+
+export LAB_TAG="${PWD##*/}"; shift
+# ----------------------------------------------
+set | grep ^LAB_ > ~/tmp/LAB_vars.env
+cat ~/tmp/LAB_vars.env
+
+echo "==== Reading nbtool functions from '$NBTOOL_FN' ====";
+source $NBTOOL_FN
+
+#if [ $NBTOOL_INIT -ne 0 ]; then
+#    # Now use MAX_LEN_MD in nbtool.rc (instead of "export MAX_LINE_LEN=80" here)
+#    NB_INIT_NOTEBOOK
+#fi
+

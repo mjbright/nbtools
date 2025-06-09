@@ -1,0 +1,1339 @@
+# Max number of chars/line to allow in markdown output:
+# MAX_LEN_MD=110
+# In practice 74 seems to be a good limit for the PDF output (tested using Safari/macOS):
+MAX_LEN_MD=80
+
+[ -z "$PROGRESS_LOG" ] && export PROGRESS_LOG=/tmp/nb.progress.log
+
+# TODO:
+# - what functions take a long time ... can some slow things be recoded in Python?
+# - look especially at NB_QUIET implementation ... for speedups
+
+# Put intermediate processing files here: in $NB_DIR/
+OP_DIR=other
+
+# Default for SSH functions
+SSH_NODE=worker
+
+function SSH_SET {
+    SSH_NODE=$1
+}
+
+function SSH {
+    #ssh -qt $SSH_NODE $*
+    ssh -q $SSH_NODE $*
+}
+
+ENVIRONMENT="** NO ~/.environment **"
+
+function NB_SET_ENV {
+    [ -f ~/.environment ] && ENVIRONMENT=$( head -1 ~/.environment )
+}
+
+# Usage: place this function call in a cell alone before NB_QUIET cell
+#        stops execution (return 1) and prompts user to save notebook before we call NB_QUIET
+function NB_SAVE {
+    echo
+    echo   $*
+    env > ~/tmp/NB_SAVE.env
+    START_S=$NB_START_TIME
+    echo; echo "[$(date)] Execution stopped: SAVE NOTEBOOK BEFORE EXECUTING NB_QUIET CELL"
+    #TIMER_STOP "SAVE NOTEBOOK"
+    TIMER_STOP "NB_SAVE STOP: TOTAL TIME since NB_INIT_NOTEBOOK called" | tee -a $PROGRESS_LOG
+
+    return 1
+}
+
+function NB_SAVE_ZIP {
+    # zip -r9 LAB_INFO.Terraform.1.11.4.zip LAB_INFO.Terraform.1.11.4
+    
+    export _DIR=$( basename $LABS_INFO_DIR )
+    export ZIP=~/${_DIR}.zip
+    (
+        cd
+        zip -r9 $ZIP ${_DIR}/ >/dev/null 2>&1
+    )
+    #set +x
+    #
+
+    # [ "$FULL_MODE" != "FULL_START" ] && echo "NOT moving zip"
+    # LAB_INFO.Terraform.1.11.4.zip
+    TOOL_FLAVOUR=tf
+    [ "$TOOL" = "tofu" ] && TOOL_FLAVOUR=otf
+    case $JPY_SESSION_NAME in
+        */tf-intro/*)
+            SUB_DIR=mkdocs/mkdocs.${TOOL_FLAVOUR}-intro
+            MK_DIR=~/src/mjbright.labs-terraform-private/$SUB_DIR
+            DOWN_DIR=$MK_DIR/docs/downloads/
+            [ ! -d $MK_DIR ] && { echo "ERROR: No such dir as $MK_DIR"; return; }
+            echo "LAB detected as tf-intro so zip copied to $DOWN_DIR/"
+
+            mkdir -p $DOWN_DIR/
+            cp -a $ZIP $DOWN_DIR/LAB_INFO.zip
+            ls -al $DOWN_DIR/*.zip
+            ;;
+        */tf-azure/*)
+            SUB_DIR=mkdocs/mkdocs.${TOOL_FLAVOUR}-azure
+            MK_DIR=~/src/mjbright.labs-terraform-private/$SUB_DIR
+            DOWN_DIR=$MK_DIR/docs/downloads/
+            [ ! -d $MK_DIR ] && { echo "ERROR: No such dir as $MK_DIR"; return; }
+            echo "LAB detected as tf-azure so zip copied to $DOWN_DIR/"
+
+            mkdir -p $DOWN_DIR/
+            cp -a $ZIP $DOWN_DIR/LAB_INFO.zip
+            ls -al $DOWN_DIR/*.zip
+            ;;
+        */tf-adv-azure/*)
+            SUB_DIR=mkdocs/mkdocs.${TOOL_FLAVOUR}-adv-azure
+            MK_DIR=~/src/mjbright.labs-terraform-private/$SUB_DIR
+            DOWN_DIR=$MK_DIR/docs/downloads/
+            [ ! -d $MK_DIR ] && { echo "ERROR: No such dir as $MK_DIR"; return; }
+            echo "LAB detected as tf-adv-azure so zip copied to $DOWN_DIR/"
+
+            mkdir -p $DOWN_DIR/
+            cp -a $ZIP $DOWN_DIR/LAB_INFO.zip
+            ls -al $DOWN_DIR/*.zip
+            ;;
+        *)
+            echo "[$LAB_IPYNB] LAB not detected so zip not copied to mkdocs"
+            ls -al $ZIP
+            ;;
+    esac
+     
+}
+
+function __NB_SAVE_FILES {
+    local DIR=$1; shift
+    DIR=$LABS_INFO_DIR/$DIR
+    #echo $DIR $LAB_MODE $TOOL_VERSION >> $PROGRESS_LOG
+    echo "    - NB_SAVE:" $(basename $DIR) $LABS_INFO_DIR >> $PROGRESS_LOG
+
+    # !! rm   -rf $DIR 2>/dev/null
+    mkdir -p $DIR
+
+    case $LAB_MODE in
+        Terraform|Tofu)
+            if [ -z "$1" ]; then
+              set -x
+                cp -a *.hcl *.tf *.tfvars *.tpl tpl/ *.cfg $DIR/ 2>/dev/null
+              set +x
+            else
+              rsync -av --exclude .terraform --exclude .terraform.lock.hcl --exclude .terragrunt-cache $* $DIR/ 2>/dev/null
+              #set -x
+                #cp -a $*                       $DIR/ 2>/dev/null
+              #set +x
+            fi;;
+        Kubernetes)
+            if [ -z "$1" ]; then
+              set -x
+                cp -a *.yaml *.yml *.json      $DIR/ 2>/dev/null
+              set +x
+            else
+              rsync -av --exclude .terraform --exclude .terraform.lock.hcl --exclude .terragrunt-cache $* $DIR/ 2>/dev/null
+              #set -x
+                #cp -a $*                       $DIR/ 2>/dev/null
+              #set +x
+            fi;;
+    esac
+
+    echo "-- ls -altr $DIR/:"
+    ls -altr $DIR/
+    #set +x
+}
+
+function NB_SAVE_TEMPLATE {
+    local LAB_SECTION=$1; shift
+    local STEP=$1; shift
+
+    __NB_SAVE_FILES TEMPLATES/${LAB_SECTION}-${STEP} $*
+}
+
+function NB_SAVE_SOLUTION {
+    local LAB_SECTION=$1; shift
+    local STEP=$1; shift
+
+    __NB_SAVE_FILES SOLUTIONS/${LAB_SECTION}-${STEP} $*
+}
+
+function NB_SAVE_STEP {
+    local LAB_SECTION=$1; shift
+    local STEP=$1; shift
+
+    __NB_SAVE_FILES STEPS/${LAB_SECTION}-${STEP} $*
+
+    INFO=$( basename $LABS_INFO_DIR )
+    INFO=${INFO#LAB_INFO.}
+
+    mkdir -p ~/tmp/nb.progress
+    COPY_LOG=~/tmp/nb.progress/${INFO}.${LAB_SECTION}.${STEP}.log
+    cp $PROGRESS_LOG $COPY_LOG
+    echo "Progress log saved to $COPY_LOG"
+}
+
+
+#echo "$ENVIRONMENT $( ls -al ~/.environment 2>/dev/null)"
+
+which banner >/dev/null && {
+    #sudo apt install -y sysvbanner
+    function banner { echo "BANNER: $*"; }
+}
+
+HOSTNAME=$(hostname)
+
+function NB_DEBUG_INFO {
+    echo "NB_DEBUG: $(date +'%Y-%b-%d %0Hh%0Mm') $(id -un)@$(hostname):$PWD" | sed -e 's?/home/student/??g'
+    echo "NB_DEBUG: -- $*"
+}
+
+function NB_DEBUG {
+    #local INFO="DIR=${PWD##*/} $(date +'%Y-%b-%d %0Hh%0Mm')"
+    #echo "NB_DEBUG: $INFO"
+    echo "NB_DEBUG: -- $*"
+}
+
+function NB_SHOW_LONG_CODE_LINES {
+    local IPFILE=""
+    #local MAX_LINE_LEN=80
+    local MAX_LINE_LEN=40
+    #local LEFT_COLS=7
+    local LEFT_COLS=0
+
+    while [ ! -z "$1" ]; do
+        case $1 in
+            -m) shift; MAX_LINE_LEN=$1;;
+             *) IPFILE=$1;;
+        esac
+        shift
+    done
+
+    let MAX=MAX_LINE_LEN+LEFT_COLS
+
+    if [ ! -z "$IPFILE" ]; then
+        cat $IPFILE
+    else
+        cat
+    fi |
+        # How to include cell number?
+        jq '.cells[] | select(.cell_type=="code").source' | 
+        sed -e 's/^ *"//' -e 's/",$//' -e 's/"$//' -e 's/\\n$//' |
+        tee ~/tmp/nb.longlines.precut |
+        grep -E ".{$MAX}" |
+        #cut -c 1-${LEFT_COLS},${MAX}-5000 |
+        #cut -c ${MAX}-5000 |
+        grep -v "^$"
+        #grep -v "^ *[0-9]*"$'\t'"$"
+}
+
+function NB_SHOW_LONG_LINES {
+    local IPFILE=""
+    local MAX_LINE_LEN=80
+    local LEFT_COLS=7
+
+    while [ ! -z "$1" ]; do
+        case $1 in
+            -m) shift; MAX_LINE_LEN=$1;;
+             *) IPFILE=$1;;
+        esac
+        shift
+    done
+
+    let MAX=MAX_LINE_LEN+LEFT_COLS
+
+    # CAT input file with line numbers:
+    # - if/cat: cat input file or stdin, with line numbers
+    #           also sanitize output (control chars can mess up terminal colours)
+    # - cut: select first columns with line number and columns after MAX_LINE_LEN chars
+    # - grep: Remove lines with no extra chars (after column 80 of input file)
+    #         By detecting lines with initial spaces, line number and then a TAB then end of line
+
+    if [ ! -z "$IPFILE" ]; then
+        cat -vn $IPFILE
+    else
+        cat -vn
+    fi |
+        cut -c 1-${LEFT_COLS},${MAX}-5000 |
+        grep -v "^ *[0-9]*"$'\t'"$"
+}
+
+function NB_RUN {
+    echo "+ $@" >&2
+    if [ "$1" = "opa" ]; then
+        eval "$@" | OPA_OP
+    else
+        eval "$@"
+    fi
+    #$@
+}
+
+function __NB_FILE_COMMON {
+    APPEND=0
+    [ "$1" = "-a" ] && { APPEND=1; shift; }
+    FILE=$1; shift
+    # Assume no '/' in FILE:
+    ## MD_FILE=".md.${FILE}"
+
+    #cat >$FILE
+    # Replace $STUDENT by it's value: also needs to be done in nbtool.py
+
+    [ ! -d ~/tmp ] && mkdir -p ~/tmp
+
+    sed -e "s/\$STUDENT/$STUDENT/g" -e "s/\${STUDENT}/${STUDENT}/g" > ~/tmp/file.$$
+
+    grep -v ">>tomark:" ~/tmp/file.$$ | sed 's/>>tofile://g' |
+       if [ $APPEND -eq 0 ]; then
+          cat >$FILE
+       else
+          cat >>$FILE
+       fi
+
+    ## grep -v ">>tofile:" ~/tmp/file.$$ | sed 's/>>tomark://g' |
+       ## if [ $APPEND -eq 0 ]; then
+          ## cat >$MD_FILE
+       ## else
+          ## cat >>$MD_FILE
+       ## fi
+
+    rm ~/tmp/file.$$
+
+    ls -al $FILE >> $LOG
+}
+
+function NB_FILE {
+    # NOTE: nbtool.py to replace this code_cell with markdown cell to say create a file with these contents
+    FILE="$1"; shift
+    local LOG=/tmp/__FILE
+
+    echo "[$PWD] Writing to new file '$FILE'" >$LOG
+    __NB_FILE_COMMON $FILE
+}
+
+function NB_FILE_TEMPLATE {
+    # NOTE: nbtool.py to replace this code_cell with markdown cell to say create a file with these contents
+    FILE="$1"; shift
+    local LOG=/tmp/__FILE
+
+    echo "[$PWD] Writing to new file '$FILE'" >$LOG
+    __NB_FILE_COMMON $FILE
+}
+
+function NB_FILE_A {
+    # NOTE: nbtool.py to replace this code_cell with markdown cell to say append file with these contents
+    FILE="$1"; shift
+    local LOG=/tmp/__FILE_A
+
+    echo "[$PWD] Appending to file '$FILE'" >$LOG
+    __NB_FILE_COMMON -a $FILE
+}
+
+function NB_FILE_M {
+    # NOTE: nbtool.py to replace this code_cell with markdown cell to say append file with these contents
+    FILE="$1"; shift
+    local LOG=/tmp/__FILE_M
+
+    # Same treatment as NB_FILE, just create file (but nbtool.py inserts a "modify" message):
+    echo "[$PWD] Modifying file '$FILE'" >$LOG
+    __NB_FILE_COMMON $FILE
+}
+
+#function NB_COLOUR { grep --color always ''; }
+#function NB_COLOUR { sed -e 's/^/\\01b[1;34m/' -e 's/$/\\01b[0m/'; }
+
+function NB_COLOUR {
+    # #  NORMAL;           BOLD;                 INVERSE;
+    # _black='\e[00;30m';  _L_black='\e[01;30m';  _I_black='\e[07;30m'
+    # _white='\e[00;37m';  _L_white='\e[01;37m';  _I_white='\e[07;37m'
+    # _red='\e[00;31m';    _L_red='\e[01;31m';    _I_red='\e[07;31m'
+    # _green='\e[00;32m';  _L_green='\e[01;32m'   _I_green='\e[07;32m'
+    # _yellow='\e[00;33m'; _L_yellow='\e[01;33m'  _I_yellow='\e[07;33m'
+    # _blue='\e[00;34m'    _L_blue='\e[01;34m'    _I_blue='\e[07;34m'
+    # _magenta='\e[00;35m' _L_magenta='\e[01;35m' _I_magenta='\e[07;35m'
+    # _cyan='\e[00;36m'    _L_cyan='\e[01;36m'    _I_cyan='\e[07;36m'
+
+    case "$1" in
+        red)       sed "s,.*,\x1B[31m&\x1B[0m,";;
+        boldgreen) sed "s,.*,\x1B[01;32m&\x1B[0m,";;
+        green)     sed "s,.*,\x1B[32m&\x1B[0m,";;
+        yellow)    sed "s,.*,\x1B[33m&\x1B[0m,";;
+        blue)      sed "s,.*,\x1B[34m&\x1B[0m,";;
+
+        *)         sed "s,.*,\x1B[31m&\x1B[0m,";;
+    esac
+}
+
+# STUFF TO DO: --------------------------------------------------------
+
+# option to remove Nth argument  and comment
+# e.g.
+#    ls -al # STRIP_ARG 2 ==> 'ls'
+
+# RECORD NEW FUNCTIONS: -----------------------------------------------
+
+FN_0_LIST_ORIG=/tmp/nbtool.functions.0.list
+FN_0_LIST=/tmp/nbtool.functions.0.list
+FN_1_LIST=/tmp/nbtool.functions.1.list
+
+if [ -f $FN_0_LIST ]; then
+    FN_0_LIST=/tmp/nbtool.functions.0.rep.list
+    FN_1_LIST=/tmp/nbtool.functions.1.rep.list
+fi
+typeset -f > $FN_0_LIST
+
+# SETUP     FUNCTIONS: ------------------------------------------------
+# Source .jupyer.profile, then demonstrate kubectl working:
+
+function DIE {
+    MESSAGE="$*"
+    echo "==== START_DIE: $MESSAGE"
+    #echo "====" |& NB_HIGHLIGHT
+    #echo "====" >&2
+    echo "[$PWD]" |& NB_HIGHLIGHT
+    echo "${BASH_SOURCE[1]##*/}:${FUNCNAME[1]}[${BASH_LINENO[0]}]: DIE - $*" |& NB_HIGHLIGHT
+    ls -al ~/tmp/quiet.filter.notebook.op
+    if [ -f ~/tmp/quiet.filter.notebook.op ]; then
+        echo "... filtering notebook - refer to ~/tmp/quiet.filter.notebook.op"
+        ls -altr ~/tmp/quiet.filter.notebook.op
+        wc -l    ~/tmp/quiet.filter.notebook.op
+        awk '/==== FILTERING NOTEBOOK/,/==== FILTERING DONE/ { print $0; }' ~/tmp/quiet.filter.notebook.op
+    fi >&2
+    env | grep -E "NBTOOL|LAB"
+    echo "==== END: $MESSAGE"
+    echo "==== END_DIE see ~/tmp/quiet.filter.notebook.op"
+    ls -al ~/tmp/quiet.filter.notebook.op
+    for i in 0 1 2 3 4 5 6 7 8 9 10;do
+        CALLER_INFO=`caller $i`
+        [ -z "$CALLER_INFO" ] && break
+        echo "    Line: $CALLER_INFO" >&2
+    done
+
+    echo "==== END: $MESSAGE"
+    exit 1
+}
+
+
+function NB_CHECK_FILE_SIZE {
+    local FILE=$1; shift;
+    local MIN_BYTES=$1; shift;
+
+    #SIZE=$( stat -c %s $FILE )
+    SIZE=$( wc -c < $FILE )
+    [[ $SIZE -lt $MIN_BYTES ]] && {
+        echo "File looks suspiciously small"
+        ls -al $FILE 
+        # Ignore if ALLOW_SMALL (needed for LFS458 Lab2):
+        #grep ALLOW_SMALL $FILE ||
+        grep ALLOW_SMALL ${LAB_IPYNB} ||
+            return 1
+    }
+    return 0
+}
+
+# START: TIMER FUNCTIONS ================================================
+
+# Time a command:
+function NB_TIME {
+    local START=$SECONDS
+
+    $*
+    let TOOK_NB_TIME=SECONDS-START
+    TIMER_hhmmss $TOOK_NB_TIME
+    TIMER_STOP="${LABEL}Took $TOOK secs [${HRS}h${MINS}m${SECS}]"
+    NB_DEBUG "Took: $TIMER_STOP - $*"
+}
+
+function TIMER_START { START_S=$SECONDS; }
+
+function TIMER_STOP {
+    LABEL=""
+    [ ! -z "$1" ] && LABEL="[$*]: "
+
+    END_S=$SECONDS
+    let TOOK=END_S-START_S
+
+    TIMER_hhmmss $TOOK
+    TIMER_STOP="${LABEL}Took $TOOK secs [${HRS}h${MINS}m${SECS}]"
+    NB_DEBUG $TIMER_STOP
+    #echo $TIMER_STOP
+}
+
+function TIMER_hhmmss {
+    _REM_SECS=$1; shift
+
+    let SECS=_REM_SECS%60
+    let _REM_SECS=_REM_SECS-SECS
+    let MINS=_REM_SECS/60%60
+    let _REM_SECS=_REM_SECS-60*MINS
+    let HRS=_REM_SECS/3600
+
+    [ $SECS -lt 10 ] && SECS="0$SECS"
+    [ $MINS -lt 10 ] && MINS="0$MINS"
+}
+
+# TIMER_START
+# TIMER_STOP "Sleep test"
+
+# END: TIMER FUNCTIONS ================================================
+#
+function NB_SOURCE_FNS {
+    case $LAB_MODE in
+        Tofu|Terraform) NB_DEBUG "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN;;
+        Docker)         NB_DEBUG "-- source $NBTOOL_DO_FN"; source $NBTOOL_DO_FN;;
+        Kubernetes)     NB_DEBUG "-- source $NBTOOL_K8_FN"; source $NBTOOL_K8_FN;;
+        Rego)           NB_DEBUG "-- source $NBTOOL_OPA_FN"; source $NBTOOL_OPA_FN;;
+    esac
+}
+
+function NB_INIT_NOTEBOOK {
+    NB_START_TIME=$SECONDS
+    [ "$FULL_MODE" != "FULL_START" ] &&  [ -f $PROGRESS_LOG ] && { rm $PROGRESS_LOG; }
+
+    NB=""
+    if [ -z "$1" ]; then
+        NB="${LAB_IPYNB}"
+    else
+        NB=$( basename "$1" )
+    fi
+
+    [ ! -f "$NB" ] && DIE "[$PWD] No such notebook as '$NB'"
+
+    dpkg -l | grep -q "^ii jq " || {
+       echo "==== sudo apt-get install -y jq"
+       sudo apt-get install -y jq >/dev/null 2>&1
+    }
+
+    echo
+    NB_SET_ENV
+
+    echo "**** $(date): Notebook initialized on ${HOSTNAME} ${ENVIRONMENT}"
+    
+    #set -x
+    #set +x
+
+    if [ -f ${LAB_IPYNB} ]; then
+        if [ -f .dir ]; then
+            # Detect moved dir with out of date ~/.dir
+            [ "$PWD" != "$(cat .dir)" ] && DIE ".dir out of date";
+            echo "NB_INIT_NOTEBOOK: Setting NB_DIR=$PWD"
+            NB_DIR=$PWD
+        else
+            echo $PWD > .dir
+        fi
+
+        #echo "Setting NB_DIR=\$( cat $PWD/.dir )"
+        #NB_DIR=$(cat .dir)
+        export NB_DIR
+        NB=$NB_DIR/$NB
+        echo "NB_INIT_NOTEBOOK: NB_DIR=$NB_DIR" | NB_HIGHLIGHT
+    fi
+
+    # To be used in markdown front-matter, picked up by Hugo/Printing to give PDF filename ...
+    TITLE_MODE=""
+    NB_SOURCE_FNS
+    case $LAB_MODE in
+        Ansible)
+            # TODO: NBTOOL_ANS_FN
+            # echo "-- source $NBTOOL_TF_FN"; source $NBTOOL_TF_FN
+            TITLE_MODE="ANS"
+            # To avoid annoying warning messages:
+            export ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3
+            # To avoid key check prompts (from ansible, not ssh):
+            export ANSIBLE_HOST_KEY_CHECKING=False
+            NB_SET_VAR TOOL="ansible"
+            ;;
+        Tofu|Terraform)
+            # Handling OpenTofu:
+            TF="terraform"; __TF="TF";
+            # DO $__TF replacement automatically in nbtools.py !
+            NB_SET_VAR TF="terraform"
+            NB_SET_VAR TOOL="terraform"
+            export __TF
+            ## REPO="https://github.com/hashicorp/terraform"
+            [ "$LAB_MODE" = "Tofu" ] && {
+                TF="tofu"; __TF="OTF";
+                NB_SET_VAR TF="tofu"
+                NB_SET_VAR TOOL="tofu"
+                export __TF
+                ## REPO="https://github.com/opentofu/opentofu"
+            }
+            echo "EXPORTED __TF: $( env | grep __TF )"
+
+            TITLE_MODE=$__TF
+            rm -rf ~/tmp/terraform*
+
+            echo "==== Setting TF_PLUGIN_CACHE_DIR"
+            export TF_PLUGIN_CACHE_DIR=~/.terraform.plugin-cache
+            echo "TF_PLUGIN_CACHE_DIR=$TF_PLUGIN_CACHE_DIR" | NB_HIGHLIGHT_EOL =
+            #echo "==== Setting TF_DATA_DIR ===="
+            #export TF_DATA_DIR=~/dot.terraform
+            #echo "TF_DATA_DIR=$TF_DATA_DIR" | NB_HIGHLIGHT_EOL =
+            if [ -f ~/.aws/linked/student20.rc ]; then
+                env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
+                echo "==== Setting AWS vars for student20 account ===="
+                . ~/.aws/linked/student20.rc; env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
+                #env | grep AWS_LINKED_ACCOUNT= | NB_HIGHLIGHT_EOL =
+                TITLE_MODE="${__TF}-AWS"
+            else
+                echo "==== No AWS vars ( ~/.aws/linked/student20.rc )"
+            fi
+            if [ -f ~/.student.rc ]; then
+                env | grep MYAWS_ACCOUNT_NAME= | NB_HIGHLIGHT_EOL =
+                echo "==== Setting AZURE vars for student account ===="
+                . ~/.student.rc;
+                env | grep AZURE_CONFIG_DIR= | NB_HIGHLIGHT_EOL =
+                env | grep ^ARM_.*=          | NB_HIGHLIGHT_EOL =
+                TITLE_MODE="${__TF}-AZ"
+            else
+                echo "==== No AZURE vars ( ~/.student.rc )"
+            fi
+            ;;
+        Docker)
+            TITLE_MODE="DO"
+            echo "In Docker Mode"
+            NB_SET_VAR TOOL="docker"
+            #exit 1
+            ;;
+        Kubernetes)
+            TITLE_MODE="K8S"
+            [ -z "$KUBECONFIG" ] && export KUBECONFIG=~/.kube/config
+            echo "KUBECONFIG='$KUBECONFIG'"
+            KUBEOK=1
+            [   -z "$KUBECONFIG" ] && KUBEOK=0
+            [ ! -f "$KUBECONFIG" ] && KUBEOK=0
+            NB_SET_VAR TOOL="kubernetes"
+            which kubectl >/dev/null 2>&1 && KUBEOK=0
+            if [ $KUBEOK -ne 0 ]; then
+                grep current-context "$KUBECONFIG" | grep -q kubernetes-admin && echo "## ASSUMING full cluster admin rights"
+                grep server: $KUBECONFIG
+                kubectl get nodes
+                kubectl config get-contexts
+            fi
+            ;;
+
+        Rego)
+            TITLE_MODE="REGO"
+            NB_SET_VAR TOOL="opa"
+            ;;
+
+        *)
+            echo "Error: Unknown LAB_MODE '$LAB_MODE' - should be one of 'Ansible|Docker|Terraform|Tofu|Kubernetes|Rego'" | NB_HIGHLIGHT
+            banner ERR
+            return
+            ;;
+    esac
+
+    export PROGRESS_LOG=/tmp/nb.progress.${TITLE_MODE}.log
+    [ ! -z "$TOOL" ] && export PROGRESS_LOG=/tmp/nb.progress.${TOOL}.log
+    [ -f $PROGRESS_LOG ] && mv ${PROGRESS_LOG} ${PROGRESS_LOG}.bak
+    echo "NB_INIT_NOTEBOOK: $(date)" | tee $PROGRESS_LOG
+    NB_INIT_SECONDS=$SECONDS
+
+    #rm -rf ~/labs
+    #NO_EXEC echo SHOULD NOT BE SEEN | NB_HIGHLIGHT_SOL SHOULD
+    #EXEC    echo SHOULD BE SEEN     | NB_HIGHLIGHT_SOL SHOULD
+
+    #echo "LABTAG=$LAB_TAG" | NB_HIGHLIGHT_EOL =
+    echo "======== $LAB_MODE Lab weight[$LAB_WEIGHT] / tag[$LAB_TAG] / name[$LAB_NAME] ========" | NB_HIGHLIGHT_EOL weight
+    PDF_NAME=$( echo "$LAB_NAME" | sed -e 's/  */_/g' -e "s/^/${TITLE_MODE}_/" -e 's/_-_/-/g' )
+    MD_SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
+
+    echo "[NB=$( basename $NB )] in NB_DIR=$NB_DIR"
+    # NB_FILTER_NOTEBOOK $NB
+}
+
+# Old code cell version:
+function NB_LAB_ENV_CODE {
+    __NB_LAB_ENV
+
+    echo "# OLD_VERSION: Notebook last generation:"
+    echo "# OLD_VERSION: - $(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
+    [ ! -z "$REPO" ] && echo "git repo ${REPO} last commit ${DATE}: ${SHA}"
+}
+
+# New markdown cell version:
+function NB_LAB_ENV {
+    __NB_LAB_ENV
+
+    # (class=nooutputtab): Tell css not to put an 'Output:' tab/tag before the block:
+    echo "<pre> <code class=nooutputtab>Notebook last generation:"
+    echo "- $(date +'%Y-%b-%d %0Hh%0Mm'):[$ENVIRONMENT] node ${HOSTNAME}["$INFO"]"
+    [ ! -z "$REPO" ] && echo "- git repo ${REPO} last commit ${DATE}: ${SHA}"
+    echo "</code> </pre>"
+}
+
+function __NB_LAB_ENV {
+    REPO=""
+    SHA=""
+    DATE=""
+    
+    git remote -v >/dev/null 2>&1 | grep -q origin && {
+        REPO=$( git remote -v | awk '/fetch/ { print $2; exit; }' | sed -e 's?ssh://?https://?' -e 's/git@//' )
+        SHA=$( git log | awk '{ print $2; exit; }' )
+        DATE=$( git log | grep -m1 ^Date: | sed -e 's/Date: *//' )
+    }
+
+    INFO="Unknown LAB_MODE"
+    case $LAB_MODE in
+        Ansible)
+            __ANS_VERSION=$( ansible --version 2>/dev/null | grep -m1 core | sed -e 's/.*core //' -e 's/]//' )
+            [ -z "$__ANS_VERSION" ] && __ANS_VERSION="not-installed"
+            INFO="Ansible $__ANS_VERSION"
+            TITLE_MODE+="_$__ANS_VERSION"
+            TOOL_VERSION="$__ANS_VERSION"
+            ;;
+        Tofu)
+            __OTF_VERSION=$( which tofu >/dev/null && tofu version -json | jq -rc '.terraform_version' || echo missing )
+            INFO="$TF $__OTF_VERSION"
+            TITLE_MODE+="_$__OTF_VERSION"
+            # Set in ~/.tool: TOOL_VERSION="$__OTF_VERSION"
+            ;;
+
+        Terraform)
+            __TF_VERSION=$( which terraform >/dev/null && terraform version -json | jq -rc '.terraform_version' || echo missing )
+            # terraform version | awk '/^Terraform / { print $2; }'
+            INFO="terraform $__TF_VERSION"
+            TITLE_MODE+="_$__TF_VERSION"
+            # Set in ~/.tool: TOOL_VERSION="$__TF_VERSION"
+            ;;
+        Docker)
+            if which docker >/dev/null; then
+                INFO=$( docker version --format '{{.Server.Version}}' | grep -A 1 Engine | awk '/ Version:/ { print $2; }' )
+                TITLE_MODE+="_$INFO"
+                TOOL_VERSION="$INFO"
+            else
+                echo "************ NO DOCKER ***************"
+                INFO="No-Docker"
+                TOOL_VERSION=""
+            fi
+            ;;
+        Rego)
+            if which opa >/dev/null; then
+                INFO=$( opa version | awk '/^Version: / { print $2; exit(0); }' )
+                TITLE_MODE+="_opa_$INFO"
+                TOOL_VERSION="$INFO"
+            else
+                echo "************ NO OPA ***************"
+                INFO="No-OPA"
+                TOOL_VERSION=""
+            fi
+            ;;
+        Kubernetes)
+            # Short term as --short will be deprecated:
+            # K8S_VERSION=$( which kubectl >/dev/null && kubectl version --short 2>/dev/null || echo No kubectl )
+            # K8S_VERSION=$( which kubectl >/dev/null && kubectl version 2>/dev/null || echo No kubectl )
+            # K8S_VERSION=$( which kubectl >/dev/null && kubectl version 2>/dev/null | sed -e 's/.*Client Version: //' -e 's/ .*//' -e 's/Kustomize.*//'|| echo No kubectl )
+            K8S_VERSION=$( which kubectl >/dev/null && 
+ kubectl version -o json |& jq -rc '{ client: .clientVersion.gitVersion, server: .serverVersion.gitVersion } | values[]' |& sed -e '1s/^/Client /' -e '2s/^/Server /' )
+            INFO=$K8S_VERSION
+            TITLE_MODE+="_$K8S_VERSION"
+            TOOL_VERSION="$K8S_VERSION"
+            ;;
+    esac
+                  
+    NB_SET_ENV
+    return 0
+}
+
+# NOTEBOOK  FUNCTIONS: ------------------------------------------------
+
+# MD_SET_FRONTMATTER:
+
+function MD_SET_FRONTMATTER {
+    local __TITLE="$1"; shift
+    local __WEIGHT="$1"; shift
+
+    #local __DATE=$(date)
+    #local __DATE=$(date  --iso-8601=seconds)
+    local __DATE=$(date +%s)
+    #date: 2018-11-28T15:14:39+10:00
+
+    if [ "$LAB_MODE" = "Tofu" ]; then
+        __TITLE=$( echo $__TITLE | sed 's/Terraform/OpenTofu/' )
+    fi
+
+    [ ! -z "$MD_TITLE" ] && __TITLE="force:$MD_TITLE"
+
+    read -r -d '' FRONTMATTER <<EOF
+---
+title:  $__TITLE
+date:   $__DATE
+weight: $__WEIGHT
+toolversion: $TOOL_VERSION
+hide:
+#  - navigation
+- toc
+---
+
+EOF
+}
+
+function NB_REPLACE_HOME_STDIN {
+    sed -e "s?${HOME}/?~/?g"
+}
+
+function NB_ARCHIVE_LAB {
+    # e.g.  NB_ARCHIVE_LAB lab1
+    LAB=$1; shift
+    
+    mkdir -p ~/labs.old
+    [ -d ~/labs/$LAB ] && {
+        # echo "-- mv ~/labs/$LAB ~/labs.old/"
+        [ -d ~/labs.old/$LAB ] && {
+            mv ~/labs.old/$LAB ~/labs.old/{$LAB}.2
+        }
+        mv ~/labs/$LAB ~/labs.old/
+        # USELESS - but paranoid:
+        [ -d ~/labs/$LAB ] && rm -rf ~/labs/$LAB/* ~/labs/$LAB/.terraform.lock.hcl
+    } >/dev/null 2>&1
+}
+
+function NB_ARCHIVE_SOLUTIONS {
+    mkdir -p ~/Solutions/BAK
+    SOLUTION_DIR=~/Solutions.${LAB_MODE}.${TOOL_VERSION}/Lab${LAB_NUM}
+    BAK_DIR=${SOLUTION_DIR}.BAK
+    mkdir -p $BAK_DIR
+
+    [ -d $SOLUTION_DIR ] && mv $SOLUTION_DIR $BAK_DIR/ 2>/dev/null
+
+    mkdir -p $SOLUTION_DIR
+    cp -a *.yml *.yaml *.tf *.tfvars *.json $SOLUTION_DIR/ 2>/dev/null
+}
+
+#
+# Perform nbtool.py processing
+# - filters out '#EXCLUDE' cells
+# - filters out NB_SET_VARS cells, but picks up VAR values
+# - replaces VAR values in cells
+# - TODO: Create ToC (Table of Contents) and links to Next section
+# - TODO: Autonumber sections/subsections
+#
+function NB_QUIET {
+    [ "$FULL_MODE" = "FULL_START" ] && {
+        echo "In FULL mode: Skipping notebook creation"
+        return 0
+    }
+    # Quiet except on failure --> __FILTER
+    pwd
+
+    LAST_MOD_S=$(date -r $NB_DIR/$LAB_IPYNB +%s)
+    NOW_S=$SECONDS
+    let AGE_S=NOW_S-LAST_MOD_S
+    echo "[$AGE_S secs old] $NB_DIR/$LAB_IPYNB"
+
+    TIMER_START
+    NB_QUIET_FILTER_NOTEBOOK $* || __FILTER
+    TIMER_STOP "Notebook filtering/conversion"
+
+    START_S=$NB_START_TIME
+    NB_SAVE_ZIP
+    TIMER_STOP "NB_QUIET: TOTAL TIME since NB_INIT_NOTEBOOK called" | tee -a $PROGRESS_LOG
+    #let START_S=NB_INIT_SECONDS
+    #TIMER_STOP "NB_QUIET: TOTAL TIME since NB_INIT_NOTEBOOK called" | tee -a $PROGRESS_LOG
+    return 0
+}
+
+#function NB_TIME {
+    #TIMER_START
+    #$*
+    #TIMER_STOP "$*"
+#}
+
+function NB_FILTER {
+    pwd
+    NB_FILTER_NOTEBOOK $*
+}
+
+function SAVE_NB_SECTIONS {
+    jq '.cells[] | select(.cell_type == "markdown") | .source ' $1 |
+        grep -E "# [1-9]" |
+        sed -e 's/.*\\n\\n*#/#/' -e 's/\\n"//' -e 's/,$//'
+    return
+        #grep -E "# (Lab)?[1-9]" |
+
+    jq '.cells[] | select(.cell_type == "markdown") | .source ' $OP_NB |
+        grep "# " | sed -e 's/^ *"//' -e 's/.*\\n# /# /' |
+        grep -E "^#* (Exercise? *)[1-9]" |
+        # grep "^#* [1-9]" |
+        sed -e 's/\\n"//' -e 's/,$//'
+        #grep "# " | sed -e 's/^ *"//' -e 's/.*\\n# /# /' | grep "^#* [1-9]" | sed -e 's/\\n"//' -e 's/,$//'
+}
+
+function NB_QUIET_FILTER_NOTEBOOK {
+    #set -x
+    pwd
+    rm -f ~/tmp/quiet.filter.notebook.op
+    NB_FILTER_NOTEBOOK $* > ~/tmp/quiet.filter.notebook.op 2>&1
+    ls -al ~/tmp/quiet.filter.notebook.op | NB_COLOUR red
+    __CHECK_NB_DIR
+    ( cd $NB_DIR;
+      #ls -altrd ${LAB_IPYNB%.ipynb}.md *.ipynb | tail -2 | NB_COLOUR green;
+      # echo HERE | NB_COLOUR blue
+      ls -altrd ${LAB_IPYNB%.ipynb}.md *.ipynb | NB_COLOUR green;
+      # echo HERE | NB_COLOUR blue
+
+      IP_NB=${LAB_IPYNB}
+      [ -z "$IP_NB" ] && {
+          echo "NB_QUIET_FILTER_NOTEBOOK: Failed to find input notebook"
+          echo "LAB_IPYNB='$LAB_IPYNB' IP_NB='$IP_NB'"
+          exit 1
+      }
+
+      TOTAL_CELLS=$(jq -rc '.cells    | length' $IP_NB )
+      CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $IP_NB)
+      MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $IP_NB)
+      printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${IP_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
+
+      OP_NB=$( ls -1tr $NB_DIR/OP_*.ipynb | tail -1 )
+      [ -z "$OP_NB" ] && {
+          echo "NB_QUIET_FILTER_NOTEBOOK: Failed to find output notebook"
+          set -x
+              ls -1tr $OP_DIR/ | grep -v ^IP_
+              ls -1tr $OP_DIR/OP_*.ipynb 
+              ls -1tr $OP_DIR/OP_*.ipynb | grep -v ${LAB_IPYNB%.ipynb} | tail -1
+              return
+          set +x
+      }
+
+      #set -x
+      SECTIONS_FILE=$( basename $OP_NB )
+      SECTIONS_FILE=${SECTIONS_FILE%.ipynb}
+      SECTIONS_FILE=SECTIONS_${SECTIONS_FILE#OP_}.list
+      SAVE_NB_SECTIONS $OP_NB > $NB_DIR/$SECTIONS_FILE
+
+      OP_NB=$( basename $OP_NB )
+      TOTAL_CELLS=$(jq -rc '.cells    | length' $OP_NB )
+      CODE_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="code")) ' $OP_NB)
+      MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $OP_NB)
+      printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${OP_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
+
+      grep -q NB_DEBUG: ${OP_NB} &&
+          echo "Warning NB_DEBUG entries seen - $( grep -c NB_DEBUG: ${OP_NB} ) in $OP_NB"
+
+      #set -x
+      OP_MD=${OP_NB%.ipynb}.md
+      [ ! -f "$OP_MD" ] && echo "Warning: No md file '$OP_MD'"
+      ESCAPES=$( grep -c $'\x1b' $OP_MD )
+      [ "$ESCAPES" != "0" ] && echo "Warning $ESCAPES escape code lines seen in markdown ($OP_MD)"
+          # || echo "OK: No NB_DEBUG entries seen in $OP_NB"
+          #set -x
+          echo "Warning $ESCAPES escape code lines seen in markdown ($OP_MD)"
+    )
+
+    #set -x
+    mv *.sh $OP_DIR/ 2>/dev/null
+
+    # Show DIE errors though:
+    awk '/==== START_DIE/,/==== END_DIE/ { print $0; }' ~/tmp/quiet.filter.notebook.op | NB_COLOUR red
+    grep -i   " DIE "       ~/tmp/quiet.filter.notebook.op && { __RETURN 1; return 1; }
+    grep -A30 "^Traceback " ~/tmp/quiet.filter.notebook.op && { __RETURN 1; return 1; }
+
+    grep "long lines"       ~/tmp/quiet.filter.notebook.op
+
+    # Search for BlueBar lines in code cells: NO PROBLEM is comments markdown/bacticks -> ThinBlueBar
+    ### jq '.cells[] | select(.cell_type=="code") | .source'
+    ### grep -E "images/(ThickBlueBar|ThinBlueBar)" $OP_NB
+    ###
+    __RETURN 0
+}
+
+function __CHECK_NB_DIR {
+    [ -z "$NB_DIR" ] && NB_DIR=$(cat .dir)
+    [ -z "$NB_DIR" ] && DIE "NB_DIR is unset"
+    # HACK:
+    export NB_DIR
+    env | grep -q ^NB_DIR= || DIE "NB_DIR is not exported"
+    echo "__CHECK_NB_DIR: NB_DIR='$NB_DIR'"
+}
+
+function REPLACE_OTF_TF {
+    local LABEL=$1; shift
+    local IFILE=$1; shift
+
+    if [ "$LAB_MODE" = "Tofu" ]; then
+      set -x
+        sed -i.bak $IFILE \
+          -e 's/registry.terraform.io/registry.dontreplace.io/g' \
+          -e 's?mjbright/terraform?mjbright/dontreplace?g' \
+          -e 's?mjbright/Terraform?mjbright/DONTREPLACE?g' \
+          -e 's/Terraform/OpenTofu/g' -e 's/terraform/tofu/g' \
+          -e 's?www.tofu.io/docs/commands/?opentofu.org/docs/cli/commands/?g' \
+          -e 's/\.tofu/\.terraform/g' \
+          -e 's/^tofu {/terraform {/' \
+          -e 's/tofu-modules/terraform-modules/g' \
+          -e 's/tofu.lock.hcl/terraform.lock.hcl/g' \
+          -e 's/tofu.tfvars/terraform.tfvars/g' \
+          -e 's/tofu.tfstate/terraform.tfstate/g' \
+          -e 's/DONTREPLACE/Terraform/g' \
+          -e 's/dontreplace/terraform/g' \
+          -e 's/OTFOTF/OpenTofu/g' -e 's/otfotf/opentofu/g' \
+          -e 's/TFTF/Terraform/g'  -e 's/tftf/terraform/g' \
+          -e 's/TFTOOL/OpenTofu/g' \
+
+      set +x
+    else
+      set -x
+        sed -i.bak $IFILE \
+          -e 's/OTFOTF/OpenTofu/g' -e 's/otfotf/opentofu/g' \
+          -e 's/TFTF/Terraform/g'  -e 's/tftf/terraform/g' \
+          -e 's/TFTOOL/Terraform/g' \
+
+      set +x
+    fi
+
+    echo $LAB_MODE
+    echo "REPLACE_OTF_TF: '$LABEL'"
+    ls -altr ${IFILE}*
+}
+
+function NBTOOL_FN {
+    # Re-source latest version:
+    NB_DEBUG "-- source $NBTOOL_FN"
+    #echo "-- source $NBTOOL_FN" | NB_REPLACE_HOME_STDIN
+    [ -z "$NBTOOL_FN" ] && DIE "NBTOOL_FN is unset"
+    source $NBTOOL_FN
+}
+
+function NB_FILTER_NOTEBOOK {
+#set -x
+    __CHECK_NB_DIR
+    export LAB_NUM=$( echo $LAB_NAME | sed -e 's/^lab//i' -e 's/_lab//i' -e 's/ .*//' -e 's/\..*//' )
+
+    ( cd $NB_DIR;
+
+    mkdir -p $OP_DIR
+    
+    echo "======== Filtering current notebook [$LAB_IPYNB] ========"
+    echo "**** $(date): Notebook filtered on ${HOSTNAME} ${ENVIRONMENT}"
+
+    ## Disabled in favour of NB_SAVE_STEP:
+    ## NB_ARCHIVE_SOLUTIONS
+
+    NBTOOL_FN
+
+    # In kubelab:
+    # Jupyter on Ubuntu, or in kubelab:
+    export PATH=~/.venv/jupyter_bash/bin:$PATH
+    which python3
+    PYTHON3=$(which python3 || echo /opt/conda/bin/python3)
+
+    echo "======== FILTERING NOTEBOOK ===================================================="
+    CMD="$PYTHON3 $NBTOOL_PY -f $LAB_IPYNB"
+    #echo "-- $CMD" | tee ~/tmp/nbtool.py.op | NB_REPLACE_HOME_STDIN
+    echo "-- $CMD" | NB_REPLACE_HOME_STDIN
+    #$CMD | tee ~/tmp/nbtool.py.op
+    local START_NB_FILTER=SECONDS
+    $CMD
+    local TOOK_NB_FILTER=SECONDS-START_NB_FILTER
+    TIMER_hhmmss $TOOK_NB_TIME
+    LABEL="Notebook filtering: "
+    TIMER_STOP="${LABEL}Took $TOOK secs [${HRS}h${MINS}m${SECS}]"
+    NB_DEBUG "$TIMER_STOP"
+    echo "======== FILTERING DONE ========================================================"
+    __CHECK_NB_DIR
+    #DIE "TODO: check nbtool.py output - TESTING"
+
+    set -x 
+    ls -1tr $NB_DIR/$OP_DIR | grep filtered.ipynb$
+    set +x
+    FILTERED_NOTEBOOK=$(ls -1tr $NB_DIR/$OP_DIR | grep filtered.ipynb$ | tail -1)
+    FILTERED_NOTEBOOK=$OP_DIR/$FILTERED_NOTEBOOK
+    [ -z "$FILTERED_NOTEBOOK" ] && {
+        which python3
+        echo "[$PWD] Error: failed to find filtered *.ipynb in directory '$NB_DIR/$OP_DIR'"
+        ls -1tr $NB_DIR/$OP_DIR | grep .ipynb$ | NB_REPLACE_HOME_STDIN | sed 's/^/::/'
+        exit 1
+    }
+    [ ! -f "$FILTERED_NOTEBOOK" ] && {
+        echo; echo "Notebook processing failed"
+        DIE "Not a file: FILTERED_NOTEBOOK='$FILTERED_NOTEBOOK'"
+    }
+    echo FILTERED_NOTEBOOK=$FILTERED_NOTEBOOK
+    echo "DEBUG: \$LAB_MODE='$LAB_MODE'" >&2
+    [ "$LAB_MODE" = "Tofu" ] && {
+        DIFFS=$( diff ${FILTERED_NOTEBOOK} ${FILTERED_NOTEBOOK}.tf | grep -c '> ' )
+        echo "$DIFFS lines changed reference from Terraform to Tofu"
+        # TOO EARLY TO RENAME output file (need to do that after filtering)
+    }
+    REPLACE_OTF_TF 'NB_FILTER_NOTEBOOK: FILTERED_NOTEBOOK' $FILTERED_NOTEBOOK
+
+    [ `which jq` ] && {
+        set -x
+        jq . < $FILTERED_NOTEBOOK > ${FILTERED_NOTEBOOK}.tmp
+        echo "-------- mv ${FILTERED_NOTEBOOK}.tmp $FILTERED_NOTEBOOK"
+        mv ${FILTERED_NOTEBOOK}.tmp $FILTERED_NOTEBOOK
+        set +x
+    }
+
+    # Attempt line-wrapped cells:
+    #   based on https://medium.com/znippet/adding-word-wrap-to-jupyter-notebooks-97040d131784
+    FILTERED_NOTEBOOK_LINEWRAPPED=${FILTERED_NOTEBOOK%.ipynb}.LineWrapped.ipynb
+    jq '. + { "MarkdownCell": { "cm_config": { "lineWrapping": true } }, "CodeCell": { "cm_config": { "lineWrapping": true } } }' \
+        ${FILTERED_NOTEBOOK} > ${FILTERED_NOTEBOOK_LINEWRAPPED}
+
+    ls -altr $FILTERED_NOTEBOOK
+    ls -altr $FILTERED_NOTEBOOK| NB_REPLACE_HOME_STDIN
+
+    # Detect visibility of EXCLUDE/FN_EXCL in output (even if "# EXCLUDE" rather than "#EXCLUDE"):
+    echo "Checking for 'EXCLUDE|FN_EXCL' in filtered notebook"
+    grep -qE "EXCLUDE|FN_EXCL" $FILTERED_NOTEBOOK && {
+        echo "---- Error: EXCLUDE/FN_EXCL seen in $FILTERED_NOTEBOOK:"
+        echo "Occurrences of EXCLUDE in $FILTERED_NOTEBOOK:" $( grep -o EXCLUDE $FILTERED_NOTEBOOK | wc -l )
+        #grep EXCLUDE $FILTERED_NOTEBOOK | NB_HIGHLIGHT_MATCH EXCLUDE
+        echo "Occurrences of FN_EXCL in $FILTERED_NOTEBOOK:" $( grep -o FN_EXCL $FILTERED_NOTEBOOK | wc -l )
+        #grep FN_EXCL $FILTERED_NOTEBOOK | NB_HIGHLIGHT_MATCH FN_EXCL
+
+        JUPYTEXT=$( which jupytext )
+        echo "JUPYTEXT='$JUPYTEXT'"
+        if [ -x "$JUPYTEXT" ]; then
+            jupytext --to sh:percent $FILTERED_NOTEBOOK # filtered
+            grep -nE -A 5 "EXCLUDE|FN_EXCL" ${FILTERED_NOTEBOOK%.ipynb}.sh # filtered
+        fi
+
+        ls -altr ${LAB_IPYNB}  $OP_DIR/${LAB_IPYNB%.ipynb}.sh
+        echo "-------------------------------------------------"
+    }
+
+    echo "Checks specific to TF/K8S:"
+    __TF_OK="TF_DATA_DIR|__TF_VAR_|__TF_INPUT|__TF_CLI|__TF_CLI_ARG|__TF_LOG"
+    grep "__TF_"  $FILTERED_NOTEBOOK | grep -vE $__TF_OK | NB_HIGHLIGHT_MATCH __TF_
+    grep "K_"  $FILTERED_NOTEBOOK | NB_HIGHLIGHT_MATCH K_
+
+    S_NB=$( echo $LAB_IPYNB | NB_REPLACE_HOME_STDIN )
+    __EXCLUDE="__start_kubectl"
+    NUM=$( jq '.' $LAB_IPYNB | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
+    [ "$NUM" = "0" ] && {
+        echo "Good: No VAR defs/usages in i/p file"
+    } || {
+        echo "$NUM VAR defs/usages in i/p file: $S_NB"
+        # jq '.' $LAB_IPYNB | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __
+        # DIE "Can't continue"
+    }
+
+    S_OP_NB=$( echo $FILTERED_NOTEBOOK | NB_REPLACE_HOME_STDIN )
+    __EXCLUDE="__start_kubectl"
+    NUM=$( jq '.' $FILTERED_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
+    [ "$NUM" = "0" ] && {
+        echo "Good: No VAR defs/usages in o/p file"
+    } || {
+        echo "Error: $NUM VAR defs/usages in o/p file: $S_OP_NB"
+        jq '.' $FILTERED_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __ | NB_HIGHLIGHT
+        #DIE "Can't continue"
+    }
+
+    NUM=$( jq '.' $FILTERED_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c '${__' )
+    [ "$NUM" != "0" ] && {
+        echo "Error: $NUM \${__XX} defs/usages in o/p file: $S_OP_NB"
+        jq '.' $FILTERED_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n '${__' | NB_HIGHLIGHT
+        #DIE "Can't continue"
+    }
+
+    echo "Performing NB_CONVERT"
+    # ZZZZ WHY ???? [ "$LAB_IPYNB" = "${LAB_IPYNB##*TEST}" ] && NB_CONVERT
+    NB_CONVERT
+    )
+
+    return 0
+}
+
+function NB_CONVERT {
+    __CHECK_NB_DIR
+   (
+        cd $NB_DIR;
+
+        # TODO after nbconvert ??
+        # ansi highlighting => strip output and add as separate html
+        #   command | TREAT_OUTPUT
+        #   command | TREAT_OUTPUT yaml
+
+        [ ! -f $FILTERED_NOTEBOOK ] && DIE "No such 'output' notebook '$FILTERED_NOTEBOOK' as input to nbconvert"
+        ls -al $FILTERED_NOTEBOOK
+        CMD="jupyter-nbconvert --to markdown $FILTERED_NOTEBOOK"
+        echo "-- $CMD"; $CMD
+        #CMD="jupyter-nbconvert --to html $FILTERED_NOTEBOOK"
+        #echo "-- $CMD"; $CMD
+
+        FILTERED_NOTEBOOK_MD=${FILTERED_NOTEBOOK%.ipynb}.md
+        [ ! -f $FILTERED_NOTEBOOK_MD ] && DIE "No such 'output' notebook '$FILTERED_NOTEBOOK_MD' from nbconvert"
+        ls -al $FILTERED_NOTEBOOK_MD
+        FILTERED_NOTEBOOK_FM_MD=${FILTERED_NOTEBOOK%.ipynb}.fm.md
+
+        MD_SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
+        echo "$FRONTMATTER"           > $FILTERED_NOTEBOOK_FM_MD
+        sed \
+            -e 's?\.\./\.\./\.\./static/images/?/images/?' \
+            -e 's?studentn?STUDENTN?ig' \
+            -e 's?\.\./images/?/images/?' \
+            $FILTERED_NOTEBOOK_MD >> $FILTERED_NOTEBOOK_FM_MD
+        # mv     $FILTERED_NOTEBOOK_MD ${FILTERED_NOTEBOOK_MD}.bak
+        # cp -a  $FILTERED_NOTEBOOK ${FILTERED_NOTEBOOK}.bak
+
+        NB_CHECK_FILE_SIZE $FILTERED_NOTEBOOK 1000 || {
+            #ls -altr $FILTERED_NOTEBOOK
+            DIE "File $FILTERED_NOTEBOOK is too small - supsicious"
+        }
+
+        #NB_SHOW_LONG_LINES -m $MAX_LEN_MD ${LAB_IPYNB%.ipynb}.md > ~/tmp/nb.longlines.md
+        #NB_SHOW_LONG_CODE_LINES -m $MAX_LEN_MD ${LAB_IPYNB} > ~/tmp/nb.longlines.md
+        NB_SHOW_LONG_CODE_LINES -m $MAX_LEN_MD ${FILTERED_NOTEBOOK} > ~/tmp/nb.longlines.md
+        NUM_LONG_CODE_LINES=$( wc -l < ~/tmp/nb.longlines.md )
+        if [ "$NUM_LONG_CODE_LINES" != "0" ]; then
+            echo
+            #echo "---- $NUM_LONG_CODE_LINES long lines (> $MAX_LEN_MD) in ${LAB_IPYNB%.ipynb}.md: see ~/tmp/nb.longlines.md"
+            echo "---- $NUM_LONG_CODE_LINES long lines (> $MAX_LEN_MD) in ${FILTERED_NOTEBOOK}: see ~/tmp/nb.longlines.md"
+            wc  -l ~/tmp/nb.longlines.md
+            ls -al ~/tmp/nb.longlines.md
+        fi
+
+        #NB_CHECK_FILE_SIZE ${LAB_IPYNB%.ipynb}.md 1000 || { }
+        NB_CHECK_FILE_SIZE $FILTERED_NOTEBOOK_MD 1000 || {
+            DIE "File $FILTERED_NOTEBOOK_MD is too small - supsicious"
+        }
+
+        # Sanitize notebook/markdown filename:
+        NAME=$( echo $LAB_NAME | sed -e 's/  */_/g' -e 's/_-_/-/g' -e 's/\._/\./' )
+        NEW=${NAME}.md
+        if [ "$LAB_MODE" = "Tofu" ]; then
+            NAME=$( echo $NAME | sed -e 's/Terraform/OpenTofu/g' -e 's/terraform/opentofu/g' )
+            NEW=${NAME}.md
+            echo "DEBUG[Tofu]: renaming markdown file as $NEW" >&2
+            echo "DEBUG[Tofu]: changing _[Ee]rraform entries to [Tt]erraform in $NEW" >&2
+            # Replace terraform by tofu/OpenTofu except for lock/state files:
+        fi
+
+        REPLACE_OTF_TF 'NB_CONVERT' $FILTERED_NOTEBOOK_FM_MD
+
+        # MOVE FINAL FILTERED_NOTEBOOK and OP_MARKDOWN into place:
+        set -x
+            mv $FILTERED_NOTEBOOK_FM_MD $NEW
+            mv $FILTERED_NOTEBOOK ${NAME}.ipynb
+        set +x
+        REPLACE_OTF_TF 'NB_CONVERT:NEW' $NEW
+
+        ## Remove leading spaces from markdown file:
+        #  Disabled - messes up output cells under Hugo (no black background)
+
+        # FILTER_OK_CHECK:
+        #echo; ls -altr ${LAB_IPYNB%.ipynb}.md ${NAME}.*  | NB_COLOUR green
+        echo; ls -altr *.ipynb | NB_COLOUR green
+        #ls -altr *.md
+    ) || exit $?
+}
+
+# Special   FUNCTIONS: ------------------------------------------------
+
+# at line level:
+# - NB_EXEC    command: implemented here and in nbtools.py
+#       =>       execute in orig     notebook, 
+#       => don't appear  in filtered notebook, 
+#
+# - NB_NO_EXEC command: implemented here and in nbtools.py
+#       => don't execute in orig     notebook, 
+#       =>       execute in filtered notebook, 
+#
+# at cell level:
+# - command # EXCLUDE: implemented in nbtools.py
+#       =>       execute in orig     notebook, 
+#       => don't appear  in filtered notebook, 
+
+# Don't perform this step, but filtering will still leave the command in code cell
+# TODO: implement this in nbtool.py (just remove NO_EXEC)_
+# e.g. use as
+#     NO_EXEC . ~/.bashrc
+# CODE: nbtool.py will replace source_line by first line of output text (which is then removed from output_text)
+# - useful when command is a variable
+# e.g. code cell contents are:  (output set to actual value of $__CMD)
+#    CODE $__CMD # Must be first line in code cell
+#    EXEC $__CMD
+function NB_CODE                    { echo $*;                            return 0;  }
+function NB_NO_EXEC                 {                                     return 0;  }
+function NB_EXEC                    { $*;                                 return $?; }
+
+# __* FUNCTIONS: ------------------------------------------------
+
+function NB_HIDE            { grep -v $* ;                        return 0; }
+
+function NB_HIGHLIGHT       { grep --color=always -E "|.*${*}.*"; return 0; }
+function NB_HIGHLIGHT_EOL   { grep --color=always -E "|${*}.*";   return 0; }
+function NB_HIGHLIGHT_SOL   { grep --color=always -E "|.*${*}";   return 0; }
+function NB_HIGHLIGHT_MATCH { grep --color=always -E "${*}";    return 0; }
+
+#echo HELLO WORLD from Jupyter | __HIGHLIGHT WORLD
+#echo HELLO WORLD from Jupyter | __HIGHLIGHT_EOL WORLD
+#echo HELLO WORLD from Jupyter | __HIGHLIGHT_SOL WORLD
+
+# VARIABLE  FUNCTIONS: ------------------------------------------------
+
+function NB_SET_VAR {
+    local VARNAME=$1; shift
+
+    # DETECT A=B form:
+    [ "${VARNAME#*=}" != "$VARNAME" ] && {
+        # echo "NB_SET_VAR: [A=B] Correcting VARNAME '$VARNAME' to '${VARNAME%%=*}'"
+        local ARGS="${VARNAME#*=}"
+        VARNAME=${VARNAME%%=*}
+        #set -- ${VARNAME#*=}
+        set -- $ARGS
+        # echo "Setting args to $*"
+        #echo "Leaving args as $*"
+    }
+
+    # DETECT VARNAME not preceded by __
+    [ "${VARNAME#__}" = "$VARNAME" ] && {
+        # echo "NB_SET_VAR: [not __A] Correcting var name '$VARNAME' to '__$VARNAME'"
+        export $VARNAME=$*
+        VARNAME=__$VARNAME
+        #echo "export $VARNAME=$*"
+    }
+
+    # Output variables so they will be seen by nbtool.py:
+    local VALUE="$*"
+    echo $VALUE | grep -q $HOME && {
+        VALUE=$(echo $VALUE | sed -e "s?$HOME?~?g")
+    }
+    #eval $VARNAME="$VALUE"
+    #echo "VAR $VARNAME='$VALUE'"
+    #echo "VAR $VARNAME='$VALUE'"
+    echo "export $VARNAME='$VALUE'"
+    export $VARNAME=$VALUE
+}
+
+# Usage:
+# NB_SET_VAR_LAST_FILE args
+function NB_SET_VAR_LAST_FILE {
+    __LAST_FILE=$(ls -1tr . | tail -1)
+    echo VAR __LAST_FILE=$__LAST_FILE
+    return 0
+}
+
+# function NB_WAIT { sleep $1; cat; return 0; }
+
+# Sleep and cell will be excluded
+function NB_WAIT {
+    sleep $1;
+    return 0
+}
+
+function NB_WAIT_CMD {
+    #set -x
+    echo $* >/tmp/WAIT_CMD
+    
+    while ! eval "$*" >>/tmp/WAIT_CMD 2>&1; do
+        #echo looping ...
+        sleep 1
+    done
+    return 0
+}
+
+# NOTE: use as
+#  ...  { __RETURN 1; return 1; }
+function __RETURN {
+    local RET="$1"
+    [ -z "$RET"    ] && return 0
+    [ "$RET" = "0" ] && return 0
+    NB_DEBUG "return $RET [called from function ${FUNCNAME[1]}]"
+    return $RET
+}
+
+# Main: source LAB_MODE specific functions:
+#set -x
+NB_SOURCE_FNS
+#set +x
+
