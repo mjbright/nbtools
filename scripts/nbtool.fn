@@ -482,6 +482,13 @@ function NB_SOURCE_FNS {
     esac
 }
 
+function CHECK_JQ {
+    dpkg -l | grep -q "^ii jq " || {
+       echo "==== sudo apt-get install -y jq"
+       sudo apt-get install -y jq >/dev/null 2>&1
+    }
+}
+
 function NB_INIT_NOTEBOOK {
     NB_START_TIME=$SECONDS
     [ "$FULL_MODE" != "FULL_START" ] &&  [ -f $PROGRESS_LOG ] && { rm $PROGRESS_LOG; }
@@ -495,10 +502,10 @@ function NB_INIT_NOTEBOOK {
 
     [ ! -f "$NB" ] && DIE "[$PWD] No such notebook as '$NB'"
 
-    dpkg -l | grep -q "^ii jq " || {
-       echo "==== sudo apt-get install -y jq"
-       sudo apt-get install -y jq >/dev/null 2>&1
-    }
+    case $HOSTNAME in
+        air) ;; # Skip dpkg checks ...
+	*)   CHECK_JQ;;
+    esac
 
     echo
     NB_SET_ENV
