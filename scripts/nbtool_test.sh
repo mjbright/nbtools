@@ -36,9 +36,13 @@ get_SRC_ROOT() {
 ## -- Args: ---------------------------------------------------------------------------
 
 ABS_PATH=0
+NBTOOL_VERSION=1
+NBTOOL_SUBDIR=nbtools
 
 while [ ! -z "$1" ]; do
     case $1 in
+        -2) NBTOOL_VERSION=2; NBTOOL_SUBDIR=nbtools2;;
+
         *.ipynb) IP_NB=$*; ABS_PATH=1;;
 
 	*) die "Unknown arg '$1'";;
@@ -72,15 +76,16 @@ case $LAB_NUM in
 	*) die "Failed to find numeric lab number in [$LAB_NUM] $IP_NB";;
 esac
 
-NBTOOL_DIR=$SRC_ROOT/nbtools/scripts
-NBTOOL_RC=$NBTOOL_DIR/nbtool.rc
-NBTOOL_FN=$NBTOOL_DIR/nbtool.fn
-NBTOOL_PY=$NBTOOL_DIR/nbtool.py
+[ -z "$NBTOOL_DIR" ] && NBTOOL_DIR=$SRC_ROOT/$NBTOOL_SUBDIR/scripts
+}
+[ -z "$NBTOOL_RC"  ] && NBTOOL_RC=$NBTOOL_DIR/nbtool.rc
+[ -z "$NBTOOL_FN"  ] && NBTOOL_FN=$NBTOOL_DIR/nbtool.fn
+[ -z "$NBTOOL_PY"  ] && NBTOOL_PY=$NBTOOL_DIR/nbtool.py
 
 [ ! -d $NBTOOL_DIR ] && die "No such nbtool scripts dir '$NBTOOL_DIR'"
-[ ! -f $NBTOOL_RC ] && die "No such nbtool.rc script as '$NBTOOL_RC'"
-[ ! -f $NBTOOL_FN ] && die "No such nbtool.fn script as '$NBTOOL_FN'"
-[ ! -x $NBTOOL_PY ] && die "No such nbtool.py script as '$NBTOOL_PY'"
+[ ! -f $NBTOOL_RC  ] && die "No such nbtool.rc script as '$NBTOOL_RC'"
+[ ! -f $NBTOOL_FN  ] && die "No such nbtool.fn script as '$NBTOOL_FN'"
+[ ! -x $NBTOOL_PY  ] && die "No such nbtool.py script as '$NBTOOL_PY'"
 
 IP_DIR=${IP_NB%/*}
 [ ! -f $IP_NB ] && die "No such i/p notebook as $IP_NB"
@@ -129,10 +134,20 @@ echo; echo "-- Checking for die/occur in ~/tmp/quiet.filter.notebook.op"
 grep -iE "die|occur" ~/tmp/quiet.filter.notebook.op
 
 
-echo; echo "-- About to show diffs"
 NEW_OP_MD=$( ls -1tr ${TMP}/OP_*.md | tail -1 )
 ls -altr $OLD_OP_MD $NEW_OP_MD
+grep -v "Code-Cell" $OLD_OP_MD > $TMP/old.md
+grep -v "Code-Cell" $NEW_OP_MD > $TMP/new.md
+
+ls -altr $TMP/old.md $TMP/new.md
+diff  -w $TMP/old.md $TMP/new.md
+
+wc -l    $TMP/old.md $TMP/new.md
+ls -altr $TMP/old.md $TMP/new.md
+echo; echo "-- About to show diffs"
+
 read -p "Press <enter>"
-diff $OLD_OP_MD $NEW_OP_MD | less -R
+#diff -w $OLD_OP_MD $NEW_OP_MD
+diff -w $TMP/old.md $TMP/new.md | less -R
 exit
 
