@@ -5,6 +5,8 @@ MAX_LEN_MD=80
 
 [ -z "$PROGRESS_LOG" ] && export PROGRESS_LOG=/tmp/nb.progress.log
 
+echo "-- sourcing $BASH_SOURCE"
+
 # TODO:
 # - what functions take a long time ... can some slow things be recoded in Python?
 # - look especially at NB_QUIET implementation ... for speedups

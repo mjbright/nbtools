@@ -1,0 +1,408 @@
+
+TF_STATE_DIR=~/tmp/TF_state_list
+SAVED_OP_DIR=~/tmp/TF_saved_OP
+mkdir -p $TF_STATE_DIR $SAVED_OP_DIR
+[ -z "$PROGRESS_LOG" ] && export PROGRESS_LOG=/tmp/nb.progress.${TOOL}.log
+
+# TODO:
+# - move " be " detection into separate function
+
+## -- Terraform functions: -----------------------------------
+
+#echo "OK-beginning"
+
+function DO_CLEANUP {
+
+    CONTAINERS=$( docker ps -aq )
+    [ -z "$CONTAINERS" ] && echo "Cleanup: No containers to remove"
+    [ ! -z "$CONTAINERS" ] && {
+        echo "Cleanup: Destroying remaining containers: $CONTAINERS"
+        set -x; docker rm -f $CONTAINERS; set +x;
+    }
+
+    USER_NETWORKS=$( docker network ls |
+                     awk '$2 !~ /^bridge$/ && $2 !~ /^host$/ && $2 !~ /^none$/ && $3 !~ /^NAME$/ { print $2; }' )
+    [ -z "$USER_NETWORKS" ] && echo "Cleanup: No user-networks to remove"
+    [ ! -z "$USER_NETWORKS" ] && {
+        echo "Cleanup: Destroying remaining user-created networks: $USER_NETWORKS"
+        set -x; docker network rm $USER_NETWORKS; set +x;
+    }
+
+    return 0
+}
+
+function TF_GET {
+    NB_DEBUG_INFO $TF get $*
+    TIMER_START
+    $TF get $*
+    RET=$?
+    NB_DEBUG $( TIMER_STOP "$TF get" )
+    __RETURN $RET
+}
+
+function TF_INIT {
+    NB_DEBUG_INFO $TF init $*
+    TIMER_START
+    $TF init $*
+    RET=$?
+    NB_DEBUG $( TIMER_STOP "$TF init" )
+    __RETURN $RET
+}
+
+function __TF_ARGS {
+    QUIET=0
+
+    # Remove use of TIME - always user TIMER_START/TIMER_STOP
+    [ "$1" = "-q"  ] && { QUIET=1; return 1; }
+
+    # Ignore 'legacy' -t argument:
+    [ "$1" = "-qt" ] && { QUIET=1; return 1; }
+    [ "$1" = "-tq" ] && { QUIET=1; return 1; }
+
+    # Don't shift
+    return 0
+}
+
+function TF_PLAN {
+    NB_DEBUG_INFO $TF plan $*
+    #__RETURN
+     __TF_ARGS "$1" || shift
+
+    TIMER_START
+
+    local SAVED_OP_FILE=$SAVED_OP_DIR/TF_plan.op
+    if [ $QUIET -ne 0 ]; then
+        echo "    $__TF Planning ... [$PWD]" >> $PROGRESS_LOG
+        $TF plan $* |&
+            tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+        grep -iE "Plan.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
+    else
+        $TF plan $* |&
+            tee $SAVED_OP_FILE
+    fi
+    RET=0
+    grep -q Error: $SAVED_OP_FILE && RET=1
+
+    NB_DEBUG $( TIMER_STOP "$TF plan" )
+    __RETURN $RET
+}
+
+#echo "OK-before TF_APPLY"
+
+function TF_APPLY {
+    NB_DEBUG_INFO $TF apply $*
+
+    TF_STATE_FILE=""
+    [ "$1" = "-chk" ] && {
+        # NB_DEBUG "TF_APPLY SAW -chk option: -chk $2"
+        shift; TF_STATE_FILE=LAB${LAB_NUM}.${1}; shift
+        # Save & check state list against saved state list (if present)
+    }
+    
+    local BEFORE=$( $TF state list 2>/dev/null | wc -l )
+     __TF_ARGS $* || shift
+    #NB_DEBUG $TF apply $*
+
+    TIMER_START
+
+    local SAVED_OP_FILE=$SAVED_OP_DIR/TF_apply.op
+    if [ $QUIET -ne 0 ]; then
+        echo "    $__TF Applying ... [$PWD]" >> $PROGRESS_LOG
+        echo yes | $TF apply $* |&
+             tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+    else
+        echo yes | $TF apply $* |&
+            tee $SAVED_OP_FILE
+    fi
+    grep -iE "Apply.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
+    RET=0
+    grep -q Error: $SAVED_OP_FILE && RET=1
+
+    NB_DEBUG $( TIMER_STOP "$TF apply" )
+
+    # Ignore saving state list if TF_STATE_FILE is unset:
+    #NB_DEBUG "INFO: \$TF_STATE_FILE=$TF_STATE_FILE"
+    [ -z "$TF_STATE_FILE" ] && NB_DEBUG "WARNING: No -chk option"
+    # Enable/disable for stopping when '-chk' not specified:
+
+    local AFTER=$( $TF state list 2>/dev/null | wc -l )
+    let   CREATED=AFTER-BEFORE
+    NB_DEBUG "$CREATED resources created [before=$BEFORE after=$AFTER]"
+
+    #NB_DEBUG "NB_TF_ENFORCE_CHK=$NB_TF_ENFORCE_CHK"
+    [ ! -z "NB_TF_ENFORCE_CHK" ] && [ -z "$TF_STATE_FILE" ] && {
+         NB_DEBUG "RETURN 1 because NB_TF_ENFORCE_CHK=$NB_TF_ENFORCE_CHK, and no '-chk' option"
+         __RETURN 1 || return 1
+    }
+    [ -z "$TF_STATE_FILE" ] && __RETURN
+
+    # Save state list:
+    $TF state list > $TF_STATE_DIR/${TF_STATE_FILE}.new
+    NEW_STATE_LINES=$( wc -l <$TF_STATE_DIR/${TF_STATE_FILE}.new )
+
+    # If existing state list file, compare:
+    [ -f $TF_STATE_DIR/${TF_STATE_FILE} ] && {
+        diff $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE} \
+            > $TF_STATE_DIR/${TF_STATE_FILE}.diff 2>&1
+        DIFFS=$?
+        [ $DIFFS -ne 0 ] && {
+            ls -altr $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE} $TF_STATE_DIR/${TF_STATE_FILE}.diff
+            wc -l    $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE} $TF_STATE_DIR/${TF_STATE_FILE}.diff
+            echo "RETURN 1 diffs seen in statefile"
+            #NB_DEBUG "RETURN 1 diffs seen in statefile"
+          __RETURN 1 || return 1
+        } |& sed 's/^/NB_DEBUG: -- /'
+        [ $DIFFS -eq 0 ] && {
+            NB_DEBUG "OK - no diffs seen in statefile [lines=$NEW_STATE_LINES]"
+            rm -f $TF_STATE_DIR/${TF_STATE_FILE}.diff
+        }
+    }
+    [ ! -f $TF_STATE_DIR/${TF_STATE_FILE} ] && {
+        NB_DEBUG "NO TF_STATE_FILE reference - saving $TF_STATE_DIR/${TF_STATE_FILE} [lines=$NEW_STATE_LINES]"
+        mv $TF_STATE_DIR/${TF_STATE_FILE}.new $TF_STATE_DIR/${TF_STATE_FILE}
+    }
+
+    __RETURN $RET
+}
+
+#echo "OK-half"
+
+function TF_STATE {
+    NB_DEBUG_INFO $TF state $*
+    TIMER_START
+     __TF_ARGS "$1" || shift
+    $TF state $*
+    NB_DEBUG $( TIMER_STOP "$TF state" )
+    __RETURN
+}
+
+function TF_VALIDATE {
+    NB_DEBUG_INFO $TF validate $*
+    TIMER_START
+     __TF_ARGS "$1" || shift
+    $TF validate $*
+    NB_DEBUG $( TIMER_STOP "$TF validate" )
+    __RETURN
+}
+
+function TF_FMT {
+    NB_DEBUG_INFO $TF fmt $*
+    TIMER_START
+     __TF_ARGS "$1" || shift
+    $TF fmt $*
+    NB_DEBUG $( TIMER_STOP "$TF fmt" )
+    __RETURN
+}
+
+function TF_IMPORT {
+    NB_DEBUG_INFO $TF import $*
+    TIMER_START
+    local SAVED_OP_FILE=$SAVED_OP_DIR/TF_import.op
+     __TF_ARGS "$1" || shift
+    echo yes | $TF import $* |&
+        tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+    NB_DEBUG $( TIMER_STOP "$TF import" )
+    __RETURN
+}
+
+function TF_SHOW {
+    NB_DEBUG_INFO $TF show $*
+    TIMER_START
+     __TF_ARGS "$1" || shift
+    $TF show $*
+    NB_DEBUG $( TIMER_STOP "$TF show" )
+    __RETURN
+}
+
+function TF_TEST {
+    NB_DEBUG_INFO $TF test $*
+    TIMER_START
+     __TF_ARGS "$1" || shift
+    $TF test $*
+    NB_DEBUG $( TIMER_STOP "$TF test" )
+    __RETURN
+}
+
+function TF_OUTPUT {
+    NB_DEBUG_INFO $TF output $*
+    TIMER_START
+     __TF_ARGS "$1" || shift
+    $TF output $*
+    NB_DEBUG $( TIMER_STOP "$TF output" )
+    __RETURN
+}
+
+# NOTE: will include debug output, so probably best to use:
+#    $__TF graph | dot -Tsvg > graph.svg
+function TF_GRAPH {
+    NB_DEBUG_INFO $TF graph $*
+    TIMER_START
+     __TF_ARGS "$1" || shift
+    $TF graph $*
+    NB_DEBUG $( TIMER_STOP "$TF graph" )
+    __RETURN
+}
+
+function TF_DESTROY {
+    NB_DEBUG_INFO $TF destroy $*
+     __TF_ARGS "$1" || shift
+
+    TIMER_START
+
+    local BEFORE=$( $TF state list 2>/dev/null | wc -l )
+    local SAVED_OP_FILE=$SAVED_OP_DIR/TF_destroy.op
+    if [ $QUIET -ne 0 ]; then
+        echo "    Destroying ..." >> $PROGRESS_LOG
+        echo yes | $TF destroy $* |&
+            tee $SAVED_OP_FILE | grep -iE " be |complet|fail|error| to add" | grep -v " will be accepted "
+    else
+        echo yes | $TF destroy $* |&
+            tee $SAVED_OP_FILE
+    fi
+    grep -iE "Destroy.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
+    RET=0
+    grep -q Error: $SAVED_OP_FILE && RET=1
+    NB_DEBUG $( TIMER_STOP "$TF destroy" )
+
+    local AFTER=$( $TF state list 2>/dev/null | wc -l )
+    [ $AFTER != "0" ] && {
+        echo "ERROR: $AFTER resources remain $( $TF state list )"
+        __RETURN 1 || return 1
+    }
+    NB_DEBUG "$BEFORE resources destroyed"
+    __RETURN $RET
+}
+
+## -- Terragrunt functions: -----------------------------------
+
+function TG_ALL {
+    SUBCOMMAND=$1; shift
+    if [ "$SUBCOMMAND" = "state" ]; then
+        #echo "STATE-sub='$1'"
+        case "$1" in
+            list) SUBCOMMAND="state list";;
+            show) SUBCOMMAND="state show";;
+        esac
+        shift
+    fi
+    #AUTO="-auto-approve"
+    AUTO="--non-interactive"
+    NB_DEBUG_INFO terragrunt $SUBCOMMAND --al $*
+
+    __TF_ARGS "$1" || shift
+
+    TIMER_START
+
+    #set -x
+    local SAVED_OP_FILE=$SAVED_OP_DIR/TG_runall_$SUBCOMMAND.op
+    echo "    Terragrunt --all Applying ... [$PWD]" >> $PROGRESS_LOG
+    if [ $QUIET -ne 0 ]; then
+        echo yes | terragrunt $SUBCOMMAND --all $AUTO $* |&
+            tee $SAVED_OP_FILE | grep -iE " be |complet|fail|error| to add|^Group |^- Module " | grep -v " will be accepted "
+    else
+        echo yes | terragrunt $SUBCOMMAND --all $AUTO $* |&
+            tee $SAVED_OP_FILE
+    fi
+    grep -iE "Destroy.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
+    RET=0
+    grep -q Error: $SAVED_OP_FILE && RET=1
+
+    #set +x
+    NB_DEBUG $( TIMER_STOP "terragrunt $SUBCOMMAND" )
+    __RETURN $RET
+}
+
+#??
+#function TG_PLAN {
+    #NB_DEBUG_INFO terragrunt state list $*
+    #terragrunt state list --all --non-interactive
+#}
+
+function TG_PLAN {
+    NB_DEBUG_INFO terragrunt plan $*
+
+    __TF_ARGS "$1" || shift
+
+    TIMER_START
+
+    local SAVED_OP_FILE=$SAVED_OP_DIR/TG_PLAN.op
+    echo "    Terragrunt Planning ... [$PWD]" >> $PROGRESS_LOG
+    if [ $QUIET -ne 0 ]; then
+        terragrunt plan $* |&
+            tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+        grep -iE "Plan.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
+    else
+        terragrunt plan $* |&
+            tee $SAVED_OP_FILE
+    fi
+    RET=0
+    grep -q Error: $SAVED_OP_FILE && RET=1
+
+    NB_DEBUG $( TIMER_STOP 'terragrunt plan' )
+    __RETURN $RET
+}
+
+function TG_APPLY {
+    NB_DEBUG_INFO terragrunt apply $*
+    __TF_ARGS "$1" || shift
+
+    TIMER_START
+
+    local SAVED_OP_FILE=$SAVED_OP_DIR/TG_apply.op
+    echo "    Terragrunt Applying ... [$PWD]" >> $PROGRESS_LOG
+    if [ $QUIET -ne 0 ]; then
+        echo yes | terragrunt apply $* |&
+            tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+    else
+        echo yes | terragrunt apply $* |&
+            tee $SAVED_OP_FILE
+    fi
+    grep -iE "Plan.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
+    RET=0
+    grep -q Error: $SAVED_OP_FILE && RET=1
+
+    NB_DEBUG $( TIMER_STOP 'terragrunt apply' )
+    __RETURN $RET
+}
+
+function TG_DESTROY {
+    NB_DEBUG_INFO terragrunt destroy $*
+    __TF_ARGS "$1" || shift
+
+    TIMER_START
+
+    local SAVED_OP_FILE=$SAVED_OP_DIR/TG_destroy.op
+    if [ $QUIET -ne 0 ]; then
+        echo yes | terragrunt destroy $* |&
+            tee $SAVED_OP_FILE | grep -iE "complet|fail|error| to add|No changes"
+    else
+        echo yes | terragrunt destroy $* |&
+            tee $SAVED_OP_FILE
+    fi
+    RET=0
+    grep -q Error: $SAVED_OP_FILE && RET=1
+
+    NB_DEBUG $( TIMER_STOP 'terragrunt destroy' )
+    __RETURN $RET
+}
+
+## -- Azure functions: -----------------------------------
+
+function AZ_RESOURCES {
+    az resource list | jq -rc '.[] | { type, name }'
+}
+
+function AZ_check {
+    # Check we're studentN !!
+    echo "(visible) Resource groups=$( az group list | jq -rc '.[].name' )"
+
+    RGs=$( az group list | jq -rc '.[].name' )
+
+    if [ "$RGs" != "studentN" ]; then
+        echo "Error: Make sure to copy studentN credentials into ~/.azure"
+        exit 1
+    fi
+    echo "OK"
+}
+
+#echo "OK-end"
