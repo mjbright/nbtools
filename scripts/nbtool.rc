@@ -16,28 +16,17 @@ die() { echo "$0: die - $*" >&2; exit 1; }
 
 mkdir -p ~/tmp
 
-# LAB_IPYNB defaults to IP_README.ipynb ... or to 4th argument if .ipynb:
-export LAB_IPYNB=IP_README.ipynb
-[ ! -z "${JPY_SESSION_NAME}" ] && {
-     export LAB_IPYNB=${JPY_SESSION_NAME##*/}
-     echo "Setting LAB_IPYNB to '$LAB_IPYNB' from \$JPY_SESSION_NAME"
-}
-case "$4" in
-    *.ipynb) export LAB_IPYNB=$4;;
-esac
+[ -z "${JPY_SESSION_NAME}" ] && die "unset: JPY_SESSION_NAME"
+export LAB_NB=${JPY_SESSION_NAME##*/}
+echo "Setting LAB_NB to '$LAB_NB' from \$JPY_SESSION_NAME"
 
-### NO # Assume main lab file is called IP_README.ipynb
-[ ! -f $LAB_IPYNB ] && {
-    echo "[$PWD] $SCRIPT: No $LAB_IPYNB in working directory"
+[ ! -f $LAB_NB ] && {
+    echo "[$PWD] $SCRIPT: No $LAB_NB in working directory"
     echo "Maybe you renamed a running notebook?"
     echo "  -> Try saving/closing/reopening notebook"
     exit 1
 }
-
-#[ ! -f IP_README.ipynb ] && {
-#    echo "[$PWD] $SCRIPT: No IP_README.ipynb in working directory"
-#    exit 1
-#}
+LAB_NB_DIR=$PWD
 
 ## TODO: If need to reactivate
 [ -f ~/.venv/TRAINING/bin/activate ] && {
@@ -108,18 +97,14 @@ if [ ! -z "$1" ]; then
         return 1
     }
 
-    NB=${JPY_SESSION_NAME##*/}
-    echo JPY_SESSION_NAME=$JPY_SESSION_NAME
-    echo NB=$NB
-    case $NB in
-        IP_TF_*)    LABS_VERSION_DIR=labs;     LABS_INFO_VERSION=tf;    LABS_VERSION_SRC_DIR=tf-intro;;
-        IP_TFAZA_*) LABS_VERSION_DIR=labs.aza; LABS_INFO_VERSION=tfaza; LABS_VERSION_SRC_DIR=tf-adv-azure;;
-        IP_TFAZ_*)  LABS_VERSION_DIR=labs.az;  LABS_INFO_VERSION=tfaz;  LABS_VERSION_SRC_DIR=tf-azure;;
+    case $PWD in
+        */tf-intro*)     LABS_VERSION_DIR=labs;     LABS_INFO_VERSION=tf;    LABS_VERSION_SRC_DIR=tf-intro;;
+        */tf-azure*)     LABS_VERSION_DIR=labs.aza; LABS_INFO_VERSION=tfaza; LABS_VERSION_SRC_DIR=tf-adv-azure;;
+        */tf-adv-azure*) LABS_VERSION_DIR=labs.az;  LABS_INFO_VERSION=tfaz;  LABS_VERSION_SRC_DIR=tf-azure;;
         *)   
-            echo "error[nbtool.rc]: Input notebook Foesn't match IP_*, or use implemented version"
-            echo "error[nbtool.rc]: TODO: implement LAB vars for $NB"
+            echo "error[nbtool.rc]: Current folder doesn't match one of implemented folders"
+            echo "error[nbtool.rc]: $PWD: implement LAB vars for $NB"
             return 1
-            ;;
     esac
 
     # Allow ~ expansion here - else will mess up lab dirs:
@@ -128,16 +113,19 @@ if [ ! -z "$1" ]; then
 
     export LAB_TAG="${PWD##*/}"; shift
     # ----------------------------------------------
-    set | grep ^LAB_ > ~/tmp/LAB_vars.env
-    cat ~/tmp/LAB_vars.env
+    set | grep ^LAB_ > $LAB_NB_DIR/.env
+    #cat ~/tmp/LAB_vars.env
 fi
 
 echo "==== Reading nbtool functions from '$NBTOOL_FN' ====";
 . $NBTOOL_FN
 
-if [ $NBTOOL_INIT -ne 0 ]; then
+if [ $NBTOOL_INIT -eq 0 ]; then
+    #echo "NO ARGUGMENT"
+    echo "-- source $LAB_NB_DIR/.env"
+    source $LAB_NB_DIR/.env
+else
     # Now use MAX_LEN_MD in nbtool.rc (instead of "export MAX_LINE_LEN=80" here)
-
     NB_INIT_NOTEBOOK
 fi
 
