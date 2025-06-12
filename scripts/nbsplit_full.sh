@@ -24,9 +24,10 @@ case $PWD in
     *) die "Move to tf-* directory\n\tunder $REPO_DIR";;
 esac
 
-FULL_IPYNB=FULL_NOTEBOOK/FULL.ipynb
-FULL_ML_IPYNB=FULL_NOTEBOOK/FULL.multiline.ipynb
+FULL_IPYNB=FULL_NOTEBOOK/IP_FULL.ipynb
+FULL_ML_IPYNB=FULL_NOTEBOOK/IP_FULL.multiline.ipynb
 ## FULL_MD_0=FULL_NOTEBOOK/OP_MODE_FULL.md
+[ ! -f $FULL_IPYNB ] && die "No such file as '$FULL_IPYNB'"
 
 case $TOOL in
     tofu)      FULL_MD=FULL_NOTEBOOK/OP_OTF_OP_MODE_FULL.md;;

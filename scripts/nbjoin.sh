@@ -32,7 +32,7 @@ esac
 #cd $( dirname $0 )
 
 # OP=~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/FULL.ipynb
-FULL_NB=FULL_NOTEBOOK/FULL.ipynb
+FULL_NB=FULL_NOTEBOOK/IP_FULL.ipynb
 FULL_NB_ML=${FULL_NB%.ipynb}.multiline.ipynb
 
 IP_FILES=""
