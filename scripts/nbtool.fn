@@ -393,7 +393,8 @@ function DIE {
         echo "... filtering notebook - refer to ~/tmp/quiet.filter.notebook.op"
         ls -altr ~/tmp/quiet.filter.notebook.op
         wc -l    ~/tmp/quiet.filter.notebook.op
-        awk '/==== FILTERING NOTEBOOK/,/==== FILTERING DONE/ { print $0; }' ~/tmp/quiet.filter.notebook.op
+        # NO THIS IS CAUSING LOOPING !!!!
+        # awk '/==== FILTERING NOTEBOOK/,/==== FILTERING DONE/ { print $0; }' ~/tmp/quiet.filter.notebook.op
     fi >&2
     env | grep -E "NBTOOL|LAB"
     echo "==== END: $MESSAGE"
@@ -1031,7 +1032,10 @@ function NB_FILTER_NOTEBOOK {
     echo "-- $CMD" | NB_REPLACE_HOME_STDIN
     #$CMD | tee ~/tmp/nbtool.py.op
     local START_NB_FILTER=SECONDS
-    $CMD
+    $CMD || {
+        echo "FAILED: $NBTOOL_PY"
+        exit 1
+    }
     local TOOK_NB_FILTER=SECONDS-START_NB_FILTER
     TIMER_hhmmss $TOOK_NB_TIME
     LABEL="Notebook filtering: "
@@ -1044,58 +1048,58 @@ function NB_FILTER_NOTEBOOK {
     set -x 
     ls -1tr $LAB_NB_DIR/$OP_DIR | grep filtered.ipynb$
     set +x
-    FILTERED_NOTEBOOK=$(ls -1tr $LAB_NB_DIR/$OP_DIR | grep filtered.ipynb$ | tail -1)
-    FILTERED_NOTEBOOK=$OP_DIR/$FILTERED_NOTEBOOK
-    [ -z "$FILTERED_NOTEBOOK" ] && {
+    F_NOTEBOOK=$(ls -1tr $LAB_NB_DIR/$OP_DIR | grep filtered.ipynb$ | tail -1)
+    F_NOTEBOOK=$OP_DIR/$F_NOTEBOOK
+    [ -z "$F_NOTEBOOK" ] && {
         which python3
         echo "[$PWD] Error: failed to find filtered *.ipynb in directory '$LAB_NB_DIR/$OP_DIR'"
         ls -1tr $LAB_NB_DIR/$OP_DIR | grep .ipynb$ | NB_REPLACE_HOME_STDIN | sed 's/^/::/'
         exit 1
     }
-    [ ! -f "$FILTERED_NOTEBOOK" ] && {
+    [ ! -f "$F_NOTEBOOK" ] && {
         echo; echo "Notebook processing failed"
-        DIE "Not a file: FILTERED_NOTEBOOK='$FILTERED_NOTEBOOK'"
+        DIE "Not a file: F_NOTEBOOK='$F_NOTEBOOK'"
     }
-    echo FILTERED_NOTEBOOK=$FILTERED_NOTEBOOK
+    echo F_NOTEBOOK=$F_NOTEBOOK
     echo "DEBUG: \$LAB_MODE='$LAB_MODE'" >&2
     [ "$LAB_MODE" = "Tofu" ] && {
-        DIFFS=$( diff ${FILTERED_NOTEBOOK} ${FILTERED_NOTEBOOK}.tf | grep -c '> ' )
+        DIFFS=$( diff ${F_NOTEBOOK} ${F_NOTEBOOK}.tf | grep -c '> ' )
         echo "$DIFFS lines changed reference from Terraform to Tofu"
         # TOO EARLY TO RENAME output file (need to do that after filtering)
     }
-    REPLACE_OTF_TF 'NB_FILTER_NOTEBOOK: FILTERED_NOTEBOOK' $FILTERED_NOTEBOOK
+    REPLACE_OTF_TF 'NB_FILTER_NOTEBOOK: F_NOTEBOOK' $F_NOTEBOOK
 
     [ `which jq` ] && {
         set -x
-        jq . < $FILTERED_NOTEBOOK > ${FILTERED_NOTEBOOK}.tmp
-        echo "-------- mv ${FILTERED_NOTEBOOK}.tmp $FILTERED_NOTEBOOK"
-        mv ${FILTERED_NOTEBOOK}.tmp $FILTERED_NOTEBOOK
+        jq . < $F_NOTEBOOK > ${F_NOTEBOOK}.tmp
+        echo "-------- mv ${F_NOTEBOOK}.tmp $F_NOTEBOOK"
+        mv ${F_NOTEBOOK}.tmp $F_NOTEBOOK
         set +x
     }
 
     # Attempt line-wrapped cells:
     #   based on https://medium.com/znippet/adding-word-wrap-to-jupyter-notebooks-97040d131784
-    FILTERED_NOTEBOOK_LINEWRAPPED=${FILTERED_NOTEBOOK%.ipynb}.LineWrapped.ipynb
+    F_NOTEBOOK_LINEWRAPPED=${F_NOTEBOOK%.ipynb}.LineWrapped.ipynb
     jq '. + { "MarkdownCell": { "cm_config": { "lineWrapping": true } }, "CodeCell": { "cm_config": { "lineWrapping": true } } }' \
-        ${FILTERED_NOTEBOOK} > ${FILTERED_NOTEBOOK_LINEWRAPPED}
+        ${F_NOTEBOOK} > ${F_NOTEBOOK_LINEWRAPPED}
 
-    ls -altr $FILTERED_NOTEBOOK
-    ls -altr $FILTERED_NOTEBOOK| NB_REPLACE_HOME_STDIN
+    ls -altr $F_NOTEBOOK
+    ls -altr $F_NOTEBOOK| NB_REPLACE_HOME_STDIN
 
     # Detect visibility of EXCLUDE/FN_EXCL in output (even if "# EXCLUDE" rather than "#EXCLUDE"):
     echo "Checking for 'EXCLUDE|FN_EXCL' in filtered notebook"
-    grep -qE "EXCLUDE|FN_EXCL" $FILTERED_NOTEBOOK && {
-        echo "---- Error: EXCLUDE/FN_EXCL seen in $FILTERED_NOTEBOOK:"
-        echo "Occurrences of EXCLUDE in $FILTERED_NOTEBOOK:" $( grep -o EXCLUDE $FILTERED_NOTEBOOK | wc -l )
-        #grep EXCLUDE $FILTERED_NOTEBOOK | NB_HIGHLIGHT_MATCH EXCLUDE
-        echo "Occurrences of FN_EXCL in $FILTERED_NOTEBOOK:" $( grep -o FN_EXCL $FILTERED_NOTEBOOK | wc -l )
-        #grep FN_EXCL $FILTERED_NOTEBOOK | NB_HIGHLIGHT_MATCH FN_EXCL
+    grep -qE "EXCLUDE|FN_EXCL" $F_NOTEBOOK && {
+        echo "---- Error: EXCLUDE/FN_EXCL seen in $F_NOTEBOOK:"
+        echo "Occurrences of EXCLUDE in $F_NOTEBOOK:" $( grep -o EXCLUDE $F_NOTEBOOK | wc -l )
+        #grep EXCLUDE $F_NOTEBOOK | NB_HIGHLIGHT_MATCH EXCLUDE
+        echo "Occurrences of FN_EXCL in $F_NOTEBOOK:" $( grep -o FN_EXCL $F_NOTEBOOK | wc -l )
+        #grep FN_EXCL $F_NOTEBOOK | NB_HIGHLIGHT_MATCH FN_EXCL
 
         JUPYTEXT=$( which jupytext )
         echo "JUPYTEXT='$JUPYTEXT'"
         if [ -x "$JUPYTEXT" ]; then
-            jupytext --to sh:percent $FILTERED_NOTEBOOK # filtered
-            grep -nE -A 5 "EXCLUDE|FN_EXCL" ${FILTERED_NOTEBOOK%.ipynb}.sh # filtered
+            jupytext --to sh:percent $F_NOTEBOOK # filtered
+            grep -nE -A 5 "EXCLUDE|FN_EXCL" ${F_NOTEBOOK%.ipynb}.sh # filtered
         fi
 
         ls -altr ${LAB_NB}  $OP_DIR/${LAB_NB%.ipynb}.sh
@@ -1104,8 +1108,8 @@ function NB_FILTER_NOTEBOOK {
 
     echo "Checks specific to TF/K8S:"
     __TF_OK="TF_DATA_DIR|__TF_VAR_|__TF_INPUT|__TF_CLI|__TF_CLI_ARG|__TF_LOG"
-    grep "__TF_"  $FILTERED_NOTEBOOK | grep -vE $__TF_OK | NB_HIGHLIGHT_MATCH __TF_
-    grep "K_"  $FILTERED_NOTEBOOK | NB_HIGHLIGHT_MATCH K_
+    grep "__TF_"  $F_NOTEBOOK | grep -vE $__TF_OK | NB_HIGHLIGHT_MATCH __TF_
+    grep "K_"  $F_NOTEBOOK | NB_HIGHLIGHT_MATCH K_
 
     S_NB=$( echo $LAB_NB | NB_REPLACE_HOME_STDIN )
     __EXCLUDE="__start_kubectl"
@@ -1118,21 +1122,21 @@ function NB_FILTER_NOTEBOOK {
         # DIE "Can't continue"
     }
 
-    S_OP_NB=$( echo $FILTERED_NOTEBOOK | NB_REPLACE_HOME_STDIN )
+    S_OP_NB=$( echo $F_NOTEBOOK | NB_REPLACE_HOME_STDIN )
     __EXCLUDE="__start_kubectl"
-    NUM=$( jq '.' $FILTERED_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
+    NUM=$( jq '.' $F_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c __ )
     [ "$NUM" = "0" ] && {
         echo "Good: No VAR defs/usages in o/p file"
     } || {
         echo "Error: $NUM VAR defs/usages in o/p file: $S_OP_NB"
-        jq '.' $FILTERED_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __ | NB_HIGHLIGHT
+        jq '.' $F_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n __ | NB_HIGHLIGHT
         #DIE "Can't continue"
     }
 
-    NUM=$( jq '.' $FILTERED_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c '${__' )
+    NUM=$( jq '.' $F_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -c '${__' )
     [ "$NUM" != "0" ] && {
         echo "Error: $NUM \${__XX} defs/usages in o/p file: $S_OP_NB"
-        jq '.' $FILTERED_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n '${__' | NB_HIGHLIGHT
+        jq '.' $F_NOTEBOOK | grep --color=NEVER -vE "$__EXCLUDE" | grep -n '${__' | NB_HIGHLIGHT
         #DIE "Can't continue"
     }
 
@@ -1140,6 +1144,10 @@ function NB_FILTER_NOTEBOOK {
     # ZZZZ WHY ???? [ "$LAB_NB" = "${LAB_NB##*TEST}" ] && NB_CONVERT
     NB_CONVERT
     )
+
+    RET=$?
+    # DONT EXIT HERE:
+    [ $RET -ne 0 ] && DIE "NB_FILTER_NOTEBOOK subshell returned $RET - returning"
 
     return 0
 }
@@ -1154,48 +1162,48 @@ function NB_CONVERT {
         #   command | TREAT_OUTPUT
         #   command | TREAT_OUTPUT yaml
 
-        [ ! -f $FILTERED_NOTEBOOK ] && DIE "No such 'output' notebook '$FILTERED_NOTEBOOK' as input to nbconvert"
-        ls -al $FILTERED_NOTEBOOK
-        CMD="jupyter-nbconvert --to markdown $FILTERED_NOTEBOOK"
+        [ ! -f $F_NOTEBOOK ] && DIE "No such 'output' notebook '$F_NOTEBOOK' as input to nbconvert"
+        ls -al $F_NOTEBOOK
+        CMD="jupyter-nbconvert --to markdown $F_NOTEBOOK"
         echo "-- $CMD"; $CMD
-        #CMD="jupyter-nbconvert --to html $FILTERED_NOTEBOOK"
+        #CMD="jupyter-nbconvert --to html $F_NOTEBOOK"
         #echo "-- $CMD"; $CMD
 
-        FILTERED_NOTEBOOK_MD=${FILTERED_NOTEBOOK%.ipynb}.md
-        [ ! -f $FILTERED_NOTEBOOK_MD ] && DIE "No such 'output' notebook '$FILTERED_NOTEBOOK_MD' from nbconvert"
-        ls -al $FILTERED_NOTEBOOK_MD
-        FILTERED_NOTEBOOK_FM_MD=${FILTERED_NOTEBOOK%.ipynb}.fm.md
+        F_NOTEBOOK_MD=${F_NOTEBOOK%.ipynb}.md
+        [ ! -f $F_NOTEBOOK_MD ] && DIE "No such 'output' notebook '$F_NOTEBOOK_MD' from nbconvert"
+        ls -al $F_NOTEBOOK_MD
+        F_NOTEBOOK_FM_MD=${F_NOTEBOOK%.ipynb}.fm.md
 
         MD_SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
-        echo "$FRONTMATTER"           > $FILTERED_NOTEBOOK_FM_MD
+        echo "$FRONTMATTER"           > $F_NOTEBOOK_FM_MD
         sed \
             -e 's?\.\./\.\./\.\./static/images/?/images/?' \
             -e 's?studentn?STUDENTN?ig' \
             -e 's?\.\./images/?/images/?' \
-            $FILTERED_NOTEBOOK_MD >> $FILTERED_NOTEBOOK_FM_MD
-        # mv     $FILTERED_NOTEBOOK_MD ${FILTERED_NOTEBOOK_MD}.bak
-        # cp -a  $FILTERED_NOTEBOOK ${FILTERED_NOTEBOOK}.bak
+            $F_NOTEBOOK_MD >> $F_NOTEBOOK_FM_MD
+        # mv     $F_NOTEBOOK_MD ${F_NOTEBOOK_MD}.bak
+        # cp -a  $F_NOTEBOOK ${F_NOTEBOOK}.bak
 
-        NB_CHECK_FILE_SIZE $FILTERED_NOTEBOOK 1000 || {
-            #ls -altr $FILTERED_NOTEBOOK
-            DIE "File $FILTERED_NOTEBOOK is too small - supsicious"
+        NB_CHECK_FILE_SIZE $F_NOTEBOOK 1000 || {
+            #ls -altr $F_NOTEBOOK
+            DIE "File $F_NOTEBOOK is too small - supsicious"
         }
 
         #NB_SHOW_LONG_LINES -m $MAX_LEN_MD ${LAB_NB%.ipynb}.md > ~/tmp/nb.longlines.md
         #NB_SHOW_LONG_CODE_LINES -m $MAX_LEN_MD ${LAB_NB} > ~/tmp/nb.longlines.md
-        NB_SHOW_LONG_CODE_LINES -m $MAX_LEN_MD ${FILTERED_NOTEBOOK} > ~/tmp/nb.longlines.md
+        NB_SHOW_LONG_CODE_LINES -m $MAX_LEN_MD ${F_NOTEBOOK} > ~/tmp/nb.longlines.md
         NUM_LONG_CODE_LINES=$( wc -l < ~/tmp/nb.longlines.md )
         if [ "$NUM_LONG_CODE_LINES" != "0" ]; then
             echo
             #echo "---- $NUM_LONG_CODE_LINES long lines (> $MAX_LEN_MD) in ${LAB_NB%.ipynb}.md: see ~/tmp/nb.longlines.md"
-            echo "---- $NUM_LONG_CODE_LINES long lines (> $MAX_LEN_MD) in ${FILTERED_NOTEBOOK}: see ~/tmp/nb.longlines.md"
+            echo "---- $NUM_LONG_CODE_LINES long lines (> $MAX_LEN_MD) in ${F_NOTEBOOK}: see ~/tmp/nb.longlines.md"
             wc  -l ~/tmp/nb.longlines.md
             ls -al ~/tmp/nb.longlines.md
         fi
 
         #NB_CHECK_FILE_SIZE ${LAB_NB%.ipynb}.md 1000 || { }
-        NB_CHECK_FILE_SIZE $FILTERED_NOTEBOOK_MD 1000 || {
-            DIE "File $FILTERED_NOTEBOOK_MD is too small - supsicious"
+        NB_CHECK_FILE_SIZE $F_NOTEBOOK_MD 1000 || {
+            DIE "File $F_NOTEBOOK_MD is too small - supsicious"
         }
 
         # Sanitize notebook/markdown filename:
@@ -1209,12 +1217,12 @@ function NB_CONVERT {
             # Replace terraform by tofu/OpenTofu except for lock/state files:
         fi
 
-        REPLACE_OTF_TF 'NB_CONVERT' $FILTERED_NOTEBOOK_FM_MD
+        REPLACE_OTF_TF 'NB_CONVERT' $F_NOTEBOOK_FM_MD
 
-        # MOVE FINAL FILTERED_NOTEBOOK and OP_MARKDOWN into place:
+        # MOVE FINAL F_NOTEBOOK and OP_MARKDOWN into place:
         set -x
-            mv $FILTERED_NOTEBOOK_FM_MD $NEW
-            mv $FILTERED_NOTEBOOK ${NAME}.ipynb
+            mv $F_NOTEBOOK_FM_MD $NEW
+            mv $F_NOTEBOOK ${NAME}.ipynb
         set +x
         REPLACE_OTF_TF 'NB_CONVERT:NEW' $NEW
 

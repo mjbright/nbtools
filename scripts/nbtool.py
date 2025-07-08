@@ -9,6 +9,7 @@ import json, sys, re, os
 """
 
 OP_DIR = "other"
+HOME="/home/student"
 
 VERBOSE_sections = False
 VERBOSE_NB_FILE = True
@@ -383,6 +384,10 @@ def main():
             write_nb(opfile, new_data)
             print(nb_info("op", opfile))
 
+            opfile = OP_DIR + "/" + ipfile + ".vars_seen.json"
+            vars_seen_json = json.dumps(VARS_SEEN, indent=4)
+            writefile(opfile, mode="w", text=vars_seen_json)
+
     if MODE == "split":
         for ipfile in sys.argv[a:]:
             print(nb_info("ip", ipfile))
@@ -480,39 +485,45 @@ def UNUSED_CONVERT_ANSI_CODES2HTML(cells_data, cell_no):
                 cells_data[cell_no]["outputs"][opno]["text"][textno] = html
 
 
-def substitute_vars_in_line(source_line, slno, VARS_SEEN):
+def substitute_vars_in_line(source_line, slno):
     new_line = source_line
     vars_seen = []
 
+    new_line = new_line.replace(HOME+"/", '~/')
     # A hack: needs to be generalized: (pull vars into VARS_SEEN:
-    if '${__LABS_DIR}' in source_line:
-        new_line = new_line.replace("${__LABS_DIR}", os.getenv('__LABS_DIR', 'ERROR_LABS_DIR_UNSER'))
-        new_line = new_line.replace("/home/student/", '~/')
-    if '$__LABS_DIR' in source_line:
-        new_line = new_line.replace("$__LABS_DIR", os.getenv('__LABS_DIR', 'ERROR_LABS_DIR_UNSER'))
-        new_line = new_line.replace("/home/student/", '~/')
+    #if '${__LABS_DIR}' in source_line:
+    #    #new_line = new_line.replace("${__LABS_DIR}", os.getenv('__LABS_DIR', 'ERROR_LABS_DIR_UNSER'))
+    #    new_line = new_line.replace("${__LABS_DIR}", VARS_SEEN['LABS_DIR'])
+    #    new_line = new_line.replace(HOME+"/", '~/')
+    #if '$__LABS_DIR' in source_line:
+    #    new_line = new_line.replace("$__LABS_DIR", VARS_SEEN['LABS_DIR'])
+    #    new_line = new_line.replace(HOME+"/", '~/')
 
     for var in VARS_SEEN:
-        if "$__" + var in source_line:
+        if "${__" + var +"}" in source_line:
             vars_seen.append("__" + var)
-            DEBUG(f"substitute_vars_in_line([line{slno}] {source_line}")
+            DEBUG(f"SUBST: substitute_vars_in_line([line{slno}] {source_line}")
+            new_line = new_line.replace("${__" + var +"}", VARS_SEEN[var])
+
+        if "$__" + var in source_line:
+
+            vars_seen.append("__" + var)
+            DEBUG(f"SUBST: substitute_vars_in_line([line{slno}] {source_line}")
             new_line = new_line.replace("$__" + var, VARS_SEEN[var])
 
     if new_line != source_line:
-        print(
-            f"[line{slno}]: {var} seen in '{source_line}' will replace vars [{vars_seen}]"
-        )
-        print(f"    BEFORE: '{source_line}'")
-        print(f"    AFTER:  '{new_line}'")
-        DEBUG(
-            f"[line{slno}]: {var} seen in '{source_line}' will replace vars [{vars_seen}]"
-        )
+        debug_info = f"SUBST: [line{slno}]: variables seen in '{source_line}' will replace vars [{vars_seen}]"
+        print(debug_info)
+        print(f"SUBST:     BEFORE: '{source_line.rstrip()}'")
+        print(f"SUBST:     AFTER:  '{new_line.rstrip()}'")
+        DEBUG(debug_info)
         DEBUG(f"===> '{new_line}'")
     return new_line
 
 
-def replace_vars_in_line(line, vars_seen):
-    return substitute_vars_in_line(line, -1, vars_seen)
+def replace_vars_in_line(line):
+    #return substitute_vars_in_line(line, -1, VARS_SEEN)
+    return substitute_vars_in_line(line, -1)
 
 
 def replace_words_in_cell_output_lines(cells_data, cell_no, REPLACE_OP_WORDS):
@@ -535,7 +546,7 @@ def replace_words_in_cell_output_lines(cells_data, cell_no, REPLACE_OP_WORDS):
             cells_data[cell_no]["outputs"][opno]["text"][textno] = line
 
 
-def replace_vars_in_cell_output_lines(cells_data, cell_no, vars_seen):
+def replace_vars_in_cell_output_lines(cells_data, cell_no):
     op = cells_data[cell_no]["outputs"]
 
     for opno in range(len(cells_data[cell_no]["outputs"])):
@@ -543,33 +554,52 @@ def replace_vars_in_cell_output_lines(cells_data, cell_no, vars_seen):
             for textno in range(len(cells_data[cell_no]["outputs"][opno]["text"])):
                 line = cells_data[cell_no]["outputs"][opno]["text"][textno]
                 line0 = line
-                line = replace_vars_in_line(line, vars_seen)
+                line = replace_vars_in_line(line)
                 cells_data[cell_no]["outputs"][opno]["text"][textno] = line
                 DEBUG(f"CHANGED: {cell_no} {line0} --> {line}")
 
 
 def get_var_defs_in_cell_output_lines(section_title, cell_no, output_lines):
-    vars_seen = {}
+    #vars_seen = {}
+    global VARS_SEEN
 
     DEBUG(f"{section_title} {cell_no} {output_lines}")
     for opno in range(len(output_lines)):
         if "text" in output_lines[opno]:
             for textno in range(len(output_lines[opno]["text"])):
                 line = output_lines[opno]["text"][textno]
-                if "VAR __" in line:
-                    VAR_NAME = line[line.find("VAR __") + 6 : line.find("=")]
-                    VAR_SET = "VAR __" + VAR_NAME + "="
+                # NB_SET_VAR:
+                # if "VAR __" in line:
+                if "export __" in line:
+                    #print(f'SUBST: VAR __ seen in {line.rstrip()}')
+                    print(f'SUBST: export __ seen in {line.rstrip()}')
+                    #VAR_NAME = line[line.find("VAR __") + 6 : line.find("=")]
+                    VAR_NAME = line[line.find("export __") + 9 : line.find("=")]
+                    # VAR_SET = "VAR __" + VAR_NAME + "="
+                    VAR_SET = "export __" + VAR_NAME + "="
                     if output_lines[opno]["text"][textno].find(VAR_SET) == 0:
                         VAR_VALUE = output_lines[opno]["text"][textno][
                             len(VAR_SET) :
                         ].rstrip()
-                        VAR_VALUE = VAR_VALUE.strip('"').rstrip('"')
-                        DEBUG(
-                            f"[{section_title}] [cell{cell_no} line{opno}]<<<<<<<<DEBUG>>>>>>>> VAR SET {VAR_NAME}={VAR_VALUE}"
-                        )
-                        vars_seen[VAR_NAME] = VAR_VALUE
 
-    return vars_seen
+                        save_value=VAR_VALUE
+                        if VAR_VALUE[0] == "'" and not " " in VAR_VALUE: VAR_VALUE=VAR_VALUE[1:-1]
+                        if VAR_VALUE[0] == '"' and not " " in VAR_VALUE: VAR_VALUE=VAR_VALUE[1:-1]
+                        if save_value != VAR_VALUE:
+                            print(f'SUBST: {VAR_NAME} STRIPPED of quotes:')
+                            print(f'SUBST: was "{save_value}"')
+                            print(f'SUBST: now "{VAR_VALUE}"')
+
+                        VAR_VALUE = VAR_VALUE.strip('"').rstrip('"')
+                        debug_info=f"[{section_title}] [cell{cell_no} line{opno}]<<<<<<<<DEBUG>>>>>>>> VAR SET {VAR_NAME}={VAR_VALUE}"
+                        DEBUG(debug_info)
+                        print(debug_info)
+
+                        # VAR SEEN HERE!!!:
+                        VARS_SEEN[VAR_NAME] = VAR_VALUE
+
+    return
+    #return vars_seen
 
 
 def show_long_code_line(
@@ -621,7 +651,7 @@ def NB_FILE_replace_code_cell_by_markdown(cell, format_string):
         # FIX for NB_FILE /$__var replacement bug ...
         # replace variables in markdown here ...
         if "$__" in source_lines[slno]:
-            source_lines[slno] = replace_vars_in_line(source_lines[slno], VARS_SEEN)
+            source_lines[slno] = replace_vars_in_line(source_lines[slno])
 
         if ">>tofile:" in source_lines[slno]:
             source_lines[slno] = "____TO_REMOVE____"
@@ -828,6 +858,7 @@ def process_code_cell(
     include_cell,
     cells,
 ):
+    global VARS_SEEN
     # ??
     CELL_regex = re.compile(r"\|?\&?\s*__.*$")  # , re.IGNORECASE)
 
@@ -843,11 +874,6 @@ def process_code_cell(
             cells_data[cell_no]["cell_type"] = "markdown"
             cells_data[cell_no].pop("execution_count")
             cells_data[cell_no].pop("outputs")
-            #    print(f"NB_LAB_ENV: cell {cell_no} has empty 'outputs'")
-            #    ofile=f'/home/student/tmp/NB_LAB_ENV.empty'
-            #    print(f"Writing {ofile}")
-            #    writefile(ofile, text=''.join(source_lines) )
-            #    sys.exit(1)
         cells.append(cell_no)
         return
 
@@ -885,7 +911,7 @@ def process_code_cell(
                 o = source_line
                 # NB_FILE & $__IP debugging because? ( num_cell_source_lines != num_source_lines ) ?
                 # TODO: DEBUG print(f'old source_line="{ source_line }"')
-                source_line = replace_vars_in_line(source_line, VARS_SEEN)
+                source_line = replace_vars_in_line(source_line)
                 # TODO: DEBUG print(f'new source_line="{ source_line }"')
                 show_vars_seen("CODE --", source_line, cell_no)
 
@@ -899,17 +925,18 @@ def process_code_cell(
                         f"ERROR: [cell_no={cell_no}] source_lines={len(cells_data[cell_no]['source'])} slno={slno}\n"
                     )
                     print("\n\t" + "\n\t".join(cells_data[cell_no]["source"]))
-                    ofile = "/home/student/tmp/source_lines"
+                    ofile = f"{HOME}/tmp/source_lines"
                     print(f"Writing {ofile}")
                     # writefile(ofile, text='\n'.join(source_lines))
                     writefile(ofile, text="".join(source_lines))
 
-                    ofile = f"/home/student/tmp/cells_data_{cell_no}"
+                    ofile = f"{HOME}/tmp/cells_data_{cell_no}"
                     print(f"Writing {ofile}")
                     writefile(ofile, text="".join(cells_data[cell_no]["source"]))
                 source_lines[slno] = source_line
 
         # Pragma FOREACH (use singular form of variable e.g. __POD_IP which will be populated form __POD_IPS)
+        # TODO: SERIOUSLY BROKEN
         if source_line.find("FOREACH __") == 0:
             rest_line = source_line[len("FOREACH __") :].lstrip()
             space_pos = rest_line.find(" ")
@@ -925,6 +952,7 @@ def process_code_cell(
                     die(f"Var <{VAR_NAME_S}> not seen")
                 values = VARS_SEEN[VAR_NAME_S].split()
                 for value in values:
+                    # TODO: SERIOUSLY BROKEN
                     new_line += (
                         cmd_line.replace("$__", "$__")
                         .replace("<", "<")
@@ -944,7 +972,7 @@ def process_code_cell(
         if "outputs" in cells_data[cell_no]:
             REMOVE_NB_DEBUG(cells_data, cell_no)
             CONVERT_ANSI_CODES2TXT(cells_data, cell_no)
-            replace_vars_in_cell_output_lines(cells_data, cell_no, VARS_SEEN)
+            replace_vars_in_cell_output_lines(cells_data, cell_no)
 
         ## # CODE: nbtool.py will replace source_line by first line of output text (which is then removed from output_text)
         ## # - useful when command is a variable
@@ -985,7 +1013,7 @@ def process_code_cell(
         # If $__variables seen in source then we modify the source to replace $__var by it's value
         for var in VARS_SEEN:
             if "$__" + var in source_line:
-                new_line = substitute_vars_in_line(source_line, slno, VARS_SEEN)
+                new_line = substitute_vars_in_line(source_line, slno)
                 show_vars_seen(f"CODE[$__{var}]", source_line, cell_no)
                 DEBUG(f"{var} seen in {source_line} will replace '$__{var}'")
                 DEBUG(cells_data[cell_no]["source"][slno])
@@ -1066,9 +1094,8 @@ def process_code_cell(
             continue
 
         if source_line.find("NB_SET_VAR") == -1 and source_line.find("K_GET_") == -1:
-            DEBUG(
-                f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - no NB_SET_VAR (or __K_GET)"
-            )
+            debug_info=f"[cell={cell_no} line={slno} section={section_title}] CONTINUE - no NB_SET_VAR (or __K_GET)"
+            DEBUG(debug_info)
             continue
 
         include_cell = False
@@ -1077,11 +1104,11 @@ def process_code_cell(
             op_vars_seen = get_var_defs_in_cell_output_lines(
                 section_title, cell_no, cells_data[cell_no]["outputs"]
             )
-            if len(op_vars_seen) > 0:
-                DEBUG(f'NEW VARS_SEEN: "{op_vars_seen}"')
-                VARS_SEEN.update(op_vars_seen)
-                show_vars_seen("output", source_line, cell_no)
-            replace_vars_in_cell_output_lines(cells_data, cell_no, VARS_SEEN)
+            #if len(op_vars_seen) > 0:
+            #    DEBUG(f'NEW VARS_SEEN: "{op_vars_seen}"')
+            #    VARS_SEEN.update(op_vars_seen)
+            #    show_vars_seen("output", source_line, cell_no)
+            replace_vars_in_cell_output_lines(cells_data, cell_no)
 
     if include_cell:
         if FINAL_CODE_CELL_CHECK(cells_data[cell_no], cell_no):
@@ -1227,6 +1254,12 @@ def filter_nb(json_data, DEBUG=False):
         VARS_SEEN["TF"] = VAR_TF
         DEBUG(f'Saw TF var "{VAR_TF}"')
 
+    VAR_LABS_DIR = os.getenv('__LABS_DIR', 'ERROR_LABS_DIR_UNSET')
+    if VAR_LABS_DIR:
+        VARS_SEEN["LABS_DIR"] = VAR_LABS_DIR
+        DEBUG(f'Saw LABS_DIR var "{VAR_LABS_DIR}"')
+        #new_line = new_line.replace("${__LABS_DIR}", os.getenv('__LABS_DIR', 'ERROR_LABS_DIR_UNSER'))
+
     include = False
     cells = []
     cells_data = json_data["cells"]
@@ -1257,10 +1290,10 @@ def filter_nb(json_data, DEBUG=False):
             # Final_code_cell_no+=1
             # cells_data[cell_no]['final_cell_no']=Final_code_cell_no
 
+            # NB_SET_VAR:
             if "NB_SET_VAR" in " ".join(source_lines):
-                DEBUG(
-                    f"[cell={cell_no} section={section_title}] NB_SET_VAR variables seen in cell source_lines"
-                )
+                debug_info=f"[cell={cell_no} section={section_title}] NB_SET_VAR variables seen in cell source_lines"
+                DEBUG(debug_info)
 
             # ADD Code-Cell comment line at end of cell source lines:
             # source_lines.append(f'\n# Code-Cell[{cell_no}] In[{In_cell_no}]')
@@ -1613,7 +1646,7 @@ def split_nb(json_data, DEBUG=False):
     cells = []
     global VARS_SEEN
     print("-- split_nb: resetting VARS_SEEN !!")
-    VARS_SEEN = {}
+    # VARS_SEEN = {}
 
     md_files_index = ""
 
