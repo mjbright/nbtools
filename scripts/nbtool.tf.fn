@@ -4,9 +4,6 @@ SAVED_OP_DIR=~/tmp/TF_saved_OP
 mkdir -p $TF_STATE_DIR $SAVED_OP_DIR
 [ -z "$PROGRESS_LOG" ] && export PROGRESS_LOG=/tmp/nb.progress.${TOOL}.log
 
-# TODO:
-# - move " be " detection into separate function
-
 ## -- Terraform functions: -----------------------------------
 
 #echo "OK-beginning"
@@ -63,6 +60,11 @@ function __TF_ARGS {
     return 0
 }
 
+function TF_LOG_FILTER {
+    #grep -iE " has moved | be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+    grep -iE " has moved | be |Plan:|complet|fail|error| to add|^Group |^- Module " | grep -v " will be accepted "
+}
+
 function TF_PLAN {
     NB_DEBUG_INFO $TF plan $*
     #__RETURN
@@ -74,7 +76,7 @@ function TF_PLAN {
     if [ $QUIET -ne 0 ]; then
         echo "    $__TF Planning ... [$PWD]" >> $PROGRESS_LOG
         $TF plan $* |&
-            tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+            tee $SAVED_OP_FILE | TF_LOG_FILTER
         grep -iE "Plan.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
     else
         $TF plan $* |&
@@ -109,7 +111,7 @@ function TF_APPLY {
     if [ $QUIET -ne 0 ]; then
         echo "    $__TF Applying ... [$PWD]" >> $PROGRESS_LOG
         echo yes | $TF apply $* |&
-             tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+            tee $SAVED_OP_FILE | TF_LOG_FILTER
     else
         echo yes | $TF apply $* |&
             tee $SAVED_OP_FILE
@@ -200,7 +202,7 @@ function TF_IMPORT {
     local SAVED_OP_FILE=$SAVED_OP_DIR/TF_import.op
      __TF_ARGS "$1" || shift
     echo yes | $TF import $* |&
-        tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+            tee $SAVED_OP_FILE | TF_LOG_FILTER
     NB_DEBUG $( TIMER_STOP "$TF import" )
     __RETURN
 }
@@ -254,7 +256,7 @@ function TF_DESTROY {
     if [ $QUIET -ne 0 ]; then
         echo "    Destroying ..." >> $PROGRESS_LOG
         echo yes | $TF destroy $* |&
-            tee $SAVED_OP_FILE | grep -iE " be |complet|fail|error| to add" | grep -v " will be accepted "
+            tee $SAVED_OP_FILE | TF_LOG_FILTER
     else
         echo yes | $TF destroy $* |&
             tee $SAVED_OP_FILE
@@ -298,7 +300,7 @@ function TG_ALL {
     echo "    Terragrunt --all Applying ... [$PWD]" >> $PROGRESS_LOG
     if [ $QUIET -ne 0 ]; then
         echo yes | terragrunt $SUBCOMMAND --all $AUTO $* |&
-            tee $SAVED_OP_FILE | grep -iE " be |complet|fail|error| to add|^Group |^- Module " | grep -v " will be accepted "
+            tee $SAVED_OP_FILE | TF_LOG_FILTER
     else
         echo yes | terragrunt $SUBCOMMAND --all $AUTO $* |&
             tee $SAVED_OP_FILE
@@ -329,7 +331,7 @@ function TG_PLAN {
     echo "    Terragrunt Planning ... [$PWD]" >> $PROGRESS_LOG
     if [ $QUIET -ne 0 ]; then
         terragrunt plan $* |&
-            tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+            tee $SAVED_OP_FILE | TF_LOG_FILTER
         grep -iE "Plan.*complete|error" $SAVED_OP_FILE | sed 's/^/    /' >> $PROGRESS_LOG
     else
         terragrunt plan $* |&
@@ -352,7 +354,7 @@ function TG_APPLY {
     echo "    Terragrunt Applying ... [$PWD]" >> $PROGRESS_LOG
     if [ $QUIET -ne 0 ]; then
         echo yes | terragrunt apply $* |&
-            tee $SAVED_OP_FILE | grep -iE " be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
+            tee $SAVED_OP_FILE | TF_LOG_FILTER
     else
         echo yes | terragrunt apply $* |&
             tee $SAVED_OP_FILE
