@@ -9,7 +9,7 @@ MAX_LEN_MD=80
 # - what functions take a long time ... can some slow things be recoded in Python?
 # - look especially at NB_QUIET implementation ... for speedups
 
-# Put intermediate processing files here: in $NB_DIR/
+# Put intermediate processing files here: in $LAB_NB_DIR/
 OP_DIR=other
 
 # Default for SSH functions
@@ -516,17 +516,17 @@ function NB_INIT_NOTEBOOK {
         if [ -f .dir ]; then
             # Detect moved dir with out of date ~/.dir
             [ "$PWD" != "$(cat .dir)" ] && DIE ".dir out of date";
-            echo "NB_INIT_NOTEBOOK: Setting NB_DIR=$PWD"
-            NB_DIR=$PWD
+            echo "NB_INIT_NOTEBOOK: Setting LAB_NB_DIR=$PWD"
+            LAB_NB_DIR=$PWD
         else
             echo $PWD > .dir
         fi
 
-        #echo "Setting NB_DIR=\$( cat $PWD/.dir )"
-        #NB_DIR=$(cat .dir)
-        export NB_DIR
-        NB=$NB_DIR/$NB
-        echo "NB_INIT_NOTEBOOK: NB_DIR=$NB_DIR" | NB_HIGHLIGHT
+        #echo "Setting LAB_NB_DIR=\$( cat $PWD/.dir )"
+        #LAB_NB_DIR=$(cat .dir)
+        export LAB_NB_DIR
+        NB=$LAB_NB_DIR/$NB
+        echo "NB_INIT_NOTEBOOK: LAB_NB_DIR=$LAB_NB_DIR" | NB_HIGHLIGHT
     fi
 
     # To be used in markdown front-matter, picked up by Hugo/Printing to give PDF filename ...
@@ -639,7 +639,7 @@ function NB_INIT_NOTEBOOK {
     PDF_NAME=$( echo "$LAB_NAME" | sed -e 's/  */_/g' -e "s/^/${TITLE_MODE}_/" -e 's/_-_/-/g' )
     MD_SET_FRONTMATTER "$PDF_NAME" "$LAB_WEIGHT"
 
-    echo "[NB=$( basename $NB )] in NB_DIR=$NB_DIR"
+    echo "[NB=$( basename $NB )] in LAB_NB_DIR=$LAB_NB_DIR"
     # NB_FILTER_NOTEBOOK $NB
 }
 
@@ -817,10 +817,10 @@ function NB_QUIET {
     # Quiet except on failure --> __FILTER
     pwd
 
-    LAST_MOD_S=$(date -r $NB_DIR/$LAB_NB +%s)
+    LAST_MOD_S=$(date -r $LAB_NB_DIR/$LAB_NB +%s)
     NOW_S=$SECONDS
     let AGE_S=NOW_S-LAST_MOD_S
-    echo "[$AGE_S secs old] $NB_DIR/$LAB_NB"
+    echo "[$AGE_S secs old] $LAB_NB_DIR/$LAB_NB"
 
     TIMER_START
     NB_QUIET_FILTER_NOTEBOOK $* || __FILTER
@@ -871,8 +871,8 @@ function NB_QUIET_FILTER_NOTEBOOK {
     echo "-- [LAB_NB=$LAB_NB] NB_FILTER_NOTEBOOK $* > ~/tmp/quiet.filter.notebook.op 2>&1"
     NB_FILTER_NOTEBOOK $* > ~/tmp/quiet.filter.notebook.op 2>&1
     ls -al ~/tmp/quiet.filter.notebook.op | NB_COLOUR red
-    __CHECK_NB_DIR
-    ( cd $NB_DIR;
+    __CHECK_LAB_NB_DIR
+    ( cd $LAB_NB_DIR;
 set -x
       #ls -altrd ${LAB_NB%.ipynb}.md *.ipynb | tail -2 | NB_COLOUR green;
       # echo HERE | NB_COLOUR blue
@@ -892,7 +892,7 @@ set -x
       MD_CELLS=$( jq -rc 'def count(stream): reduce stream as $i (0; .+1); count(.cells[]? | select(.cell_type=="markdown")) ' $IP_NB)
       printf "%-30s: %3d cells [ %2d code + %2d markdown ]\n" ${IP_NB} $TOTAL_CELLS $CODE_CELLS $MD_CELLS
 
-      OP_NB=$( ls -1tr $NB_DIR/OP_*.ipynb | tail -1 )
+      OP_NB=$( ls -1tr $LAB_NB_DIR/OP_*.ipynb | tail -1 )
       [ -z "$OP_NB" ] && {
           echo "NB_QUIET_FILTER_NOTEBOOK: Failed to find output notebook"
           set -x
@@ -907,7 +907,7 @@ set -x
       SECTIONS_FILE=$( basename $OP_NB )
       SECTIONS_FILE=${SECTIONS_FILE%.ipynb}
       SECTIONS_FILE=SECTIONS_${SECTIONS_FILE#OP_}.list
-      SAVE_NB_SECTIONS $OP_NB > $NB_DIR/$SECTIONS_FILE
+      SAVE_NB_SECTIONS $OP_NB > $LAB_NB_DIR/$SECTIONS_FILE
 
       OP_NB=$( basename $OP_NB )
       TOTAL_CELLS=$(jq -rc '.cells    | length' $OP_NB )
@@ -945,13 +945,13 @@ set -x
     __RETURN 0
 }
 
-function __CHECK_NB_DIR {
-    [ -z "$NB_DIR" ] && NB_DIR=$(cat .dir)
-    [ -z "$NB_DIR" ] && DIE "NB_DIR is unset"
+function __CHECK_LAB_NB_DIR {
+    [ -z "$LAB_NB_DIR" ] && LAB_NB_DIR=$(cat .dir)
+    [ -z "$LAB_NB_DIR" ] && DIE "LAB_NB_DIR is unset"
     # HACK:
-    export NB_DIR
-    env | grep -q ^NB_DIR= || DIE "NB_DIR is not exported"
-    echo "__CHECK_NB_DIR: NB_DIR='$NB_DIR'"
+    export LAB_NB_DIR
+    env | grep -q ^LAB_NB_DIR= || DIE "LAB_NB_DIR is not exported"
+    echo "__CHECK_LAB_NB_DIR: LAB_NB_DIR='$LAB_NB_DIR'"
 }
 
 function REPLACE_OTF_TF {
@@ -1004,10 +1004,10 @@ function NBTOOL_FN {
 
 function NB_FILTER_NOTEBOOK {
 #set -x
-    __CHECK_NB_DIR
+    __CHECK_LAB_NB_DIR
     export LAB_NUM=$( echo $LAB_NAME | sed -e 's/^lab//i' -e 's/_lab//i' -e 's/ .*//' -e 's/\..*//' )
 
-    ( set -x; cd $NB_DIR;
+    ( set -x; cd $LAB_NB_DIR;
 
     mkdir -p $OP_DIR
     
@@ -1038,18 +1038,18 @@ function NB_FILTER_NOTEBOOK {
     TIMER_STOP="${LABEL}Took $TOOK secs [${HRS}h${MINS}m${SECS}]"
     NB_DEBUG "$TIMER_STOP"
     echo "======== FILTERING DONE ========================================================"
-    __CHECK_NB_DIR
+    __CHECK_LAB_NB_DIR
     #DIE "TODO: check nbtool.py output - TESTING"
 
     set -x 
-    ls -1tr $NB_DIR/$OP_DIR | grep filtered.ipynb$
+    ls -1tr $LAB_NB_DIR/$OP_DIR | grep filtered.ipynb$
     set +x
-    FILTERED_NOTEBOOK=$(ls -1tr $NB_DIR/$OP_DIR | grep filtered.ipynb$ | tail -1)
+    FILTERED_NOTEBOOK=$(ls -1tr $LAB_NB_DIR/$OP_DIR | grep filtered.ipynb$ | tail -1)
     FILTERED_NOTEBOOK=$OP_DIR/$FILTERED_NOTEBOOK
     [ -z "$FILTERED_NOTEBOOK" ] && {
         which python3
-        echo "[$PWD] Error: failed to find filtered *.ipynb in directory '$NB_DIR/$OP_DIR'"
-        ls -1tr $NB_DIR/$OP_DIR | grep .ipynb$ | NB_REPLACE_HOME_STDIN | sed 's/^/::/'
+        echo "[$PWD] Error: failed to find filtered *.ipynb in directory '$LAB_NB_DIR/$OP_DIR'"
+        ls -1tr $LAB_NB_DIR/$OP_DIR | grep .ipynb$ | NB_REPLACE_HOME_STDIN | sed 's/^/::/'
         exit 1
     }
     [ ! -f "$FILTERED_NOTEBOOK" ] && {
@@ -1145,9 +1145,9 @@ function NB_FILTER_NOTEBOOK {
 }
 
 function NB_CONVERT {
-    __CHECK_NB_DIR
+    __CHECK_LAB_NB_DIR
    (
-        cd $NB_DIR;
+        cd $LAB_NB_DIR;
 
         # TODO after nbconvert ??
         # ansi highlighting => strip output and add as separate html

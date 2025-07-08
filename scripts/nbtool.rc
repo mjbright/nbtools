@@ -26,7 +26,6 @@ echo "Setting LAB_NB to '$LAB_NB' from \$JPY_SESSION_NAME"
     echo "  -> Try saving/closing/reopening notebook"
     exit 1
 }
-LAB_NB_DIR=$PWD
 
 ## TODO: If need to reactivate
 [ -f ~/.venv/TRAINING/bin/activate ] && {
@@ -34,8 +33,8 @@ LAB_NB_DIR=$PWD
     ## source ~/.venv/TRAINING/bin/activate >/dev/null 2>&1
 }
 
-export NB_DIR=$PWD
-echo "export NB_DIR=$NB_DIR"
+export LAB_NB_DIR=$PWD
+echo "export LAB_NB_DIR=$LAB_NB_DIR"
 
 #echo "--- \${BASH_SOURCE[0]}='${BASH_SOURCE[0]}'"
 #echo "--- \${BASH_SOURCE[1]}='${BASH_SOURCE[1]}'"
@@ -99,8 +98,8 @@ if [ ! -z "$1" ]; then
 
     case $PWD in
         */tf-intro*)     LABS_VERSION_DIR=labs;     LABS_INFO_VERSION=tf;    LABS_VERSION_SRC_DIR=tf-intro;;
-        */tf-azure*)     LABS_VERSION_DIR=labs.aza; LABS_INFO_VERSION=tfaza; LABS_VERSION_SRC_DIR=tf-adv-azure;;
-        */tf-adv-azure*) LABS_VERSION_DIR=labs.az;  LABS_INFO_VERSION=tfaz;  LABS_VERSION_SRC_DIR=tf-azure;;
+        */tf-azure*)     LABS_VERSION_DIR=labs.az;  LABS_INFO_VERSION=tfaz;  LABS_VERSION_SRC_DIR=tf-azure;;
+        */tf-adv-azure*) LABS_VERSION_DIR=labs.aza; LABS_INFO_VERSION=tfaza; LABS_VERSION_SRC_DIR=tf-adv-azure;;
         *)   
             echo "error[nbtool.rc]: Current folder doesn't match one of implemented folders"
             echo "error[nbtool.rc]: $PWD: implement LAB vars for $NB"
