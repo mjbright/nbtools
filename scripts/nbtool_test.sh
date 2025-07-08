@@ -2,6 +2,8 @@
 
 IP_NB=~/src/mjbright.labs-terraform-private/tf-intro/10.Revision/IP_TF_Lab10.Revision.ipynb
 
+#IP_NB=~/src/mjbright.labs-terraform-private/tf-intro/FULL_NOTEBOOK/IP_FULL.ipynb
+
 
 #IP_NB=~/src/github.com/GIT_mjbright/labs-terraform-private/tf-intro/10.Revision/IP_TF_Lab10.Revision.ipynb
 #src/github.com/GIT_mjbright/nbtools
@@ -60,14 +62,27 @@ RUN_TEST() {
 	    #LAB_NUM=$( echo ${FILE} | sed -e 's/.*_lab//' )
 	    ;;
 
-        *) die "Failed to find lab number in $FILE";;
+        ip_full*)
+	    LAB_NUM="FULL";;
+
+        *)  die "Failed to find lab number in $FILE";;
     esac
 
     case $LAB_NUM in
-	[1-9]) ;;
+	[1-9])      ;;
 	[1-9][0-9]) ;;
-	*) die "Failed to find numeric lab number in [$LAB_NUM] $IP_NB";;
+
+	FULL)       ;;
+
+	*)          die "Failed to find numeric lab numberor 'FULL' in [$LAB_NUM] $IP_NB";;
     esac
+
+    [ ${NBTOOL_VERSION} -eq 2 ] && {
+	    echo "WAS: '$NBTOOL_DIR'"
+	    NBTOOL_DIR=$NBTOOL_DIR/nbtools2
+	    echo "WAS: '$NBTOOL_DIR'"
+    }
+    read -p "NBTOOL version $NBTOOL_VERSION"
 
     [ -z "$NBTOOL_RC"  ] && NBTOOL_RC=$NBTOOL_DIR/nbtool.rc
     [ -z "$NBTOOL_FN"  ] && NBTOOL_FN=$NBTOOL_DIR/nbtool.fn
@@ -80,10 +95,22 @@ RUN_TEST() {
 
     IP_DIR=${IP_NB%/*}
     [ ! -f $IP_NB ] && die "No such i/p notebook as $IP_NB"
-    OLD_OP_MD=$IP_DIR/$( grep -m1 "/nbtool.rc .* OP_TF" $IP_NB | awk '{ print $5; }' | sed -e 's/" *$//' ).md
+
+    if [ "$LAB_NUM" = "FULL" ]; then
+        OLD_OP_MD=$IP_DIR/OP_TF_OP_MODE_FULL.md
+    else
+        OLD_OP_MD=$IP_DIR/$( grep -m1 "/nbtool.rc .* OP_TF" $IP_NB | awk '{ print $5; }' | sed -e 's/" *$//' ).md
+    fi
     [ ! -f $OLD_OP_MD ] && die "No such o/p markdown as $OLD_OP_MD"
 
-    TMP=~/tmp/NBTOOLS/${LAB_NUM}.test${NBTOOL_VERSION}
+    SUBDIR="unknown"
+    case $IP_NB in
+        */tf-intro/*) SUBDIR="tf-intro";;
+        */tf-azure/*) SUBDIR="tf-azure";;
+        */tf-adv-azure/*) SUBDIR="tf-adv-azure";;
+	*) die "IP_NB Needs to be in recognized subdir - implemented in nbtool.rc"
+    esac
+    TMP=~/tmp/NBTOOLS/${SUBDIR}/${LAB_NUM}.test${NBTOOL_VERSION}
     mkdir -p ${TMP}
     echo ${TMP} | tee ${TMP}/.dir
 
@@ -101,6 +128,7 @@ RUN_TEST() {
 
     cd ${TMP}/
     echo "-- [$PWD] -- [Lab $LAB_NUM] Processing notebook: -------------------------"
+    read -p "RUN_TEST: About to process ... "
     
     NBTOOL_RC_args=$( grep -m1 "/nbtool.rc " $IP_NB | sed -e 's/"$//' -e 's/.*nbtool.rc //')
     
@@ -109,23 +137,28 @@ RUN_TEST() {
     
     export JPY_SESSION_NAME=$IP_NB
     
+    read -p "RUN_TEST: About to source $NBTOOL_RC ... "
     CMD="source $NBTOOL_RC $NBTOOL_RC_args"
     echo "-- $CMD"
     $CMD
     
+    read -p "RUN_TEST: About to source $NBTOOL_FN ... "
     CMD="source $NBTOOL_FN"
     echo "-- $CMD"
     $CMD
     #exit
     
     #set -x
+    read -p "RUN_TEST: About to call NB_QUIET ... "
     NB_QUIET
     
     echo; echo "-- Checking for die/occur in ~/tmp/quiet.filter.notebook.op"
     grep -iE "die|occur" ~/tmp/quiet.filter.notebook.op
     cp ~/tmp/quiet.filter.notebook.op $TMP/
 
+    read -p "RUN_TEST: Checking for OP_*.md"
     NEW_OP_MD=$( ls -1tr ${TMP}/OP_*.md | tail -1 )
+    read -p "RUN_TEST: DONE RUN_TEST"
 }
 
 ## -- Args: ---------------------------------------------------------------------------
@@ -133,12 +166,15 @@ RUN_TEST() {
 ABS_PATH=0
 NBTOOL_VERSION=1
 
+set -- -diff12
+
 while [ ! -z "$1" ]; do
     case $1 in
         -2) NBTOOL_VERSION=2;;
 
 	-diff12)
             SAVE_PWD=$PWD
+	    read -p "1: About to run RUN_TEST "
             RUN_TEST
 	    TMP1=$TMP
 	    [ -z "$NEW_OP_MD" ] && die "1: NEW_OP_MD is unset"
@@ -146,6 +182,7 @@ while [ ! -z "$1" ]; do
 
             cd $SAVE_PWD
             NBTOOL_VERSION=2
+	    read -p "2: About to run RUN_TEST "
             RUN_TEST
 	    TMP2=$TMP
 	    [ -z "$NEW_OP_MD" ] && die "2: NEW_OP_MD is unset"
