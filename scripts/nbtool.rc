@@ -69,17 +69,19 @@ if [ ! -z "$1" ]; then
     [ ! -z "$1" ] && export MD_TITLE="$1"
     echo "-- exporting MD_TITLE='$MD_TITLE'"
 
-    if [ $OPENTOFU -ne 0 ]; then
-        echo "******** Selecting TOFU mode"
-        [ "$LAB_MODE" != "Terraform"         ] && die "~/.opentofu: expected LAB_MODE='Terraform'"
-        #[ "${LAB_NAME#OP_TF_}" = "$LAB_NAME" ] && die "~/.opentofu: expected LAB_NAME='OP_TF_*'"
+    if [ "$LAB_MODE" = "Terraform" ]; then
+        if [ "$OPENTOFU" = "1" ]; then
+            echo "******** Selecting TOFU mode"
+            [ "$LAB_MODE" != "Terraform"         ] && die "~/.opentofu: expected LAB_MODE='Terraform'"
+            #[ "${LAB_NAME#OP_TF_}" = "$LAB_NAME" ] && die "~/.opentofu: expected LAB_NAME='OP_TF_*'"
 
-        export LAB_MODE="Tofu"
-        export LAB_NAME=OP_OTF_${LAB_NAME#OP_TF_}
-        [ "${LAB_NAME#OP_OTF_}" = "$LAB_NAME" ] && die "~/.opentofu: expected modified LAB_NAME='OP_OTF_*'"
-
-        #echo "OpenTofu Mode:"
-        env | grep ^LAB_ | sed 's/^/    /'
+            export LAB_MODE="Tofu"
+            export LAB_NAME=OP_OTF_${LAB_NAME#OP_TF_}
+            [ "${LAB_NAME#OP_OTF_}" = "$LAB_NAME" ] && die "~/.opentofu: expected modified LAB_NAME='OP_OTF_*'"
+    
+            #echo "OpenTofu Mode:"
+            env | grep ^LAB_ | sed 's/^/    /'
+        fi
     fi
 
     case $LAB_MODE in
@@ -96,7 +98,11 @@ if [ ! -z "$1" ]; then
         return 1
     }
 
+    pwd
     case $PWD in
+        # ????
+        *LinuxFoundation-LFD459-Devel/Ex*) LABS_VERSION_DIR=labs;     LABS_INFO_VERSION=LFD459;    LABS_VERSION_SRC_DIR=k8s-lfd459;;
+
         */tf-intro*)     LABS_VERSION_DIR=labs;     LABS_INFO_VERSION=tf;    LABS_VERSION_SRC_DIR=tf-intro;;
         */tf-azure*)     LABS_VERSION_DIR=labs.az;  LABS_INFO_VERSION=tfaz;  LABS_VERSION_SRC_DIR=tf-azure;;
         */tf-adv-azure*) LABS_VERSION_DIR=labs.aza; LABS_INFO_VERSION=tfaza; LABS_VERSION_SRC_DIR=tf-adv-azure;;
