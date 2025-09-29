@@ -381,6 +381,11 @@ typeset -f > $FN_0_LIST
 # SETUP     FUNCTIONS: ------------------------------------------------
 # Source .jupyer.profile, then demonstrate kubectl working:
 
+function NB_HIGHLIGHT       { grep --color=always -E "|.*${*}.*"; return 0; }
+function NB_HIGHLIGHT_EOL   { grep --color=always -E "|${*}.*";   return 0; }
+function NB_HIGHLIGHT_SOL   { grep --color=always -E "|.*${*}";   return 0; }
+function NB_HIGHLIGHT_MATCH { grep --color=always -E "${*}";    return 0; }
+
 function DIE {
     MESSAGE="$*"
     echo "==== START_DIE: $MESSAGE"
@@ -409,7 +414,6 @@ function DIE {
     echo "==== END: $MESSAGE"
     exit 1
 }
-
 
 function NB_CHECK_FILE_SIZE {
     local FILE=$1; shift;
@@ -1268,11 +1272,6 @@ function NB_EXEC                    { $*;                                 return
 # __* FUNCTIONS: ------------------------------------------------
 
 function NB_HIDE            { grep -v $* ;                        return 0; }
-
-function NB_HIGHLIGHT       { grep --color=always -E "|.*${*}.*"; return 0; }
-function NB_HIGHLIGHT_EOL   { grep --color=always -E "|${*}.*";   return 0; }
-function NB_HIGHLIGHT_SOL   { grep --color=always -E "|.*${*}";   return 0; }
-function NB_HIGHLIGHT_MATCH { grep --color=always -E "${*}";    return 0; }
 
 #echo HELLO WORLD from Jupyter | __HIGHLIGHT WORLD
 #echo HELLO WORLD from Jupyter | __HIGHLIGHT_EOL WORLD

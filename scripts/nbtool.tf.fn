@@ -62,7 +62,7 @@ function __TF_ARGS {
 
 function TF_LOG_FILTER {
     #grep -iE " has moved | be |Plan:|complet|fail|error| to add" | grep -v " will be accepted "
-    grep -iE " has moved | be |Plan:|complet|fail|error| to add|^Group |^- Module " | grep -v " will be accepted "
+    grep -iE " has moved | be | forces |Plan:|complet|fail|error| to add|^Group |^- Module " | grep -v " will be accepted "
 }
 
 function TF_PLAN {
@@ -289,7 +289,7 @@ function TG_ALL {
     fi
     #AUTO="-auto-approve"
     AUTO="--non-interactive"
-    NB_DEBUG_INFO terragrunt $SUBCOMMAND --al $*
+    NB_DEBUG_INFO terragrunt $SUBCOMMAND --all $*
 
     __TF_ARGS "$1" || shift
 

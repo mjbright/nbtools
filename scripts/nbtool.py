@@ -166,6 +166,8 @@ REPLACE_COMMANDS = {
     "TF_DESTROY -q": "terraform destroy",
     "TF_DESTROY -t": "terraform destroy",
     "TF_DESTROY": "terraform destroy",
+    "TF_GET": "terraform get",
+    "TF_GRAPH": "terraform graph",
     "TF_SHOW": "terraform show",
     "TF_STATE": "terraform state",
     "TF_OUTPUT": "terraform output",
@@ -179,6 +181,8 @@ REPLACE_COMMANDS = {
     #'EOF```':      'EOF\n```\n',
 }
 
+# OK: TF_INIT TF_PLAN TF_APPLY TF_DESTROY TF_GRAPH TF_SHOW TF_STATE TF_OUTPUT TF_IMPORT TF_FMT TF_TEST TF_VALIDATE TF_GET
+# TODO: ?? TF_LOG_FILTER ??
 
 def get_longest_matching_key(mydict, search):
     found_len = 0
