@@ -1740,5 +1740,5 @@ def split_nb(json_data, DEBUG=False):
 
 
 if __name__ == "__main__":
-    print(f'-- running sys.argv[0]')
+    print(f'-- running sys.argv[0] with args [{ ', '.join(sys.argv[1:])}]')
     main()
