@@ -71,3 +71,21 @@ jq .  $FULL_IPYNB | grep -iq took && {
     ls -al $TIMING
 }
 
+OP_FULL_MD=$( ls -1 -tr FULL_NOTEBOOK/OP_* | tail -1 )
+
+echo; echo "Checking for Functions/Variables remaining in OP markdown [$OP_FULL_MD]"
+
+echo "Checking for variables:"
+read -p "Press <enter>"
+grep '$__' $OP_FULL_MD
+
+echo "Checking for TF functions:"
+read -p "Press <enter>"
+grep 'TF_' $OP_FULL_MD | grep -v TF_Intro | grep -v TF_VAR_ | grep -v TF_PLUGIN_CACHE_DIR |
+    grep -v /OP_TF_Lab | grep -v /IP_TF_Lab | \
+    grep -v /OP_OTF_Lab | grep -v /IP_OTF_Lab
+
+echo "Checking for NB functions:"
+read -p "Press <enter>"
+grep 'NB_' $OP_FULL_MD | grep -v 'NB_SAVE -->'
+
