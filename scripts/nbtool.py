@@ -1130,6 +1130,11 @@ def process_markdown_cell(
     count_sections,
 ):
     source_line0 = source_lines[0]
+  
+    # First pass: aut-correct lists by inserting blank line before/after list items:
+    for slno in range(len(source_lines)):
+        if source_lines[slno].startswith('- '):
+            source_lines[slno] = '\n' + source_lines[slno] + '\n'
 
     for slno in range(len(source_lines)):
         source_line = source_lines[slno]
