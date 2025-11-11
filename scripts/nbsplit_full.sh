@@ -45,22 +45,43 @@ jq . $FULL_IPYNB > $FULL_ML_IPYNB
 [ ! -f $FULL_ML_IPYNB ] && die "No such input notebook file: $FULL_ML_IPYNB"
 [ ! -f $FULL_MD       ] && die "No such output markdown file: $FULL_MD"
 
+#source FULL_NOTEBOOK/IPFILES.rc
+#echo IP_FILES=$IP_FILES
+#exit
+
 NB_START=$(grep -c '#START:' $FULL_ML_IPYNB)
 NB_END=$(grep -c '#END:' $FULL_ML_IPYNB)
 MD_START=$(grep -c '#START:' $FULL_MD)
 MD_END=$(grep -c '#END:' $FULL_MD)
 
 STOP=0
-echo "Notebook is $FULL_IPYNB"
-echo "ML Notebook is $FULL_ML_IPYNB"
-echo "ML Notebook has $NB_START START blocks, markdown has $MD_START"
-echo "ML Notebook has $NB_END END blocks, markdown has $MD_END"
-[ "$NB_START" != "$MD_START" ] && { STOP=1; echo "Error: Notebook has $NB_START START blocks, markdown has only $MD_START"; }
-[ "$NB_END"   != "$MD_END"   ] && { STOP=1; echo "Error: Notebook has $NB_END END blocks, markdown has only $MD_END"; }
+echo "O/p Markdown is $FULL_MD"
+ls -al $FULL_MD
+echo "I/p Notebook is $FULL_IPYNB"
+ls -al $FULL_IPYNB
+echo "Multi-line i/p Notebook is $FULL_ML_IPYNB"
+ls -al $FULL_ML_IPYNB
+echo "Multi-line i/p Notebook has $NB_START START blocks, o/p markdown has $MD_START"
+echo "Multi-line i/p Notebook has $NB_END END blocks, o/p markdown has $MD_END"
+[ "$NB_START" != "$MD_START" ] && {
+    STOP=1; echo "Error: Notebook has $NB_START START blocks, markdown has only $MD_START";
+    #grep -c '#START:' $IP_FILES
+    #grep -c '#END:' $IP_FILES
+}
+[ "$NB_END"   != "$MD_END"   ] && {
+    STOP=1; echo "Error: Notebook has $NB_END END blocks, markdown has only $MD_END";
+    #grep -c '#START:' $IP_FILES
+    #grep -c '#END:' $IP_FILES
+}
+
+[ $STOP -ne 0 ] && {
+    echo
+    echo "Were i/p & o/p notebooks saved before markdown creation?"
+    ls -al -tr FULL_NOTEBOOK/IP_FULL*.ipynb FULL_NOTEBOOK/OP_*.{ipynb,md}
+    exit
+}
 
 ls -al $FULL_MD
-[ $STOP -ne 0 ] && exit
-
 set -x
 ~/scripts/nbsplit_full.py $FULL_MD
 set +x
