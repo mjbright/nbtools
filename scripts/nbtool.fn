@@ -156,16 +156,19 @@ function NB_SAVE_SOLUTION {
 }
 
 function NB_SAVE_STEP {
-    local LAB_SECTION=$1; shift
-    local STEP=$1; shift
+    #[ ! -z "$2" ] && die "NB_SAVE_STEP needs adapting to new single-arg format not 'NB_SAVE_STEP $*'"
+    local LAB_LABEL=$1; shift
+    #local LAB_SECTION=$1; shift
+    #local STEP=$1; shift
+    #local LAB_LABEL="${LAB_SECTION}-${STEP}"
 
-    __NB_SAVE_FILES STEPS/${LAB_SECTION}-${STEP} $*
+    __NB_SAVE_FILES STEPS/${LAB_LABEL} $*
 
     INFO=$( basename $LABS_INFO_DIR )
     INFO=${INFO#LAB_INFO.}
 
     mkdir -p ~/tmp/nb.progress
-    COPY_LOG=~/tmp/nb.progress/${INFO}.${LAB_SECTION}.${STEP}.log
+    COPY_LOG=~/tmp/nb.progress/${INFO}.${LAB_LABEL}.log
     cp $PROGRESS_LOG $COPY_LOG
     echo "Progress log saved to $COPY_LOG"
 }
