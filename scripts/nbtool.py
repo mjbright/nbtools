@@ -177,6 +177,7 @@ REPLACE_COMMANDS = {
     "TF_TEST": "terraform test",
     "K_GET": "kubectl get",
     "K_CREATE": "kubectl create",
+    "jq -M":    "jq",
     "NB_CODE": "",
     #'EOF```':      'EOF\n```\n',
 }
