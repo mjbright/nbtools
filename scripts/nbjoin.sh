@@ -5,7 +5,12 @@ REPO_DIR=~/src/mjbright.labs-terraform-private
 
 TOFU=0
 . ~/.tool
+#export TOOL=terraform
 [ $OPENTOFU -ne 0 ] && TOFU=1
+
+[ "$1" = "-otf" ] && { OPENTOFU=1; TOFU=1; }
+[ "$1" = "-tf"  ] && { OPENTOFU=0; TOFU=0; }
+echo "TOFU=$TOFU OPENTOFU=$OPENTOFU TOOL_VERSION=$TOOL_VERSION TOOL=$TOOL"
 
 die() {
     echo >&2
@@ -13,9 +18,11 @@ die() {
     echo -e "$0: die - $*" >&2; exit 1
 }
 
-[ "$1" = "-otf" ] && { OPENTOFU=1; TOFU=1; }
-[ "$1" = "-tf"  ] && { OPENTOFU=0; TOFU=0; }
-echo "TOFU=$TOFU OPENTOFU=$OPENTOFU TOOL_VERSION=$TOOL_VERSION TOOL=$TOOL"
+TOOL_INFO="From ~/.tool: [SHORT_TOOL=$SHORT_TOOL TOOL=$TOOL TOOL_VERSION=$TOOL_VERSION]"
+grep -q $TOOL_VERSION ~/.environment ||
+    die "$TOOL_INFO\nbut\tTOOL_VERSION '$TOOL_VERSION' doesn't match ~/.environment:\n\t\t$(cat ~/.environment)"
+grep -iq _$SHORT_TOOL ~/.environment ||
+    die "$TOOL_INFO\nbut\tSHORT_TOOL '$SHORT_TOOL' doesn't match ~/.environment:\n\t\t$(cat ~/.environment)"
 
 SRC_DIR=tf-intro
 case $PWD in
