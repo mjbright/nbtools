@@ -87,7 +87,10 @@ if [ ! -z "$1" ]; then
     case $LAB_MODE in
         Terraform|Tofu|Kubernetes|Ansible|Rego)
            ;;
-        *) echo "Error: unknown LAB_MODE '$LAB_MODE'"
+        TESTING)
+           echo "Info: using LAB_MODE '$LAB_MODE'"
+           ;;
+        *) echo "Error[$LINENO]: unknown LAB_MODE '$LAB_MODE'"
            return 1
            ;;
     esac
@@ -106,6 +109,7 @@ if [ ! -z "$1" ]; then
         */tf-intro*)     LABS_VERSION_DIR=labs;     LABS_INFO_VERSION=tf;    LABS_VERSION_SRC_DIR=tf-intro;;
         */tf-azure*)     LABS_VERSION_DIR=labs.az;  LABS_INFO_VERSION=tfaz;  LABS_VERSION_SRC_DIR=tf-azure;;
         */tf-adv-azure*) LABS_VERSION_DIR=labs.aza; LABS_INFO_VERSION=tfaza; LABS_VERSION_SRC_DIR=tf-adv-azure;;
+        */Ansible-Basics*) LABS_VERSION_DIR=labs.ans1; LABS_INFO_VERSION=ans1; LABS_VERSION_SRC_DIR=Ansible-Basics;;
         *)   
             echo "error[nbtool.rc]: Current folder doesn't match one of implemented folders"
             echo "error[nbtool.rc]: $PWD: implement LAB vars for $NB"

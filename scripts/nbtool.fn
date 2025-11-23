@@ -69,7 +69,7 @@ function NB_SAVE_ZIP {
             echo "LAB detected as tf-intro so zip copied to $DOWN_DIR/"
 
             mkdir -p $DOWN_DIR/
-            cp -a $ZIP $DOWN_DIR/LAB_INFO.zip
+            cp -av $ZIP $DOWN_DIR/LAB_INFO.zip
             ls -al $DOWN_DIR/*.zip
             ;;
         */tf-azure/*)
@@ -80,7 +80,7 @@ function NB_SAVE_ZIP {
             echo "LAB detected as tf-azure so zip copied to $DOWN_DIR/"
 
             mkdir -p $DOWN_DIR/
-            cp -a $ZIP $DOWN_DIR/LAB_INFO.zip
+            cp -av $ZIP $DOWN_DIR/LAB_INFO.zip
             ls -al $DOWN_DIR/*.zip
             ;;
         */tf-adv-azure/*)
@@ -91,7 +91,7 @@ function NB_SAVE_ZIP {
             echo "LAB detected as tf-adv-azure so zip copied to $DOWN_DIR/"
 
             mkdir -p $DOWN_DIR/
-            cp -a $ZIP $DOWN_DIR/LAB_INFO.zip
+            cp -av $ZIP $DOWN_DIR/LAB_INFO.zip
             ls -al $DOWN_DIR/*.zip
             ;;
         *)
@@ -115,23 +115,23 @@ function __NB_SAVE_FILES {
         Terraform|Tofu)
             if [ -z "$1" ]; then
               set -x
-                cp -a *.hcl *.tf *.tfvars *.tpl tpl/ *.cfg $DIR/ 2>/dev/null
+                cp -av *.hcl *.tf *.tfvars *.tpl tpl/ *.cfg $DIR/ 2>/dev/null
               set +x
             else
               rsync -av --exclude .terraform --exclude .terraform.lock.hcl --exclude .terragrunt-cache $* $DIR/ 2>/dev/null
               #set -x
-                #cp -a $*                       $DIR/ 2>/dev/null
+                #cp -av $*                       $DIR/ 2>/dev/null
               #set +x
             fi;;
         Kubernetes)
             if [ -z "$1" ]; then
               set -x
-                cp -a *.yaml *.yml *.json      $DIR/ 2>/dev/null
+                cp -av *.yaml *.yml *.json      $DIR/ 2>/dev/null
               set +x
             else
               rsync -av --exclude .terraform --exclude .terraform.lock.hcl --exclude .terragrunt-cache $* $DIR/ 2>/dev/null
               #set -x
-                #cp -a $*                       $DIR/ 2>/dev/null
+                #cp -av $*                       $DIR/ 2>/dev/null
               #set +x
             fi;;
     esac
@@ -625,8 +625,13 @@ function NB_INIT_NOTEBOOK {
             NB_SET_VAR TOOL="opa"
             ;;
 
+        TESTING)
+            TITLE_MODE="TESTING"
+            NB_SET_VAR TOOL="terraform"
+            ;;
+
         *)
-            echo "Error: Unknown LAB_MODE '$LAB_MODE' - should be one of 'Ansible|Docker|Terraform|Tofu|Kubernetes|Rego'" | NB_HIGHLIGHT
+            echo "Error[$LINENO]: Unknown LAB_MODE '$LAB_MODE' - should be one of 'Ansible|Docker|Terraform|Tofu|Kubernetes|Rego'" | NB_HIGHLIGHT
             banner ERR
             return
             ;;
@@ -794,7 +799,9 @@ function NB_ARCHIVE_LAB {
         mv ~/labs/$LAB ~/labs.old/
         # USELESS - but paranoid:
         [ -d ~/labs/$LAB ] && rm -rf ~/labs/$LAB/* ~/labs/$LAB/.terraform.lock.hcl
-    } >/dev/null 2>&1
+    } > /tmp/nb.archive.log 2>&1
+    [ -s /tmp/nb.archive.log ] && ls -al /tmp/nb.archive.log
+    return 0
 }
 
 function NB_ARCHIVE_SOLUTIONS {
@@ -806,7 +813,7 @@ function NB_ARCHIVE_SOLUTIONS {
     [ -d $SOLUTION_DIR ] && mv $SOLUTION_DIR $BAK_DIR/ 2>/dev/null
 
     mkdir -p $SOLUTION_DIR
-    cp -a *.yml *.yaml *.tf *.tfvars *.json $SOLUTION_DIR/ 2>/dev/null
+    cp -av *.yml *.yaml *.tf *.tfvars *.json $SOLUTION_DIR/ 2>/dev/null
 }
 
 #
@@ -1352,6 +1359,28 @@ function __RETURN {
     NB_DEBUG "return $RET [called from function ${FUNCNAME[1]}]"
     return $RET
 }
+
+function DO_CLEANUP {
+
+    CONTAINERS=$( docker ps -aq )
+    [ -z "$CONTAINERS" ] && echo "Cleanup: No containers to remove"
+    [ ! -z "$CONTAINERS" ] && {
+        echo "Cleanup: Destroying remaining containers: $CONTAINERS"
+        set -x; docker rm -f $CONTAINERS; set +x;
+    }
+
+    USER_NETWORKS=$( docker network ls |
+                     awk '$2 !~ /^bridge$/ && $2 !~ /^host$/ && $2 !~ /^none$/ && $3 !~ /^NAME$/ { print
+$2; }' )
+    [ -z "$USER_NETWORKS" ] && echo "Cleanup: No user-networks to remove"
+    [ ! -z "$USER_NETWORKS" ] && {
+        echo "Cleanup: Destroying remaining user-created networks: $USER_NETWORKS"
+        set -x; docker network rm $USER_NETWORKS; set +x;
+    }
+
+    return 0
+}
+
 
 # Main: source LAB_MODE specific functions:
 #set -x

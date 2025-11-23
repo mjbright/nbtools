@@ -2,7 +2,7 @@
 
 # cd $( dirname $0 )
 
-REPO_DIR=~/src/mjbright.labs-terraform-private
+# REPO_DIR=~/src/mjbright.labs-terraform-private
 
 die() {
     echo >&2
@@ -16,13 +16,34 @@ die() {
 [ "$1" = "-otf" ] && { OPENTOFU=1; TOFU=1; TOOL="tofu";      }
 [ "$1" = "-tf"  ] && { OPENTOFU=0; TOFU=0; TOOL="terraform"; }
 
-SRC_DIR=tf-intro
+#SRC_DIR=tf-intro
+#set -x
 case $PWD in
-    */tf-intro*) SRC_DIR=tf-intro; FLAVOUR=intro;;
-    */tf-azure*) SRC_DIR=tf-azure; FLAVOUR=azure;;
-    */tf-adv-azure*) SRC_DIR=tf-adv-azure; FLAVOUR=adv-azure;;
-    *) die "Move to tf-* directory\n\tunder $REPO_DIR";;
+    */tf-intro*) SRC_DIR=tf-intro; FLAVOUR=intro
+                 REPO_DIR=~/src/mjbright.labs-terraform-private
+	    ;;
+    */tf-azure*) SRC_DIR=tf-azure; FLAVOUR=azure
+                 REPO_DIR=~/src/mjbright.labs-terraform-private
+	    ;;
+    */tf-adv-azure*) SRC_DIR=tf-adv-azure; FLAVOUR=adv-azure
+                 REPO_DIR=~/src/mjbright.labs-terraform-private
+	    ;;
+    */Ansible-Basics*) SRC_DIR=Ansible-Basics; FLAVOUR=ans-basics
+	         TOOL=ansible
+	         TOOL=XXX
+                 REPO_DIR=~/src/mjbright.labs-ansible-private
+	    ;;
+    *)
+	    REPO_NAME=$( git remote -v | grep -m1 /mjbright/ | sed -e 's?.*mjbright/?mjbright.?' -e 's/ .*//' )
+	    echo REPO_NAME=$REPO_NAME
+	    [   -z "$REPO_NAME"       ] && die "[$PWD] Failed to determine repo dir"
+	    [ ! -d "~/src/$REPO_NAME" ] && die "[$PWD] No such repo dir as ~/src/$REPO_NAME"
+
+	    die "Move to ~/src/$REPO_NAME/*-* directory\n\tunder ~/src/$REPO_NAME/";;
 esac
+
+echo REPO_DIR=$REPO_DIR
+#exit
 
 FULL_IPYNB=FULL_NOTEBOOK/IP_FULL.ipynb
 FULL_ML_IPYNB=FULL_NOTEBOOK/IP_FULL.multiline.ipynb
@@ -30,11 +51,16 @@ FULL_ML_IPYNB=FULL_NOTEBOOK/IP_FULL.multiline.ipynb
 [ ! -f $FULL_IPYNB ] && die "No such file as '$FULL_IPYNB'"
 
 case $TOOL in
-    tofu)      FULL_MD=FULL_NOTEBOOK/OP_OTF_OP_MODE_FULL.md;;
+    tofu)   FULL_MD=FULL_NOTEBOOK/OP_OTF_OP_MODE_FULL.md;;
     terraform)
 	    FULL_MD=FULL_NOTEBOOK/OP_TF_OP_MODE_FULL.md
 	    # HACK:
 	    cp FULL_NOTEBOOK/OP_MODE_FULL.md $FULL_MD
+	    ;;
+    XXX)
+	    FULL_MD=FULL_NOTEBOOK/OP_XXX_OP_MODE_FULL.md
+	    ;;
+    ansible)
 	    ;;
 esac
 
@@ -80,6 +106,15 @@ echo "Multi-line i/p Notebook has $NB_END END blocks, o/p markdown has $MD_END"
     ls -al -tr FULL_NOTEBOOK/IP_FULL*.ipynb FULL_NOTEBOOK/OP_*.{ipynb,md}
     exit
 }
+
+echo "Creating folders if not present:"
+for IPYNB in $( awk '/ #START: / { print $3; }' FULL_NOTEBOOK/OP_XXX_OP_MODE_FULL.md ); do
+    DIR=$( dirname $IPYNB )
+    [ ! -d $DIR ] && {
+        echo "-- mkdir -p $DIR"
+        mkdir -p $DIR
+    }
+done
 
 ls -al $FULL_MD
 set -x
