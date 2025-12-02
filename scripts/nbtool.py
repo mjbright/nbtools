@@ -172,13 +172,14 @@ REPLACE_COMMANDS = {
     "TF_STATE": "terraform state",
     "TF_OUTPUT": "terraform output",
     "TF_IMPORT": "terraform import",
-    "TF_FMT": "terraform fmt",
+    "TF_FMT":      "terraform fmt",
     "TF_VALIDATE": "terraform validate",
-    "TF_TEST": "terraform test",
-    "K_GET": "kubectl get",
+    "TF_TEST":  "terraform test",
+    "K_GET":    "kubectl get",
     "K_CREATE": "kubectl create",
-    "jq -M":    "jq",
-    "NB_CODE": "",
+    "jq -Mrc ": "jq -rc ",
+    "jq -M ":   "jq ",
+    "NB_CODE":  "",
     #'EOF```':      'EOF\n```\n',
 }
 
@@ -1043,13 +1044,12 @@ def process_code_cell(
         # TODO: extend for multiple replacements (will never happen ? :)
         REPLACE_CMD = get_longest_matching_key(REPLACE_COMMANDS, source_line)
         if REPLACE_CMD:
-            pos = cells_data[cell_no]["source"][slno].find(REPLACE_CMD) + len(
-                REPLACE_CMD
-            )
+            pos1 = cells_data[cell_no]["source"][slno].find(REPLACE_CMD)
+            pos2 = cells_data[cell_no]["source"][slno].find(REPLACE_CMD) + len(REPLACE_CMD)
             cells_data[cell_no]["source"][slno] = (
-                REPLACE_COMMANDS[REPLACE_CMD]
-                + " "
-                + cells_data[cell_no]["source"][slno][pos:]
+                cells_data[cell_no]["source"][slno][:pos1] +
+                REPLACE_COMMANDS[REPLACE_CMD] + " " +
+                cells_data[cell_no]["source"][slno][pos2:]
             )
             new_line = cells_data[cell_no]["source"][slno]
             if "-chk" in new_line:
