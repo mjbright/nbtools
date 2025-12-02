@@ -68,6 +68,8 @@ function NB_SAVE_ZIP {
             [ ! -d $MK_DIR ] && { echo "ERROR: No such dir as $MK_DIR"; return; }
             echo "LAB detected as tf-intro so zip copied to $DOWN_DIR/"
 
+            echo $ENVIRONMENT | grep -iq "tf-intro" ||
+                die "Expected 'tf-intro' in ~/.environment"
             mkdir -p $DOWN_DIR/
             cp -av $ZIP $DOWN_DIR/LAB_INFO.zip
             ls -al $DOWN_DIR/*.zip
@@ -79,6 +81,8 @@ function NB_SAVE_ZIP {
             [ ! -d $MK_DIR ] && { echo "ERROR: No such dir as $MK_DIR"; return; }
             echo "LAB detected as tf-azure so zip copied to $DOWN_DIR/"
 
+            echo $ENVIRONMENT | grep -iq "tf-azure" ||
+                die "Expected 'tf-azure' in ~/.environment"
             mkdir -p $DOWN_DIR/
             cp -av $ZIP $DOWN_DIR/LAB_INFO.zip
             ls -al $DOWN_DIR/*.zip
@@ -90,6 +94,8 @@ function NB_SAVE_ZIP {
             [ ! -d $MK_DIR ] && { echo "ERROR: No such dir as $MK_DIR"; return; }
             echo "LAB detected as tf-adv-azure so zip copied to $DOWN_DIR/"
 
+            echo $ENVIRONMENT | grep -iq "tf-adv-azure" ||
+                die "Expected 'tf-adv-azure' in ~/.environment"
             mkdir -p $DOWN_DIR/
             cp -av $ZIP $DOWN_DIR/LAB_INFO.zip
             ls -al $DOWN_DIR/*.zip
@@ -888,10 +894,11 @@ function NB_QUIET_FILTER_NOTEBOOK {
     ls -al ~/tmp/quiet.filter.notebook.op | NB_COLOUR red
     __CHECK_LAB_NB_DIR
     ( cd $LAB_NB_DIR;
-set -x
+      #set -x
       #ls -altrd ${LAB_NB%.ipynb}.md *.ipynb | tail -2 | NB_COLOUR green;
       # echo HERE | NB_COLOUR blue
-      ls -altrd ${LAB_NB%.ipynb}.md *.ipynb | NB_COLOUR green;
+      #ls -altrd ${LAB_NB%.ipynb}.md *.ipynb | NB_COLOUR green;
+      ls -altrd *.md *.ipynb | NB_COLOUR green;
       # echo HERE | NB_COLOUR blue
 
       IP_NB=${LAB_NB}
@@ -937,10 +944,11 @@ set -x
       OP_MD=${OP_NB%.ipynb}.md
       [ ! -f "$OP_MD" ] && echo "Warning: No md file '$OP_MD'"
       ESCAPES=$( grep -c $'\x1b' $OP_MD )
-      [ "$ESCAPES" != "0" ] && echo "Warning $ESCAPES escape code lines seen in markdown ($OP_MD)"
-          # || echo "OK: No NB_DEBUG entries seen in $OP_NB"
-          #set -x
-          echo "Warning $ESCAPES escape code lines seen in markdown ($OP_MD)"
+      #ESCAPES=$( echo $ESCAPES )
+      [ "$ESCAPES" != "0" ] && echo "Warning '$ESCAPES' escape code lines seen in markdown ($OP_MD)"
+      #    # || echo "OK: No NB_DEBUG entries seen in $OP_NB"
+      #    #set -x
+      #echo "Warning $ESCAPES escape code lines seen in markdown ($OP_MD)"
     )
 
     #set -x
@@ -1179,9 +1187,7 @@ function NB_CONVERT {
         [ ! -f $F_NOTEBOOK ] && DIE "No such 'output' notebook '$F_NOTEBOOK' as input to nbconvert"
         ls -al $F_NOTEBOOK
         CMD="jupyter-nbconvert --to markdown $F_NOTEBOOK"
-        echo "-- $CMD"; $CMD
-        #CMD="jupyter-nbconvert --to html $F_NOTEBOOK"
-        #echo "-- $CMD"; $CMD
+        echo "-- $CMD" | tee ~/tmp/nbconvert.cmd ; set -x; $CMD; set +x
 
         F_NOTEBOOK_MD=${F_NOTEBOOK%.ipynb}.md
         [ ! -f $F_NOTEBOOK_MD ] && DIE "No such 'output' notebook '$F_NOTEBOOK_MD' from nbconvert"
