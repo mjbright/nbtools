@@ -180,6 +180,26 @@ REPLACE_COMMANDS = {
     "jq -Mrc ": "jq -rc ",
     "jq -M ":   "jq ",
     "NB_CODE":  "",
+
+    # TG Terragrunt substitutions:
+    "TG_ALL apply -q":   "terragrunt apply --all",
+    "TG_ALL destroy -q": "terragrunt destroy --all",
+    "TG_ALL init":       "terragrunt init --all",
+    "TG_ALL plan -q":    "terragrunt plan --all",
+    "TG_ALL state list": "terragrunt state list --all",
+    "TG_APPLY -q":       "terragrunt apply",
+    "TG_PLAN -q":        "terragrunt plan",
+
+    # But no such function ??!! where is this in notebooks?
+    # - /home/student/src/mjbright.labs-terraform-private/tf-adv-azure/5.Terragrunt/TFAZA_Lab5.OP.Terragrunt.ipynb
+    # - /home/student/src/mjbright.labs-terraform-private/tf-adv-azure/6.RemoteState/IP_TFAZA_LAB6b.TG_remoteState.ipynb
+    # - /home/student/src/mjbright.labs-terraform-private/tf-adv-azure/6.RemoteState/OP_TFAZA_Lab6b.TG_remoteState.ipynb
+    "TG_RUN_ALL apply -q":   "terragrunt apply --all",
+    "TG_RUN_ALL destroy -q": "terragrunt destroy --all",
+    "TG_RUN_ALL init -q":    "terragrunt init --all",
+    "TG_RUN_ALL plan -q":    "terragrunt plan --all",
+    "TG_RUN_ALL state list": "terragrunt state list --all",
+
     #'EOF```':      'EOF\n```\n',
 }
 
